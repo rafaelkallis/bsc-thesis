@@ -1,0 +1,11 @@
+## Sprint 1
+- [] MongoDB instance
+- [] Unit testing boilerplate
+- [] initialize oak instance
+- [] create property index
+- [] insert node operation
+- [] insert property operation
+- [] remove node operation
+- [] remove property operation
+- [] query operation
+- [] create avoidable conflict (Figure 3)
