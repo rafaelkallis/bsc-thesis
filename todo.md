@@ -6,5 +6,7 @@
 - [x] insert property operation
 - [x] remove node operation
 - [x] remove property operation
-- [] query operation
+- [x] query operation
 - [x] create avoidable conflict (Figure 3)
+- [] introduction
+- [] examples: write
