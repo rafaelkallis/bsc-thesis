@@ -48,7 +48,8 @@ A node's properties, are represented by key-value pairs inside the node's JSON d
     
 // Figure 2.1: internal node representation.
 
-In order to support MVCC, Oak keeps a history of values each property had in the past such that we are able to tell when each value was persisted and which Oak instance committed the change. In Figure 3, we take a look at node "/a/c" and see how "x"'s value changes over time.
+In order to support MVCC, Oak keeps a history of values each property had in the past such that we are able to tell when each value was persisted and which Oak instance committed the change. 
+In Figure 3, we take a look at node "/a/c" and see how "x"'s value changes over time.
 Each value's key is composed with a timestamp, a counter that is used to differentiate between value changes during the same instance of time and the identifier of the oak instance committing the change.
 Let's consider "r15cac0dbb00-0-2".
 "r" is a standard prefix and can be neglected.
@@ -84,7 +85,7 @@ Definition 3.1.1 (CAS-query): Q_{k,v,m} = {n | n[k] == v && n ∈ desc(m)}, wher
 // Example 3.1.1
 G:
         [root]
-                \        
+             \        
             [a, x: "3"] 
                 |       \
             [b, x:"3"]   [c]
@@ -123,7 +124,7 @@ Input: Triple(k, v, m), where k is a property, v a value and m a node.
 |_  return r
 Where λ is a node's label, i.e node /a/c has "c" as a label , | is the concatenation operator, par(m) returns the parent node of m and d[k] returns the latest value of property k on node d.
 
-We see that Algorithms 3.1's performance is dependent on the node m's depth (1st loop) and on the number of descendants of n (2nd loop). 
+We see that Algorithms 3.1's performance is dependent on the node m's tree depth (1st loop) and on the number of descendants of n (2nd loop). 
 
 Descendants of a node in the PI are not guaranteed to satisfy a CAS query. 
 Let's consider example 3.1.2
@@ -195,14 +196,14 @@ DeltaT_1 = {
 Note that if we remove property "x" from "/a/b", we also have to update the PI.
 
 After T_1 calculates the write set, it check whether other transactions had conflicting updates.
-We will see later how a transaction determines wether there are conflicting changes later.
+We will see how a transaction determines wether there are conflicting changes later.
 In order to keep things simple, we will assume that T_1 started after all other transactions finished, which implies there are no conflicting changes. (reference: Database Systems, Catherine Ricardo p. 445).
 
 Since we passed the validation we can commit the changes.
-All writes specified in the write are performed.
-The following example depict all change scenarios
+All actions specified in the write set are commited.
+The following example depict all scenarios
 
-wp(/a/c, x) (x:true added)
+a) wp(/a/c, x) (property x:true added)
 [
     {
         "_id": "2:/a/c",
@@ -215,7 +216,7 @@ wp(/a/c, x) (x:true added)
 ]
 
 
-wp(/a/c, x) (x:true -> x:false modified)
+b) wp(/a/c, x) (property x:true -> x:false modified)
 [
     {
         "_id": "2:/a/c",
@@ -228,20 +229,21 @@ wp(/a/c, x) (x:true -> x:false modified)
     /* ... */
 ]
 
-wp(/a/c, x) (x removed)
+c) wp(/a/c, x) (property x removed)
 [
     {
         "_id": "2:/a/c",
         "x": {
             "r15cabff1500-0-1": true,
-            "r15cac0dbb00-0-1": null
+            "r15cac0dbb00-0-1": false,
+            "r15cad0cbc00-0-1": null
         },
         /* ... */
     },
     /* ... */
 ]    
 
-wn(/a/c/d) (/a/c/d added)
+d) wn(/a/c/d) (node /a/c/d added)
 [
     {
         "_id": "3:/a/c/d",
@@ -253,7 +255,7 @@ wn(/a/c/d) (/a/c/d added)
     /* ... */
 ]
 
-wn(/a/c/d) (/a/c/d removed)
+e) wn(/a/c/d) (node /a/c/d removed)
 [
     {
         "_id": "3:/a/c/d",
@@ -265,6 +267,8 @@ wn(/a/c/d) (/a/c/d removed)
     },
     /* ... */
 ]
+
+
 
 G2:
         [root]

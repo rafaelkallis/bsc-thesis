@@ -1,0 +1,567 @@
+\documentclass[abstracton,12pt]{scrreprt}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{times}
+\usepackage{listings}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{pdfpages}
+\usepackage{forest}
+\usepackage{multicol}
+\usepackage{varwidth}
+\usepackage{verbatim}
+\usepackage[ruled,vlined]{algorithm2e}
+
+\forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
+
+% --------- 
+
+\titlehead{Department of Informatics, University of Zürich}
+\subject{\vspace*{2cm}BSc Vertiefungsarbeit}
+\title{Detecting Volatile lndex Nodes in a Hierarchical Database System}
+\author{
+  Rafael Kallis\\[-5pt]
+  \scriptsize Matrikelnummer: 14-708-887\\[-5pt]
+  \scriptsize Email: \texttt{rk@rafaelkallis.com}
+}
+\date{\vspace*{2cm}Oktober 3, 2017}
+\publishers{
+  \small supervised by Prof.\ Dr.\ Michael\ Böhlen and Kevin\ Wellenzohn \\[5cm]
+  \begin{tikzpicture}[overlay]
+    \node at (-3,-3) {\includegraphics[height=1.5cm]{IFIlogo}};
+    \node at (7,-3) {\includegraphics[height=1.5cm]{dbtgBW}};
+  \end{tikzpicture}
+}
+
+% \dedication{dedicated to xxx}
+
+% --------- 
+
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\newenvironment{proof}
+    {\noindent{\bf Proof:\rm}}{\hfill$\Box$\vspace{\medskipamount}}
+
+\newenvironment{centerverbatim}{\par\centering\varwidth{\linewidth}\verbatim}
+    {\endverbatim\endvarwidth\par}
+
+\def\bbbr{{\rm I\!R}}
+\def\bbbm{{\rm I\!M}}
+\def\bbbn{{\rm I\!N}}
+\def\bbbz{{\rm I\!Z}}
+
+% --------- 
+
+\begin{document}
+
+\maketitle
+
+% \chapter*{Acknowledgements}
+
+% \begin{abstract}
+%   ...
+% \end{abstract}
+
+% \chapter*{Zusammenfassung}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter{Introduction}
+ 
+A content store is a database system which supports hierarchical (tree-structured) data.
+It behaves similarly to a traditional file system, that is, storing files/ data with metadata.
+Like common relational DBMSs, content stores also can provide transactions and querying.
+
+Apache Jackrabbit Oak (reference) is such a tree-structured content store, with two design goals in mind.
+It needs to be able to \textbf{a)} \textit{operate in a distributed environment} and \textbf{b)} \textit{guarantee write throughput}.
+Multiple Oak instances can work concurrently by making use of MVCC (reference), a commonly used optimistic technique (reference).
+Whilst Oak is responsible for handling the database logic (?), Oak does not persist the data itself.
+It relies on MongoDB (reference), a popular document store, to persist the data.
+Although Oak is an Open-source project, it is being actively maintained by Adobe (reference).
+Adobe makes use of Oak in one of their products, specifically the Adobe Experience Manager (AEM).
+
+\begin{figure}[h]
+    \label{fig:architecture}
+    \centering
+    \includegraphics[width=8cm]{architecture}
+    \caption{Apache Jackrabbit Oak's system architecture. The application, Adobe Experience Manage in this figure, connects to Oak.}
+\end{figure}
+
+In the following pages, we will take a closer look at Oak.
+Specifically, we will see how Oak handles querying, writing and concurrency control.
+After that I will introduce you to an instance of a problem Oak is having and we will briefly introduce a solution which results in higher throughput under certain circumstances.
+We will revisit Oak's reference implementations and modify them in order to satisfy our solution.
+Lastly, we will formalize the solution.
+
+\chapter{Oak's Mechanics}
+
+\section{Persistence Tier}
+
+Before we get into the inner workings of Oak, we need to understand how Oak chose to persist data.
+As mentioned earlier, Oak's data is tree-structured and is stored in a MongoDB instance.
+\ref{fig:tree_and_json} shows a tree alongside its persisted state.
+Each tree node is persisted in the shape of a JSON document in MongoDB.
+Each node is identifiable its tree-depth concatenated with its absolute path from the root node, denoted as \texttt{"\_id"}.
+A node's properties, are represented by key-value pairs inside the node's JSON document.
+\texttt{"\_id"} can be considered as a property.
+
+\begin{figure}[h]
+    \label{fig:tree_and_json}
+    \centering
+    \begin{multicols}{3}
+        \begin{forest}
+            [{\scriptsize\texttt{root}}, circle, draw
+                [,phantom]
+                [$ \lambda:a $
+                    [$ \lambda:b $]
+                    [$ \lambda:c $]
+                ]
+            ]
+        \end{forest}
+        \footnotesize
+        \begin{centerverbatim}
+[
+    { "_id": "0:/",    /* ... */ },
+    { "_id": "1:/a",   /* ... */ },
+    { "_id": "2:/a/b", /* ... */ },
+    { "_id": "2:/a/c", /* ... */ }
+]
+        \end{centerverbatim}
+    \end{multicols}
+    \caption{A tree and its JSON representation.}
+\end{figure}
+
+In order to support MVCC, Oak keeps a history of values each property had in the past such that we are able to tell when each value was persisted and which Oak instance committed the change. 
+In \ref{fig:fig:node_property}, we take a look at node \texttt{/a/c} and see how \texttt{x}'s value changes over time.
+Each value's key is composed with a timestamp, a counter that is used to differentiate between value changes during the same instance of time and the identifier of the oak instance committing the change.
+Let's consider \texttt{r15cac0dbb00-0-2}.
+\texttt{r} is a standard prefix and can be neglected.
+The \texttt{15cac0dbb00} following \texttt{r}, is an timestamp in hexadecimal encoding which represents the time during which the change was committed.
+The \texttt{0} following the timestamp, tells that the change was the 1st change of the specific property during that instance of time.
+The \texttt{2} following the counter, tells that the change was committed by the Oak instance with an id of \texttt{2}.
+
+\begin{figure}[h]
+    \label{fig:node_property}
+    \scriptsize
+    \begin{centerverbatim}
+[
+    {
+        "_id": "2:/a/c", 
+        "x": {
+            "r15ca9f191c0-0-1": "1",
+            "r15cabff1500-0-2": "2",
+            "r15cac0dbb00-0-2": "3"
+        },
+        /* ... */
+    },
+    /* ... */
+]
+    \end{centerverbatim}
+    \caption{A node's property in detail.}
+\end{figure}
+
+\section{Oak's basic Operations}
+
+In this chapter we will try to understand how Oak handles basic operations such as queries and writes.
+
+\subsection{Querying}
+
+Oak is commonly queried using content-and-structure (CAS) queries.
+Given a node, a property and its value, a CAS query returns all descendants of the node which have the property set to the value.
+
+\begin{definition}
+    (CAS-Query): 
+    {\large$$ Q_{k,v,m} = \{ \, n \, | \, n[k] = v \land n \in desc(m) \, \} $$}
+    Where $k$ denotes the property name (key), $v$ the value, $m$ a node, $n[k]$ property $k$ of node $n$, $desc(m)$ all descendants of node $m$.
+    It is worth mentioning that $m \notin desc(m)$.
+\end{definition}
+
+\begin{figure}[h]
+    \label{ex:tree_with_chi}
+    \begin{center}
+        \begin{multicols}{2}
+            \begin{forest} qtree,
+                [{\scriptsize\texttt{root}}, circle, draw
+                    [,phantom]
+                    [$\lambda:a$
+                        [$\lambda:b$ \\ $\chi:1$, draw]
+                        [$\lambda:c$]
+                    ]
+                ]
+            \end{forest}
+            \columnbreak
+            \begin{flushleft}
+                Having the following query, that is every descendant of $a$ with $\chi$ set to $1$,
+                we receive a set including node $b$, enclosed in a rectangle on the left.
+            \end{flushleft}
+            \begin{large}
+                $$ Q_{\chi, 1, a} = \{\,b\,\}$$
+            \end{large}
+        \end{multicols}
+    \end{center}
+    \caption{CAS Query example.}
+\end{figure}
+
+In order to answer CAS Queries efficiently, a property index (PI) can be implemented.
+A property index can be constructed as follows: 
+\begin{enumerate}
+    \item We create an  \texttt{/index} node.
+    \item \texttt{/index} is a child of the root node.
+    \item $k$ is a child of \texttt{/index} iff $\exists n(n[k] \ne \texttt{NIL})$.
+    \item $v_k$ is a child of $k$ iff $\exists n(n[k] = v_k)$.
+    \item A sequence of nodes $s$ starting with the top level node $t$ and ending with node $n$, i.e $s = \langle t, \dots,par(n),n \rangle$, are descendants of $v_k$ iff $n[k] = v_k$
+\end{enumerate}
+
+By structuring the PI as shown in \ref{fig:tree_with_PI}, a CAS query can be executed as stated in \ref{algo:query_pi}.
+
+\begin{figure}[h]
+    \label{fig:tree_with_PI}
+    \centering
+    \begin{forest} qtree,
+        [{\scriptsize\texttt{root}}, circle, draw
+            [$\lambda:\texttt{index}$
+                [$\lambda:\chi$
+                    [$\lambda:1$
+                        [$\lambda:a$
+                            [$\lambda:b$]{
+                                \draw[->,dotted] () to[out=east,in=south] (b);
+                            }
+                        ]{
+                            \draw[->,dotted] () to[out=east,in=south west] (a);
+                        }
+                    ]
+                ]
+            ]
+            [,phantom]
+            [,phantom]
+            [$\lambda:a$,name=a
+                [,phantom]
+                [,phantom]
+                [$\lambda:b$ \\ $\chi:1$,name=b]
+                [,phantom]
+                [$\lambda:c$]
+            ]
+        ]
+    \end{forest}
+    \caption{Tree with Property Index.}
+\end{figure}
+
+\begin{algorithm}[H]
+    \caption{CAS Query with Property Index.}
+    \label{algo:query_pi}
+    \DontPrintSemicolon
+    \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+    \KwResult{$\{\,n \, | \, n[k] = v \land n \in desc(m) \, \}$}
+    \Begin{
+        $n \longleftarrow \texttt{/index}$\;
+        \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
+            $n \longleftarrow n | \texttt{/}\lambda$\;
+            \If{$\nexists n$}{
+                \Return{$\emptyset$}\;
+            }
+        }
+        $r \longleftarrow \emptyset$\;
+        \For{$d \in desc(n)$}{
+            \If{$d[k] = k$}{
+                $r \longleftarrow r \cup \{ trunc(d) \}$\;
+            }
+        }
+        \Return{r}\;
+    }
+    Where $\lambda$ is a node's label, i.e., node \texttt{/a/c} has \texttt{c} as a label,
+    $|$ is the concatenation operator,
+    $par(m)$ returns the parent node of $m$,
+    $d[k]$ returns the latest value of property $k$ of node $d$
+    and $trunc(\texttt{/k/v/a/b}) = \texttt{/a/b}$ truncates the property name and value from the node's path.
+\end{algorithm}
+
+We see that Algorithm \ref{algo:query_pi}'s performance is dependent on node $m$'s tree depth (1st loop) and on the number of descendants of $n$ (2nd loop). 
+
+Descendants of a value node ($v_k$) in the PI are not guaranteed to satisfy a CAS Query. 
+Let's consider the example depicted in Figure \ref{fig:tree_with_PI}.
+Obviously $Q_{\chi, 1, \texttt{/}} = \{\ \texttt{/a},\ \texttt{/a/b}\ \}$.
+Assume now that \texttt{/a} does not have a property $\chi$ anymore.
+$Q_{\chi, 1, \texttt{/}} = \{\ \texttt{/a/b}\ \}$ but the PI remains the same.
+$/a$ still is a member of the PI (under \texttt{/index/$\chi$/$1$}) but does not satisfy the CAS Query anymore.
+
+\subsection{Updates}
+
+In this chapter we will see how Oak handles writes.
+Since Oak has to operate in a distributed environment, the underlying data structure is immutable in order to prevent side-effect and keep Oak thread-safe (reference oak).
+Specifically, Oak implements a Persistent Tree (reference cormen).
+An update is composed as follows:
+
+$$
+Read \longrightarrow Validate \longrightarrow Write
+$$
+
+\subsubsection{Read}
+
+The read phase extends from the start of the transaction until just before it commits.
+During this phase, a transaction is able to read and write changes on a (local) copy the tree.
+As you remember, each value of a node's property is accompanied by a timestamp.
+A transaction only sees the most recent value of a property up to the time the transaction started.
+Let $T_i$ denote a recently started transaction.
+Let $t_{start}(T_i)$ denote the instance of time $T_i$ started.
+Let $v_i$ denote a version of a value and $t(v_i)$ the instance of time the value was committed.
+Value $v_i$ is visible to $T_i$ iff
+\textbf{a)} $v_i$ was successfully committed before $t_{start}(T_i)$, i.e., $t(v_i) \leq t_{start}(T_i)$ and
+\textbf{b)} there does not exist any other value $v_j$ such that $t(v_i) < t(v_j) \leq t_{start}(T_i)$.
+
+This ensures that concurrent transactions can not mutate $T_i$'s read values.
+Figure \ref{fig:read_example} shows how Oak reads values from the tree in a more illustrative manner.
+
+\begin{figure}[h]
+    \label{fig:read_example}
+    \begin{scriptsize}
+        \begin{centerverbatim}
+[
+    { "_id": "0:/", /* ... */ },
+    { "_id": "2:/a/b", "x": {
+            "r15e830cae80-0-1": 0, /* 01:00 */
+            "r15e830d98e0-0-1": 1, /* 01:01 */
+            "r15e830f6da0-0-2": 2, /* 01:03 */
+        },
+        /* ... */
+    },
+    /* ... */
+]
+        \end{centerverbatim}
+    \end{scriptsize}
+    \caption{
+        Assume transaction $T_i$ starts at $t_{start}(T_i) =$ {\footnotesize\texttt{01:02}}.
+        This implies that node's \texttt{/a/b} property \texttt{x} has value 1 during transaction $T_i$,
+        i.e., $ t_{start}(T_i) = \texttt{\footnotesize01:02} \land n_i = \texttt{/a/b} \implies n_i[k] = 1$.
+    }
+\end{figure}
+
+Assume transaction $T_i$ wants to remove property \texttt{x} from node \texttt{/a/b}.
+We define any change to a property, a property level change.
+A property level change occurs if a property was added, removed or its value changed.
+\texttt{wp(/a/b, x)} denotes such a property level change.
+In the particular example, property \texttt{x} of node \texttt{/a/b} had a change.
+
+Analogously, any change to a node is defined as node level change.
+A node level change occurs if a node was added or deleted.
+\texttt{wn(/a/b)} denotes such a node level change.
+In the particular example, node \texttt{/a/b} had a change.
+
+Note that if a PI exists, a property level change can cause an update in the PI, such that nodes are added or removed from the PI.
+Node level changes in the PI caused by property level changes are also called implicit node level changes.
+
+During $T_i$, any node- or property- level change is added to the write set (reference).
+The write set of $T_i$ is defined as:
+\begin{equation}
+    \begin{split}
+\Delta T_i = \{\\
+    & wp(\texttt{/a/b}, \texttt{x}), \qquad \qquad \qquad \texttt{$\triangleright$ remove x from /a/b}\\
+    & wn(\texttt{/index/x/1/a/b}),\quad \texttt{$\triangleright$ remove node /index/x/1/a/b}\\
+    & wn(\texttt{/index/x/1/a}), \qquad \ \dots\\
+    & wn(\texttt{/index/x/1}),\\
+    & wn(\texttt{/index/x} \\
+        \}
+    \end{split}
+\end{equation}
+
+\subsubsection{Validate}
+
+During the validation phase, Oak determines if there is any interference with concurrent transactions.
+Since Oak uses MVCC, an Optimistic Technique, in order to handle Concurrency Control, the validation phase is executed after the read phase.
+
+WLOG, the validation phase of a transaction $T_j$ when using Optimistic Techniques is passed iff one of the following mutually exclusive conditions is true (reference principles of distributed database systems, tamer özsu):
+
+\begin{itemize}
+    \item Iff all transactions $T_i$, where $t_{start}(T_i) < t_{start}(T_j)$, have finished writing before $T_j$ started reading.
+    \item Iff all transactions $T_i$, where $t_{start}(T_i) < t_{start}(T_j)$ and $T_i$ are writing while $T_j$ is reading, are writing items not read by $T_j$.
+    \item Iff all transactions $T_i$, where $t_{start}(T_i) < t_{start}(T_j)$ and $T_i$ are validating while $T_i$ is reading, are writing items not read by $T_j$ and $T_i$ is not writing items written by $T_j$.
+\end{itemize}
+
+
+
+% \section{Fixed-Period Problems: The Sublinear Case}
+
+% With this chapter, the preliminaries are over, and we begin the search
+% for periodic solutions to Hamiltonian systems. All this will be done
+% in the convex case; that is, we shall study the boundary-value problem
+% \begin{eqnarray*}
+%   \dot{x}&=&JH' (t,x)\\
+%   x(0) &=& x(T)
+% \end{eqnarray*}
+% with $H(t,\cdot)$ a convex function of $x$, going to $+\infty$ when
+% $\left\|x\right\| \to \infty$.
+
+% \begin{example}[{\rm(External forcing)}]
+% Consider the system:
+%\begin{equation}
+ % \dot{x} = JH' (x) + f(t)
+%\end{equation}
+%where the Hamiltonian $H$ is $\left(0,b_{\infty}\right)$-subquadratic,
+%and the forcing term is a distribution on the circle.
+%\end{example}
+
+% \subsection{Autonomous Systems}
+
+% We assume a \emph{time domain}, $\mathcal{A}$, as a set of time
+% instants equipped with a total order $\leq$ and isomorph to integers.
+% Time granularities are partitionings of subsets of $\mathcal{A}$ into
+% non-empty intervals of time instants, termed \emph{granules}.
+% Examples of time granularities are minutes ($\mathit{min}$), hours
+% ($\mathit{hou}$), days ($\mathit{day}$), weeks ($\mathit{wee}$),
+% months ($\mathit{mth}$), and years ($\mathit{yea}$).  The granularity
+% $\mathit{day}$, for instance, divides the time domain into granules of
+% 1440 minutes.  We assume a \emph{bottom granularity}, $G_\bot$, such
+% that each granule of $G_\bot$ contains exactly one time instant.  In
+% our running example minutes represent the bottom granularity, and we
+% use the ISO~8601:2004 notation to denote time instants, e.g.,
+% \mbox{2007-02-12 07:15}.  The granules of each granularity $G$ are
+% ordered according to the time domain order and indexed with a subset
+% of integers, $\mathcal{L}_G$, such that the indexing function
+% $\mathcal{M}_G : \mathcal{L}_G \to G$ is an isomorphism that preserves
+% the total order $\leq$. For each granularity we assume that the
+% granule with index~0 contains the time instant 2000-01-01-00:00.
+% Figure~\ref{fig:ch0-gran-labels} illustrates some correspondences of
+% indexes between different granularities, e.g.,
+% $\mathcal{M}_\mathit{day}(2599)$ = [2007-02-12 00:00, 2007-02-12
+% 23:59].
+
+% For the conversion between different granularities, we adopt the
+% \emph{bigger-part-inside semantics}~\cite{Ohlbach06,ical98}.  The
+% conversion from a coarser granularity $H$ to a finer granularity $G$
+% is defined as
+% \begin{align*}
+%   \downharpoonright^{H}_{G}(i) = \{ j \mid
+%   & |\mathcal{M}_{G}(j) \cap
+%   \mathcal{M}_{H}(i)| > |\mathcal{M}_{G}(j) \setminus
+%   \mathcal{M}_{H}(i)| \lor {}
+%   \\
+%   & (|\mathcal{M}_{G}(j) \cap \mathcal{M}_{H}(i)| =
+%   |\mathcal{M}_{G}(j) \setminus \mathcal{M}_{H}(i)| \land
+%   \max(\mathcal{M}_{G}(j)) \in \mathcal{M}_{H}(i) )\}
+% \end{align*}
+% $\downharpoonright^{H}_{G}(i)$ returns the indexes of those granules
+% in $G$ that are covered by granule $i$ in $H$ for more than a half or,
+% if exactly half of a granule in $G$ is covered, the second half.
+
+% \section{Time Slices and Multislices}
+
+% A (time) \emph{slice}~\cite{Niezette92} is a finite list of pairs,
+% $\lambda = (G_1X_1,\ldots,G_dX_d)$, where $G_l$ are granularities and
+% $X_l$ are \emph{selectors} that are defined as sets of integers.  Each
+% selector $X_{l+1}$ specifies a set of granules in $G_{l+1}$ with a
+% relative positioning with respect to granularity $G_l$.  The sequence
+% of granularities $(G_1,\ldots,G_d)$ is the \emph{hierarchy} of the
+% slice.  
+
+% Consider the slice $(\mathit{yea}\{7\}, \mathit{wee}\{\text{0-25}\},
+% \mathit{day}\{\text{0-4}\}, \mathit{hou}\{7\},
+% \mathit{min}\{\text{0,25,55}\})$.  The hierarchy is $(\mathit{wee},
+% \mathit{day}, \mathit{hou}, \mathit{min})$.  The first selector
+% $\{7\}$ selects the year 2007, the selector \{0-25\} selects the first
+% 26 weeks of this year, the selector \{0-4\} selects the days from
+% Monday to Friday from each of these weeks, etc.
+
+% The semantics of a slice $\lambda$ = $(G_1X_1$, \ldots, $G_dX_d)$ is
+% defined through the following mapping $\mathcal{I}$ to a subset of the
+% time domain:
+
+% \begin{equation*}
+%   \mathcal{I} (\lambda) =
+%   \begin{cases}
+%     \bigcup_{k \in X_1} \mathcal{M}_{G_1}(k) & d=1 \\[1ex]
+%     \mathcal{I} \left( (G_2\bigcup_{k \in X_1}(
+%       \downharpoonright^{G_1}_{G_2}(k)/^+X_2), \ldots, G_dX_d)
+%     \right) & d>1
+%   \end{cases}
+% \end{equation*}
+
+% Here, $\downharpoonright^{G_1}_{G_2}$ is a bigger-part-inside
+% conversion from a granularity $G_1$ to a granularity $G_2$, and
+% $\downharpoonright^{G_1}_{G_2}(k)/^+X_2$ is defined as
+% $\downharpoonright^{G_1}_{G_2}(k) \cap \{
+% \min(\downharpoonright^{G_1}_{G_2}(k)) + i \mid i \in X_2 \}$.
+
+% \begin{figure}[htbp]\centering
+%   \begin{tikzpicture}[scale=0.13]
+%     \tikzstyle{every node}=[scale=0.7]
+%     \draw[->] (0,0) -- (30,0);
+%     \foreach \t in {0,5,10,15,20,25,30} \node at (\t,-0.9) {\t};
+%     \draw (28,-2.5) node {TT};
+%     \draw[->] (0,0) -- (0,30);
+%     \foreach \t in {0,5,10,15,20,25,30} \node at (-1.5,\t) {\t};
+%     \draw (-3.5,27) node {VT};
+%     \draw[<->] (22,10) -- (15,10) -- (15,5) -- (10,5) -- (10,10)
+%       -- (5,10) -- (5,15) -- (10,15) -- (10,20) -- (15,20) -- (15,15)
+%       -- (22,15);
+%     \draw (20,10) -- (20,15);
+%     \draw (10,12.5) node {(Jake,Ship)};
+%     \draw (25,12.5) node {(Jake,Load)};
+%     \draw[<->] (22,25) -- (20,25) -- (20,30) -- (22,30);
+%     \draw (25,27.5) node {(Kate,Ship)};
+%   \end{tikzpicture}
+%   \caption{Relationships between $P$, $M$, and $M_\mathrm{min}$}
+%   \label{fig:ch2-singular-minimal-mapping}
+% \end{figure}
+
+% \chapter{The Final One}
+
+%\begin{lemma}
+%Assume that $H$ is $C^{2}$ on $\bbbr^{2n} \setminus \{ 0\}$ and
+%that $H'' (x)$ is non-de\-gen\-er\-ate for any $x\ne 0$. Then any local
+%minimizer $\widetilde{qx}$ of $\psi$ has minimal period $T$.
+%\end{lemma}
+
+%\begin{proof}
+%We know that $\widetilde{x}$, or
+%$\widetilde{x} + \xi$ for some constant $\xi
+%\in \bbbr^{2n}$, is a $T$-periodic solution of the Hamiltonian system:
+%\begin{equation}
+%  \dot{x} = JH' (x)\ .
+%\end{equation}
+
+%There is no loss of generality in taking $\xi = 0$. So
+%$\psi (x) \ge \psi (\widetilde{x} )$
+%for all $\widetilde{x}$ in some neighbourhood of $x$ in
+%$W^{1,2} \left(\bbbr / T\bbbz ; \bbbr^{2n}\right)$.
+
+%But this index is precisely the index
+%$i_{T} (\widetilde{x} )$ of the $T$-periodic
+%solution $\widetilde{x}$ over the interval
+%$(0,T)$, as defined in Sect.~2.6. So
+%\begin{equation}
+%  i_{T} (\widetilde{x} ) = 0\ .
+%  \label{eq:five}
+%\end{equation}
+%
+%Now if $\widetilde{x}$ has a lower period, $T/k$ say,
+%we would have, by Corollary 31:
+%\begin{equation}
+%  i_{T} (\widetilde{x} ) =
+%  i_{kT/k}(\widetilde{x} ) \ge
+%  ki_{T/k} (\widetilde{x} ) + k-1 \ge k-1 \ge 1\ .
+%\end{equation}
+%
+%This would contradict (~\ref{eq:five}), and thus cannot happen.
+%\end{proof}
+
+% \begin{figure}[htbp]\centering
+%   \includegraphics{dbtgBW}
+%   \caption{DBTGlogo}
+%   \label{fig:dbtglogo}
+% \end{figure}
+
+% A reference to a Figure~\ref{fig:dbtglogo}.
+
+\bibliographystyle{alpha}
+\bibliography{}
+
+\end{document}
