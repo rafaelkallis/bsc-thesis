@@ -1,8 +1,8 @@
 \contentsline {chapter}{\numberline {1}Introduction}{5}
 \contentsline {chapter}{\numberline {2}Oak's Mechanics}{6}
 \contentsline {section}{\numberline {2.1}Persistence Tier}{6}
-\contentsline {section}{\numberline {2.2}Oak's basic Operations}{6}
-\contentsline {subsection}{\numberline {2.2.1}Querying}{7}
-\contentsline {subsection}{\numberline {2.2.2}Updates}{9}
-\contentsline {subsubsection}{\nonumberline Read}{9}
-\contentsline {subsubsection}{\nonumberline Validate}{10}
+\contentsline {section}{\numberline {2.2}Periodic Synchronization}{7}
+\contentsline {section}{\numberline {2.3}Transactions}{7}
+\contentsline {subsection}{\numberline {2.3.1}Read}{7}
+\contentsline {subsection}{\numberline {2.3.2}Validate}{9}
+\contentsline {section}{\numberline {2.4}Querying}{9}

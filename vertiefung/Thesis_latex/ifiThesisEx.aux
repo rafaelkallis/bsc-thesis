@@ -1,37 +1,46 @@
 \relax 
 \providecommand*\new@tpo@label[2]{}
-\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{5}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{2}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \@writefile{lol}{\addvspace {10\p@ }}
 \@writefile{loa}{\addvspace {10\p@ }}
-\newlabel{fig:architecture}{{1}{5}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Apache Jackrabbit Oak's system architecture. The application, Adobe Experience Manage in this figure, connects to Oak.}}{5}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {2}Oak's Mechanics}{6}}
+\newlabel{fig:architecture}{{1}{2}}
+\newlabel{fig:architecture@cref}{{[chapter][1][]1}{2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Apache Jackrabbit Oak's system architecture. The application, Adobe Experience Manage in this figure, connects to Oak.}}{2}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Problem definition}{3}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \@writefile{lol}{\addvspace {10\p@ }}
 \@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {2.1}Persistence Tier}{6}}
-\newlabel{fig:tree_and_json}{{2.1}{6}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces A tree and its JSON representation.}}{6}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Oak's basic Operations}{6}}
-\newlabel{fig:node_property}{{2.1}{7}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces A node's property in detail.}}{7}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Querying}{7}}
-\newlabel{ex:tree_with_chi}{{2.2.1}{7}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces CAS Query example.}}{7}}
-\newlabel{fig:tree_with_PI}{{2.2.1}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Tree with Property Index.}}{8}}
-\@writefile{loa}{\contentsline {algocf}{\numberline {1}{\ignorespaces CAS Query with Property Index.}}{8}}
-\newlabel{algo:query_pi}{{1}{8}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}Updates}{9}}
-\@writefile{toc}{\contentsline {subsubsection}{\nonumberline Read}{9}}
-\newlabel{fig:read_example}{{2.2.2}{9}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces  Assume transaction $T_i$ starts at $t_{start}(T_i) =$ {\relax \fontsize  {10}{12}\selectfont  \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}\texttt  {01:02}}. This implies that node's \texttt  {/a/b} property \texttt  {x} has value 1 during transaction $T_i$, i.e., $ t_{start}(T_i) = \texttt  {\relax \fontsize  {10}{12}\selectfont  \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}01:02} \land n_i = \texttt  {/a/b} \DOTSB \tmspace  +\thickmuskip {.2777em}\DOTSB \Relbar \joinrel \Rightarrow \tmspace  +\thickmuskip {.2777em}n_i[k] = 1$. }}{9}}
-\bibstyle{alpha}
-\bibdata{}
-\@writefile{toc}{\contentsline {subsubsection}{\nonumberline Validate}{10}}
-\global\@namedef{scr@dte@chapter@lastmaxnumwidth}{11.47185pt}
-\global\@namedef{scr@dte@section@lastmaxnumwidth}{19.79993pt}
-\global\@namedef{scr@dte@subsection@lastmaxnumwidth}{28.79993pt}
+\@writefile{toc}{\contentsline {section}{\numberline {2.1}Property Index}{3}}
+\newlabel{fig:cas_query}{{2.1}{3}}
+\newlabel{fig:cas_query@cref}{{[section][1][2]2.1}{3}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces CAS Query example.}}{3}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Workload implications}{3}}
+\newlabel{fig:property_index}{{2.1}{4}}
+\newlabel{fig:property_index@cref}{{[section][1][2]2.1}{4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Tree with Property Index and answering a CAS query efficiently.}}{4}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}Proposal}{4}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Oak's Mechanics}{5}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{lol}{\addvspace {10\p@ }}
+\@writefile{loa}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Persistence Tier}{5}}
+\newlabel{fig:tree_and_json}{{3.1}{5}}
+\newlabel{fig:tree_and_json@cref}{{[figure][1][3]3.1}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces A tree and its JSON representation.}}{5}}
+\newlabel{fig:node_property}{{3.1}{6}}
+\newlabel{fig:node_property@cref}{{[figure][1][3]3.1}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces A node's property in detail.}}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Periodic Synchronization}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Transactions}{6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Read}{7}}
+\newlabel{transaction-read}{{3.3.1}{7}}
+\newlabel{transaction-read@cref}{{[subsection][1][3,3]3.3.1}{7}}
+\newlabel{fig:read_example}{{3.3.1}{7}}
+\newlabel{fig:read_example@cref}{{[subsection][1][3,3]3.3.1}{7}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces  Assume cluster node $O_1$ synchronized at \texttt  {01:02}. Assume $O_1$ starts transaction $T_1$ just after synchronization finished. This implies that \texttt  {/a/b}'s property \texttt  {x} has value 1 during transaction $T_1$, i.e., $ t_{sync}(T_1) = \texttt  {\relax \fontsize  {10}{12}\selectfont  \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}01:02} \land n_1 = \texttt  {/a/b} \DOTSB \tmspace  +\thickmuskip {.2777em}\DOTSB \Relbar \joinrel \Rightarrow \tmspace  +\thickmuskip {.2777em}n_1[\texttt  {x}] = 1$. }}{7}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Validate}{8}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Querying}{9}}
