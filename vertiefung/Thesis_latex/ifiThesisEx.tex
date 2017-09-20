@@ -43,6 +43,7 @@
 % --------- 
 
 \newtheorem{definition}{Definition}
+% \newtheorem{algorithm}{Algorithm}
 % \newtheorem{example}{Example}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
@@ -144,86 +145,443 @@ An example of such a query can be found in \cref{fig:cas_query}.
 In order to answer such queries efficiently, Oak implements a Property Index (PI) (ref kevin's paper).
 A property index is a hierarchical index.
 \Cref{fig:property_index} depicts a PI and shows how a CAS query can be answered by using it.
+In addition to that you can find how a node is added or removed from the index.
 
-\begin{figure}[h!]
-    \begin{center}
-        \begin{forest} qtree,
-            [
-                [$\lambda:\texttt{index}$
-                    [$\lambda:\texttt{x}$
-                        [$\lambda:\texttt{1}$
-                            [$\lambda:a$
-                            [$\lambda:b$ \\ $\texttt{x}:1$]
-                                [,phantom]
-                                [,phantom]
-                                [,phantom]
-                                [,phantom]
+% \newpage
+\begin{figure}
+    \label{fig:property_index}
+    \begin{multicols}{2}
+        \begin{center}(a) Tree with PI.\end{center}
+        \vspace*{1px}
+        \begin{center}
+
+            \begin{forest} qtree,
+                [
+                    [$\lambda:\texttt{index}$
+                        [$\lambda:\texttt{x}$
+                            [$\lambda:\texttt{1}$
+                                [$\lambda:a$
+                                [$\lambda:b$ \\ $\texttt{x}:1$]
+                                    [,phantom]
+                                    [,phantom]
+                                    [,phantom]
+                                    [,phantom]
+                                ]
                             ]
                         ]
                     ]
+                    [,phantom]
+                    [,phantom]
+                    [,phantom]
+                    [$\lambda:a$,name=a
+                        [,phantom]
+                        [,phantom]
+                        [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                        [,phantom]
+                        [$\lambda:c$]
+                    ]
                 ]
-                [,phantom]
-                [,phantom]
-                [,phantom]
-                [$\lambda:a$,name=a
-                    [,phantom]
-                    [,phantom]
-                    [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
-                    [,phantom]
-                    [$\lambda:c$]
-                ]
-            ]
-        \end{forest}
-    \end{center}
-    
-    \begin{algorithm}[H]
-        \DontPrintSemicolon
-        \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-        \KwResult{$\{\,n \, | \, n[k] = v \land n \in desc(m) \, \}$}
-        \Begin{
-            $n \longleftarrow \texttt{/index}$\;
-            \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
-                $n \longleftarrow n | \texttt{/}\lambda$\;
-                \If{$\nexists n$}{
-                    \Return{$\emptyset$}\;
+            \end{forest}
+        \end{center}
+        \columnbreak
+        \begin{center}(b) Querying a tree with a PI.\end{center}
+        \begin{algorithm}[H]
+            \label{algo:query_pi}
+            \caption{QueryPropertyIndex}
+            \DontPrintSemicolon
+            \begin{footnotesize}
+                \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                \KwResult{$\{\,n \, | \, n[k] = v \land n \in desc(m) \, \}$}
+                \Begin{
+                    $n \longleftarrow \texttt{/index}$\;
+                    \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
+                        $n \longleftarrow n | \texttt{/}\lambda$\;
+                        \If{$\nexists n$}{
+                            \Return{$\emptyset$}\;
+                        }
+                    }
+                    $r \longleftarrow \emptyset$\;
+                    \For{$d \in desc(n)$}{
+                        \If{$d[k] = v$}{
+                            $r \longleftarrow r \cup \{ trunc(d) \}$\;
+                        }
+                    }
+                    \Return{r}\;
                 }
-            }
-            $r \longleftarrow \emptyset$\;
-            \For{$d \in desc(n)$}{
-                \If{$d[k] = k$}{
-                    $r \longleftarrow r \cup \{ trunc(d) \}$\;
+            \end{footnotesize}
+        \end{algorithm}
+    \end{multicols}
+    \begin{multicols}{2}
+        \begin{center}(c) Adding a node to the PI.\end{center}
+
+        \begin{algorithm}[H]
+            \label{algo:add_triple}
+            \caption{AddTriple}
+            \DontPrintSemicolon
+            \begin{scriptsize}
+                \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                \vspace{2.2mm}
+                \Begin{
+                    $n \longleftarrow \texttt{/index}$\;
+                    \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
+                        $n \longleftarrow n | \texttt{/}\lambda$\;
+                        \If{$\nexists n$}{
+                            create node $n$\;
+                        }
+                    }
+                    $n[k] \longleftarrow v$
                 }
-            }
-            \Return{r}\;
-        }
+            \end{scriptsize}
+        \end{algorithm}
+        \columnbreak
+        \begin{center}(d) Removing a node from the PI.\end{center}
+
+        \begin{algorithm}[H]
+            \label{algo:remove_triple_pi}
+            \caption{RemoveTriple}
+            \DontPrintSemicolon
+            \begin{scriptsize}
+                \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                \Begin{
+                    $n \longleftarrow \texttt{/index/k/v/m}$\;
+                    $n[k] \longleftarrow \textsc{nil}$\;
+                    \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v$}{
+                        $u \longleftarrow n$\;
+                        $n \longleftarrow par(n)$\;
+                        remove node $u$\;
+                    }
+                }
+            \end{scriptsize}
+        \end{algorithm}
+    \end{multicols}
+    \begin{footnotesize}
         Where $\lambda$ is a node's label, i.e., node \texttt{/a/c} has \texttt{c} as a label,
         $|$ is the concatenation operator,
         $par(m)$ returns the parent node of $m$,
-        $d[k]$ returns the value of property $k$ of node $d$
-        and $trunc(\texttt{/k/v/a/b}) = \texttt{/a/b}$ truncates the property name and value from the node's path.
-    \end{algorithm}
-    \label{fig:property_index}
-    \caption{Tree with Property Index and answering a CAS query efficiently.}
+        $chd(n)$ returns the set of children nodes of $n$,
+        $desc(n)$ returns the set of descendant nodes of $n$,
+        $d[k]$ is the value of property $k$ of node $d$
+        and $trunc(\texttt{/k/v/a/b}) = \texttt{/a/b}$ truncates the property name and value from the node.
+    \end{footnotesize}
+    \caption{Answering CAS queries efficiently using a Property Index.}
 \end{figure}
-
-Since the PI is hierarchical, its performance deteriorates if used with CMS' workloads.
 
 \section{Workload implications}
 
 A Content management system's workloads share common properties.
-\textbf{a)} They are skewed and the same data item is repeatably added and removed from the index.
-\textbf{b)} They are update-heavy.
+They are \textbf{a)} \textit{skewed and the same data item is repeatably added or removed from the index} and
+\textbf{b)} \textit{update-heavy}.
 
 Hierarchical indexes with skewed and update-heavy workloads grow and shrink often.
-Since index modifications propagate up and down, adding and removing nodes cause a sequence of nodes to be added or removed in addition, thus deteriorating the index update performance. (REF TO EXAMPLE)
+Since index modifications propagate up and down, adding and removing nodes cause a sequence of nodes to be added or removed in addition, thus deteriorating the index update performance, as shown in \cref{fig:update_pi}.
 Index update performance also suffers from conflicting index updates.
 Highly skewed workloads create hotspots where nodes are frequently added or removed, increasing conflicting index updates, as shown in (ref kevin paper).
+
+Since Oak's PI is hierarchical, its performance deteriorates if used with CMS' workloads.
+You can find application scenarios which demonstrate how the PI's performance suffers in \cref{sec:application_scenarios}.
 
 \section{Proposal}
 
 In order to improve performance, the following is being proposed.
 We exploit the workloads' skewness by not removing frequently accessed nodes from the PI.
-By not removing these \textit{volatile} nodes, we \textbf{a)} 
+By not removing these \textbf{volatile} nodes, we:
+\begin{itemize}
+    \item Trade query performance for update performance.
+    \item Decrease the number of index conflicts thus increasing update performance.
+\end{itemize}
+A property index which can detect which nodes are volatile, is called \textbf{workload aware} property index (WAPI).
+
+% continue here
+
+\begin{algorithm}[H]
+    \label{algo:remove_triple_wapi}
+    \caption{RemoveTripleWAPI}
+    \DontPrintSemicolon
+    \begin{scriptsize}
+        \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+        \Begin{
+            $n \longleftarrow \texttt{/index/k/v/m}$\;
+            $n[k] \longleftarrow \textsc{nil}$\;
+            \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
+                $u \longleftarrow n$\;
+                $n \longleftarrow par(n)$\;
+                remove node $u$\;
+            }
+        }
+    \end{scriptsize}
+\end{algorithm}
+
+\chapter{Application Scenarios}
+\label{sec:application_scenarios}
+\section{Tree growing and shrinking.}
+
+Let's consider \cref{fig:update_pi}.
+The tree in \cref{fig:update_pi} has a property index which is not workload aware.
+
+Transaction $T_1$ removes property \texttt{x} from \texttt{/a/b}.
+\texttt{x} is removed from  \texttt{/index/x/1/a/b}.
+In addition to that, all ancestor nodes, $ anc(\texttt{/index/x/1/a/b}) = \{ \texttt{/index/x}, \texttt{/index/x/1}, \texttt{/index/x/1/a} \} \subset G^0, $ are removed as well. (c.f \cref{fig:property_index}d)
+
+Transaction $T_2$ adds property \texttt{x} to \texttt{/a/b}.
+We first have to add all ancestors in order to add \texttt{/index/x/1/a/b} to the property index.
+
+\begin{figure}[h]
+    \label{fig:update_pi}
+    \begin{large}
+        $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2 $$
+    \end{large}
+    \begin{scriptsize}
+        \begin{multicols}{3}
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Tree $G^0$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+
+                    \vspace{27mm}
+                }
+
+                Tree $G^1$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Tree $G^2$
+            \end{center}
+        \end{multicols}
+    \end{scriptsize}
+    \caption{Updating a node in a property index.}
+\end{figure}
+
+\Cref{fig:update_wapi} depicts the same transactions but the property index is workload aware.
+Assume \texttt{/index/x/1/a/b} is volatile.
+Transaction $T_1$ removes property \texttt{x} from \texttt{/a/b}.
+\texttt{x} is removed from \texttt{/index/x/1/a/b} but since it is volatile, the node is not removed from the WAPI.
+This avoids removal of its ancestors.
+Transaction $T_2$ adds property \texttt{x} to \texttt{/a/b}.
+Since \texttt{/index/x/1/a/b} is volatile, it already exists in the WAPI along with its ancestors.
+This avoided adding its ancestors.
+
+\begin{figure}[h]
+    \label{fig:update_wapi}
+    \begin{large}
+        $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2 $$
+    \end{large}
+    \begin{scriptsize}
+        \begin{multicols}{3}
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Tree $G^0$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$\\\ ]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Tree $G^1$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                            [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Tree $G^2$
+            \end{center}
+        \end{multicols}
+    \end{scriptsize}
+    \caption{Updating a volatile node in a workload aware property index.}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \chapter{Oak's Mechanics}
 
