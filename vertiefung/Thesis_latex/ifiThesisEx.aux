@@ -45,28 +45,35 @@
 \@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Updating a node in a property index.}}{6}}
 \newlabel{fig:update_pi}{{3.1}{6}}
 \newlabel{fig:update_pi@cref}{{[figure][1][3]3.1}{6}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Updating a volatile node in a workload aware property index.}}{7}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Updating a volatile node in a workload aware property index. Assume \texttt  {/index/x/1/a/b} is volatile.}}{7}}
 \newlabel{fig:update_wapi}{{3.2}{7}}
 \newlabel{fig:update_wapi@cref}{{[figure][2][3]3.2}{7}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Oak's Mechanics}{8}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Index conflicts}{7}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces Index conflict in the property index.}}{8}}
+\newlabel{fig:index_conflict_pi}{{3.3}{8}}
+\newlabel{fig:index_conflict_pi@cref}{{[figure][3][3]3.3}{8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces Avoided index conflict in the workload aware property index. Assume \texttt  {/index/x/1/a/b} is volatile.}}{8}}
+\newlabel{fig:index_conflict_wapi}{{3.4}{8}}
+\newlabel{fig:index_conflict_wapi@cref}{{[figure][4][3]3.4}{8}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Oak's Mechanics}{9}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \@writefile{lol}{\addvspace {10\p@ }}
 \@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}Persistence Tier}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces A tree and its JSON representation.}}{8}}
-\newlabel{fig:tree_and_json}{{4.1}{8}}
-\newlabel{fig:tree_and_json@cref}{{[figure][1][4]4.1}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces A node's property in detail.}}{9}}
-\newlabel{fig:node_property}{{4.2}{9}}
-\newlabel{fig:node_property@cref}{{[figure][2][4]4.2}{9}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}Periodic Synchronization}{9}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.3}Transactions}{9}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Read}{10}}
-\newlabel{transaction-read}{{4.3.1}{10}}
-\newlabel{transaction-read@cref}{{[subsection][1][4,3]4.3.1}{10}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces  Assume cluster node $O_1$ synchronized at \texttt  {01:02}. Assume $O_1$ starts transaction $T_1$ just after synchronization finished. This implies that \texttt  {/a/b}'s property \texttt  {x} has value 1 during transaction $T_1$, i.e., $ t_{sync}(T_1) = \texttt  {\relax \fontsize  {10}{12}\selectfont  \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}01:02} \land n_1 = \texttt  {/a/b} \DOTSB \tmspace  +\thickmuskip {.2777em}\DOTSB \Relbar \joinrel \Rightarrow \tmspace  +\thickmuskip {.2777em}n_1[\texttt  {x}] = 1$. }}{10}}
-\newlabel{fig:read_example}{{4.3}{10}}
-\newlabel{fig:read_example@cref}{{[figure][3][4]4.3}{10}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Validate}{11}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.4}Querying}{12}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Persistence Tier}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces A tree and its JSON representation.}}{9}}
+\newlabel{fig:tree_and_json}{{4.1}{9}}
+\newlabel{fig:tree_and_json@cref}{{[figure][1][4]4.1}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces A node's property in detail.}}{10}}
+\newlabel{fig:node_property}{{4.2}{10}}
+\newlabel{fig:node_property@cref}{{[figure][2][4]4.2}{10}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Periodic Synchronization}{10}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Transactions}{10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Read}{11}}
+\newlabel{transaction-read}{{4.3.1}{11}}
+\newlabel{transaction-read@cref}{{[subsection][1][4,3]4.3.1}{11}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces  Assume cluster node $O_1$ synchronized at \texttt  {01:02}. Assume $O_1$ starts transaction $T_1$ just after synchronization finished. This implies that \texttt  {/a/b}'s property \texttt  {x} has value 1 during transaction $T_1$, i.e., $ t_{sync}(T_1) = \texttt  {\relax \fontsize  {10}{12}\selectfont  \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}01:02} \land n_1 = \texttt  {/a/b} \DOTSB \tmspace  +\thickmuskip {.2777em}\DOTSB \Relbar \joinrel \Rightarrow \tmspace  +\thickmuskip {.2777em}n_1[\texttt  {x}] = 1$. }}{11}}
+\newlabel{fig:read_example}{{4.3}{11}}
+\newlabel{fig:read_example@cref}{{[figure][3][4]4.3}{11}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.2}Validate}{12}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Querying}{13}}

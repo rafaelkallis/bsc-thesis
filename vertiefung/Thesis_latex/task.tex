@@ -81,6 +81,541 @@
 % \listoffigures
 % \listoftables
 
+\chapter{INTRODUCTION}
+
+Hierarchical indexes with skewed and update-heavy workloads grow and shrink often.
+Since index modifications propagate up and down, adding and removing nodes cause a sequence of nodes to be added or removed in addition, thus deteriorating the index update performance.
+Index update performance also suffers from conflicting index updates.
+Highly skewed workloads create hotspots where nodes are frequently added or removed, increasing conflicting index updates, as shown in (ref kevin paper).
+
+A content management system's workloads share common properties.
+They are a) skewed and the same data item is repeatably added or removed from the index and
+b) update-heavy.
+
+Wellenzohn et al. (ref) propose a workload aware property index (WAPI). 
+The WAPI exploits the workloads' skewness by not removing frequently accessed nodes from the PI.
+By not removing these \textbf{volatile} nodes, we increase performance since we:
+\begin{itemize}
+    \item Reduce the amount of index modifications, which are expensive because they implicitly cause a sequence of nodes to be added or removed from the index.
+    \item Decrease the number of index conflicts, which limit throughput since they cause a transaction to abort and restart.
+\end{itemize}
+An property index which can detect which nodes are volatile, is a \textbf{workload aware} property index (WAPI).
+
+Apache Jackrabbit Oak (reference) (Oak) a hierarchical database system which makes use of a hierarchical index. 
+Oak has two design goals in mind.
+It needs to be able to operate in a distributed environment and guarantee write throughput.
+Multiple Oak instances can work concurrently by making use of Multiversion Concurrency Control (MVCC) (reference), a commonly used optimistic technique (reference Principals of Distributed databases).
+Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB.
+Although Oak is an open-source project, it is being actively maintained by Adobe (reference).
+Adobe's content management system (CMS) makes use of Oak in one of their products, specifically Adobe Experience Manager.
+
+The goal of this project is to implement a WAPI, as proposed by (ref kevin paper) in Apache Jackrabbit Oak in order to improve throughput.
+
+\chapter{WAPI}
+
+\section{Adding nodes to the WAPI}
+
+Node $n$ is added to the WAPI iff $n$ has a property $k$ set to $v$.
+Let's consider \cref{fig:add_wapi}.
+Given snapshot $G^i$, transaction $T_j$ adds property \texttt{x} with value $1$ to \texttt{/a/b} and commits snapshot $G^j$.
+The WAPI is updated as described in \cref{algo:add_triple_wapi}.
+
+\begin{figure}[h]
+    \begin{scriptsize}
+        \begin{multicols}{2}
+            \begin{large}
+                $$ G^i \xrightarrow{\quad T_j \quad} G^j $$
+            \end{large}
+            \begin{multicols}{2}
+                \begin{center}
+                    \framebox(100,130){
+                        \begin{forest} qtree,
+                            [
+                                [$\lambda:\texttt{index}$]
+                                [,phantom]
+                                [$\lambda:a$,name=a
+                                    [,phantom]
+                                    [$\lambda:b$,name=b]
+                                    [,phantom]
+                                    [$\lambda:c$]
+                                ]
+                            ]
+                        \end{forest}
+    
+                        \vspace{27mm}
+                    }
+    
+                    Snapshot $G^i$
+                \end{center}
+                \columnbreak
+                \begin{center}
+                    \framebox(100,130){
+                        \begin{forest} qtree,
+                            [
+                                [$\lambda:\texttt{index}$
+                                    [$\lambda:\texttt{x}$
+                                        [$\lambda:\texttt{1}$
+                                            [$\lambda:a$
+                                            [$\lambda:b$ \\ $\texttt{x}:1$]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                                [,phantom]
+                                [$\lambda:a$,name=a
+                                    [,phantom]
+                                    [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                    [,phantom]
+                                    [$\lambda:c$]
+                                ]
+                            ]
+                        \end{forest}
+                    }
+    
+                    Snapshot $G^j$
+                \end{center}    
+            \end{multicols}
+            \columnbreak
+            \ 
+
+            \vspace{12.2mm}
+            \begin{algorithm}[H]
+                \label{algo:add_triple_wapi}
+                \caption{AddTripleWAPI}
+                \DontPrintSemicolon
+                \begin{scriptsize}
+                    \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                    \
+                    
+                    \vspace{1.2mm}
+                    \Begin{
+                        $n \longleftarrow \texttt{/index}$\;
+                        \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
+                            $n \longleftarrow n | \texttt{/}\lambda$\;
+                            \If{$\nexists n$}{
+                                create node $n$\;
+                            }
+                        }
+                        $n[k] \longleftarrow v$
+                    }
+                \end{scriptsize}
+            \end{algorithm}
+
+        \end{multicols}
+    \end{scriptsize}
+    \caption{Adding a node in a workload aware property index.}
+    \label{fig:add_wapi}
+\end{figure}
+
+\section{Querying}
+
+Oak mostly executes content-and-structure (CAS) queries \textbf{(ref)}.
+Given node $m$, property $k$ and value $v$, a CAS query returns all descendants of $m$ which have $k$ set to the $v$.
+An example of such a query can be found in \cref{fig:cas_query}.
+
+\begin{definition}
+    (CAS-Query): 
+    {\large$Q_{k,v,m} = \{ \, n \, | \, n[k] = v \land n \in desc(m) \, \} $}
+\end{definition}
+
+\begin{figure}[h]
+    \begin{multicols}{2}
+        \begin{multicols}{2}
+            \begin{center}
+                \
+                
+                \begin{footnotesize}
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                \end{footnotesize}
+            \end{center}    
+            \columnbreak
+            \begin{footnotesize}
+                \
+                
+                \vspace{5mm}
+                Having the following query, that is every descendant of \texttt{/a} with \texttt{x} set to $1$,
+                we receive a set including node \texttt{/a/b}.
+            \end{footnotesize}
+            \begin{large}
+                $$ Q_{\texttt{x}, 1, \texttt{/a}} = \{\,\texttt{\normalsize/a/b}\,\}$$
+            \end{large}
+        \end{multicols}
+        \columnbreak
+        \begin{algorithm}[H]
+            \DontPrintSemicolon
+            \begin{scriptsize}
+                \label{algo:query_pi}
+                \caption{QueryPropertyIndex}
+                \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                \KwResult{$\{\,n \, | \, n[k] = v \land n \in desc(m) \, \}$}
+                \Begin{
+                    $n \longleftarrow \texttt{/index}$\;
+                    \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
+                        $n \longleftarrow n | \texttt{/}\lambda$\;
+                        \If{$\nexists n$}{
+                            \Return{$\emptyset$}\;
+                        }
+                    }
+                    $r \longleftarrow \emptyset$\;
+                    \For{$d \in desc(n)$}{
+                        \If{$d[k] = v$}{
+                            $r \longleftarrow r \cup \{ trunc(d) \}$\;
+                        }
+                    }
+                    \Return{r}\;
+                }
+            \end{scriptsize}
+        \end{algorithm}
+    \end{multicols}
+    \caption{CAS Query example.}
+    \label{fig:cas_query}
+\end{figure}
+
+\section{Removing nodes from the WAPI}
+
+A workload aware property index differentiates itself from a property index mostly during node removal.
+It detects which nodes are volatile and avoids removing them.
+The process of classifying a node as volatile, will be explained in more details in \cref{sec:volatility}.
+
+\Cref{fig:remove_wapi} depicts the following scenario.
+Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
+Given snapshot $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits snapshot $G^j$.
+Since \texttt{/index/x/1/a/b} is volatile, it is not removed from the WAPI.
+Given snapshot $G^j$, transaction $T_k$ removes property \texttt{x} from \texttt{/a/c} and commits snapshot $G^k$.
+Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
+
+\Cref{algo:remove_triple_wapi} describes the process of removing a node from the workload aware property index.
+
+\begin{figure}[h]
+    \begin{large}
+        $$ G^i \xrightarrow{\quad T_j \quad} G^j \xrightarrow{\quad T_k \quad} G^k $$
+    \end{large}
+    \begin{scriptsize}
+        \begin{multicols}{3}
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                            [$\lambda:b$ \\ $\texttt{x}:1$, red]
+                                            [,phantom]
+                                            [,phantom]
+                                            [$\lambda:c$ \\ $\texttt{x}:1$]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$]
+                                [,phantom]
+                                [$\lambda:c$ \\ $\texttt{x}:\texttt{1}$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Snapshot $G^i$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                            [$\lambda:b$, red]
+                                            [,phantom]
+                                            [,phantom]
+                                            [$\lambda:c$ \\ $\texttt{x}:1$]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$
+                                [$\lambda:b$]
+                                [,phantom]
+                                [$\lambda:c$ \\ $\texttt{x}:\texttt{1}$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Snapshot $G^j$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(130,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                            [$\lambda:b$, red]
+                                                [,phantom]
+                                                [,phantom]
+                                                [,phantom]
+                                                [,phantom]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [,phantom]
+                            [,phantom]
+                            [$\lambda:a$
+                                [$\lambda:b$]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Snapshot $G^k$
+            \end{center}
+        \end{multicols}
+    \end{scriptsize}
+    \caption{Removing a node from the WAPI. Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.}
+    \label{fig:remove_wapi}
+\end{figure}
+
+\begin{algorithm}[H]
+    \label{algo:remove_triple_wapi}
+    \caption{RemoveTripleWAPI}
+    \DontPrintSemicolon
+    \begin{footnotesize}
+        \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+        \Begin{
+            $n \longleftarrow \texttt{/index/k/v/m}$\;
+            $n[k] \longleftarrow \textsc{nil}$\;
+            \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
+                $u \longleftarrow n$\;
+                $n \longleftarrow par(n)$\;
+                remove node $u$\;
+            }
+        }
+    \end{footnotesize}
+\end{algorithm}
+
+\section{Volatility}
+\label{sec:volatility}
+
+\begin{definition}
+    (Volatile Node): node $n^j$ is volatile iff $n^j$'s volatility count (\cref{def:vol_count}) over history $H_i$ is greater or equal than the volatility threshold $\tau$, i.e
+    \begin{large}$$ isVolatile(n^j, H_i) \iff vol(n^j, H_i) \geq \tau $$\end{large}
+\end{definition}
+
+\begin{definition}
+    (Volatility Count): the number of times node $n^j$ was added or removed from snapshots contained in a sliding window of length $L$ over history $H_i$, i.e
+    \begin{large}
+        \begin{equation}
+            \begin{split}
+                vol(n^j, H_i) = | \{ G^b | \\
+                & G^b \in H_i \land \\
+                & t(G^b) \in [t_{n-L+1}, t_n] \land \\
+                & \exists G^a[ G^a = pre(G^b, H_i) \land (\\
+                & \quad n^a \notin N(G^a) \land n^b \in N(G^b) \lor \\ 
+                & \quad n^a \in N(G^a) \land n^b \notin N(G^b) \\
+                & )] \\
+                \} |
+            \end{split}
+        \end{equation}
+    \end{large}
+    \label{def:vol_count}
+\end{definition}
+
+\begin{figure}
+    \begin{large}
+        $$ G^i \xrightarrow{\quad T_j \quad} G^j \xrightarrow{\quad T_k \quad} G^k \xrightarrow{\quad T_l \quad} G^l$$
+    \end{large}
+    \begin{scriptsize}
+        \begin{multicols}{4}
+            \begin{center}
+                \framebox(100,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Snapshot $G^i$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(100,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+
+                    \vspace{27mm}
+                }
+
+                Snapshot $G^j$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(100,130){
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$, red]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+                }
+
+                Snapshot $G^k$
+            \end{center}
+            \columnbreak
+            \begin{center}
+                \framebox(100,130){
+                    \
+                    
+                    \vspace{-24mm}
+                    \begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                           [$\lambda:b$, red]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+
+                    \vspace{27mm}
+                }
+
+                Snapshot $G^l$
+            \end{center}
+        \end{multicols}
+    \end{scriptsize}
+    Assume $\tau = 2$, $G^i,G^j,G^k,G^l \in H_i$ and $L$ has a value such that $G^i,G^j,G^k,G^l$ are in the sliding window.
+    $n^i, n^j, n^k, n^l$ represent node \texttt{/index/x/1/a/b} in snapshots $G^i, G^j, G^k, G^l$ respectively.
+    
+    Given $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits $G^j$.
+    
+    Given $G^j$, transaction $T_k$ adds property \texttt{x} with value $1$ to \texttt{/a/b} and commits $G^k$.
+    
+    Given $G^k$, transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} and commits $G^l$.
+    
+    Then:
+    \begin{itemize}
+        \item $vol(n^i, H_i) = 0$, \quad $isVolatile(n^i, H_i) = false$
+        \item $vol(n^j, H_i) = 1$, \quad $isVolatile(n^j, H_i) = false$
+        \item $vol(n^k, H_i) = 2$, \quad $isVolatile(n^k, H_i) = true$
+        \item $vol(n^l, H_i) = 3$, \quad $isVolatile(n^l, H_i) = true$
+    \end{itemize}    
+    \caption{Volatility count changes with each snapshot.}
+    \label{fig:vol_example}
+\end{figure}
+
+% In the following pages, we will take a closer look at Oak.
+% Specifically, we will see how Oak handles querying, writing and concurrency control.
+% After that we will describe an instance of a problem Oak is having and we will briefly introduce a solution which results in higher throughput under certain circumstances.
+% Lastly, we will modify Oak's reference implementation in order to satisfy our solution.
+
+% Since Oak's PI is hierarchical, its performance deteriorates if used with CMS' workloads.
+% You can find application scenarios which demonstrate how the PI's performance suffers in \cref{sec:application_scenarios}.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+\newpage
+
 \chapter{Introduction}
  
 % A content store is a database system which supports hierarchical (tree-structured) data.
@@ -297,23 +832,23 @@ A property index which can detect which nodes are volatile, is a \textbf{workloa
 A WAPI removes nodes as shown in \cref{algo:remove_triple_wapi}.
 Besides checking if a node is volatile, \cref{algo:remove_triple_wapi} shares no other differences in comparison with \cref{algo:remove_triple_pi}.
 
-\begin{algorithm}
-    \label{algo:remove_triple_wapi}
-    \caption{RemoveTripleWAPI}
-    \DontPrintSemicolon
-    \begin{footnotesize}
-        \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-        \Begin{
-            $n \longleftarrow \texttt{/index/k/v/m}$\;
-            $n[k] \longleftarrow \textsc{nil}$\;
-            \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
-                $u \longleftarrow n$\;
-                $n \longleftarrow par(n)$\;
-                remove node $u$\;
-            }
-        }
-    \end{footnotesize}
-\end{algorithm}
+% \begin{algorithm}
+%     \label{algo:remove_triple_wapi}
+%     \caption{RemoveTripleWAPI}
+%     \DontPrintSemicolon
+%     \begin{footnotesize}
+%         \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+%         \Begin{
+%             $n \longleftarrow \texttt{/index/k/v/m}$\;
+%             $n[k] \longleftarrow \textsc{nil}$\;
+%             \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
+%                 $u \longleftarrow n$\;
+%                 $n \longleftarrow par(n)$\;
+%                 remove node $u$\;
+%             }
+%         }
+%     \end{footnotesize}
+% \end{algorithm}
 
 \chapter{Application Scenarios}
 \label{sec:application_scenarios}
