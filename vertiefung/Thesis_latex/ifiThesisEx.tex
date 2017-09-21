@@ -43,10 +43,14 @@
 % --------- 
 
 \newtheorem{definition}{Definition}
-% \newtheorem{algorithm}{Algorithm}
+% \newtheorem{figure}{Figure}
 % \newtheorem{example}{Example}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
+
+\crefname{algocfline}{alg.}{algs.}
+\Crefname{algocfline}{Algorithm}{Algorithms}
+
 
 % \newenvironment{proof}
 %     {\noindent{\bf Proof:\rm}}{\hfill$\Box$\vspace{\medskipamount}}
@@ -91,10 +95,10 @@ Although Oak is an Open-source project, it is being actively maintained by Adobe
 Adobe's Content Management System (CMS) makes use of Oak in one of their products, specifically Adobe Experience Manager (AEM).
 
 \begin{figure}[h]
-    \label{fig:architecture}
     \centering
     \includegraphics[width=8cm]{architecture}
     \caption{Apache Jackrabbit Oak's system architecture. The application, Adobe Experience Manage in this figure, connects to Oak.}
+    \label{fig:architecture}
 \end{figure}
 
 In the following pages, we will take a closer look at Oak.
@@ -138,8 +142,8 @@ An example of such a query can be found in \cref{fig:cas_query}.
             \end{large}
         \end{multicols}
     \end{center}
-    \label{fig:cas_query}
     \caption{CAS Query example.}
+    \label{fig:cas_query}
 \end{figure}
 
 In order to answer such queries efficiently, Oak implements a Property Index (PI) (ref kevin's paper).
@@ -149,7 +153,6 @@ In addition to that you can find how a node is added or removed from the index.
 
 % \newpage
 \begin{figure}
-    \label{fig:property_index}
     \begin{multicols}{2}
         \begin{center}(a) Tree with PI.\end{center}
         \vspace*{1px}
@@ -186,10 +189,10 @@ In addition to that you can find how a node is added or removed from the index.
         \columnbreak
         \begin{center}(b) Querying a tree with a PI.\end{center}
         \begin{algorithm}[H]
-            \label{algo:query_pi}
-            \caption{QueryPropertyIndex}
             \DontPrintSemicolon
             \begin{footnotesize}
+                \label{algo:query_pi}
+                \caption{QueryPropertyIndex}
                 \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
                 \KwResult{$\{\,n \, | \, n[k] = v \land n \in desc(m) \, \}$}
                 \Begin{
@@ -237,10 +240,10 @@ In addition to that you can find how a node is added or removed from the index.
         \begin{center}(d) Removing a node from the PI.\end{center}
 
         \begin{algorithm}[H]
-            \label{algo:remove_triple_pi}
-            \caption{RemoveTriple}
             \DontPrintSemicolon
             \begin{scriptsize}
+                \label{algo:remove_triple_pi}
+                \caption{RemoveTriple}
                 \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
                 \Begin{
                     $n \longleftarrow \texttt{/index/k/v/m}$\;
@@ -264,6 +267,7 @@ In addition to that you can find how a node is added or removed from the index.
         and $trunc(\texttt{/k/v/a/b}) = \texttt{/a/b}$ truncates the property name and value from the node.
     \end{footnotesize}
     \caption{Answering CAS queries efficiently using a Property Index.}
+    \label{fig:property_index}
 \end{figure}
 
 \section{Workload implications}
@@ -289,15 +293,15 @@ By not removing these \textbf{volatile} nodes, we:
     \item Trade query performance for update performance.
     \item Decrease the number of index conflicts thus increasing update performance.
 \end{itemize}
-A property index which can detect which nodes are volatile, is called \textbf{workload aware} property index (WAPI).
+A property index which can detect which nodes are volatile, is a \textbf{workload aware} property index (WAPI).
+A WAPI removes nodes as shown in \cref{algo:remove_triple_wapi}.
+Besides checking if a node is volatile, \cref{algo:remove_triple_wapi} shares no other differences in comparison with \cref{algo:remove_triple_pi}.
 
-% continue here
-
-\begin{algorithm}[H]
+\begin{algorithm}
     \label{algo:remove_triple_wapi}
     \caption{RemoveTripleWAPI}
     \DontPrintSemicolon
-    \begin{scriptsize}
+    \begin{footnotesize}
         \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
         \Begin{
             $n \longleftarrow \texttt{/index/k/v/m}$\;
@@ -308,7 +312,7 @@ A property index which can detect which nodes are volatile, is called \textbf{wo
                 remove node $u$\;
             }
         }
-    \end{scriptsize}
+    \end{footnotesize}
 \end{algorithm}
 
 \chapter{Application Scenarios}
@@ -326,7 +330,6 @@ Transaction $T_2$ adds property \texttt{x} to \texttt{/a/b}.
 We first have to add all ancestors in order to add \texttt{/index/x/1/a/b} to the property index.
 
 \begin{figure}[h]
-    \label{fig:update_pi}
     \begin{large}
         $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2 $$
     \end{large}
@@ -426,6 +429,7 @@ We first have to add all ancestors in order to add \texttt{/index/x/1/a/b} to th
         \end{multicols}
     \end{scriptsize}
     \caption{Updating a node in a property index.}
+    \label{fig:update_pi}
 \end{figure}
 
 \Cref{fig:update_wapi} depicts the same transactions but the property index is workload aware.
@@ -438,7 +442,6 @@ Since \texttt{/index/x/1/a/b} is volatile, it already exists in the WAPI along w
 This avoided adding its ancestors.
 
 \begin{figure}[h]
-    \label{fig:update_wapi}
     \begin{large}
         $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2 $$
     \end{large}
@@ -548,6 +551,7 @@ This avoided adding its ancestors.
         \end{multicols}
     \end{scriptsize}
     \caption{Updating a volatile node in a workload aware property index.}
+    \label{fig:update_wapi}
 \end{figure}
 
 
@@ -595,7 +599,6 @@ Each node is identifiable by its tree-depth concatenated with its absolute path 
 \Cref{fig:tree_and_json} illustrates a tree alongside its persisted state.
 
 \begin{figure}
-    \label[figure]{fig:tree_and_json}
     \centering
     \begin{multicols}{3}
         \begin{forest}
@@ -618,10 +621,10 @@ Each node is identifiable by its tree-depth concatenated with its absolute path 
         \end{centerverbatim}
     \end{multicols}
     \caption{A tree and its JSON representation.}
+    \label{fig:tree_and_json}
 \end{figure}
 
 \begin{figure}
-    \label[figure]{fig:node_property}
     \scriptsize
     \begin{centerverbatim}
 [
@@ -643,6 +646,7 @@ Each node is identifiable by its tree-depth concatenated with its absolute path 
 ]
     \end{centerverbatim}
     \caption{A node's property in detail.}
+    \label{fig:node_property}
 \end{figure}
 
 In order to support MVCC, Oak keeps a history of values each property had in the past such that we are able to tell when each value was persisted and which Oak instance committed the change. 
@@ -739,13 +743,13 @@ Figure \ref{fig:read_example} shows how Oak reads values from the tree in a more
 ]
         \end{centerverbatim}
     \end{scriptsize}
-    \label{fig:read_example}
     \caption{
         Assume cluster node $O_1$ synchronized at \texttt{01:02}.
         Assume $O_1$ starts transaction $T_1$ just after synchronization finished.
         This implies that \texttt{/a/b}'s property \texttt{x} has value 1 during transaction $T_1$,
         i.e., $ t_{sync}(T_1) = \texttt{\footnotesize01:02} \land n_1 = \texttt{/a/b} \implies n_1[\texttt{x}] = 1$.
     }
+    \label{fig:read_example}
 \end{figure}
 
 Assume transaction $T_i$ wants to remove property \texttt{x} from node \texttt{/a/b}.
