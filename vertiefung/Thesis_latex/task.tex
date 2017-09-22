@@ -294,7 +294,7 @@ An example of such a query can be found in \cref{fig:cas_query}.
 
 A workload aware property index differentiates itself from a property index mostly during node removal.
 It detects which nodes are volatile and avoids removing them.
-The process of classifying a node as volatile, will be explained in more details in \cref{sec:volatility}.
+The process of classifying a node as volatile, will be explained in more details in \cref{ch:volatility}.
 
 \Cref{fig:remove_wapi} depicts the following scenario.
 Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
@@ -417,26 +417,26 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \begin{footnotesize}
         \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
         \Begin{
-            $n^j \longleftarrow \texttt{/index/k/v/m}$\;
-            $n^j[k] \longleftarrow \textsc{nil}$\;
-            \While{$n^j[\lambda] \neq \texttt{index} \land chd(n^j) = \emptyset \land n^j[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n^j,H_i)}$}{
-                $u^j \longleftarrow n^j$\;
-                $n^j \longleftarrow par(n^j)$\;
-                remove node $u^j$\;
+            $n \longleftarrow \texttt{/index/k/v/m}$\;
+            $n[k] \longleftarrow \textsc{nil}$\;
+            \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
+                $u \longleftarrow n$\;
+                $n \longleftarrow par(n)$\;
+                remove node $u$\;
             }
         }
     \end{footnotesize}
 \end{algorithm}
 
-\section{Volatility}
-\label{sec:volatility}
+\chapter{VOLATILITY}
+\label{ch:volatility}
 
 \begin{definition}
     \begin{equation}
             isVolatile(n^j) \iff vol(n^j) \geq \tau 
     \end{equation}
     (Volatile Node): Let $n^j$ denote a node. 
-    Node $n^j$ is a member of the nodeset of snapshot $G^j$, i.e $n^j \in N(G^j)$.
+    Node $n^j$ is a member of the node-set of snapshot $G^j$, i.e $n^j \in N(G^j)$.
     Snapshot $G^j$ is a member of history $H_i$, i.e $G^j \in H_i$.
     Node $n^j$ is volatile iff $n^j$'s volatility count (\cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$.
 \end{definition}
@@ -456,7 +456,7 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \label{def:vol_count}
 \end{definition}
 
-\begin{figure}
+\begin{figure}[h]
     \begin{large}
         $$ G^i \xrightarrow{\quad T_j \quad} G^j \xrightarrow{\quad T_k \quad} G^k \xrightarrow{\quad T_l \quad} G^l$$
     \end{large}
@@ -594,6 +594,8 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \caption{Volatility count changes with each snapshot.}
     \label{fig:vol_example}
 \end{figure}
+
+\chapter{IMPLEMENTATION}
 
 % In the following pages, we will take a closer look at Oak.
 % Specifically, we will see how Oak handles querying, writing and concurrency control.
