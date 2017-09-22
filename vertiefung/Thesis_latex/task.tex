@@ -662,16 +662,12 @@ void collectLocalChanges(
             Revision rev = entry.getKey();
 
             if (property.equals("_deleted")) {
-                // not visible
                 if (!isVisible(rev)){
                     continue;
                 }
-
-                // not tau more recent revisions and is in sliding window
                 if (++count <= getVolatilityThreshold() && isInSlidingWindow(rev)){
                     continue;
                 }
-
             }
 
             if (rev.getClusterId() == context.getClusterId()) {
@@ -696,6 +692,11 @@ void collectLocalChanges(
     \begin{framed}
         \begin{scriptsize}
             \begin{minted}{java}
+/**
+ * Checks if r is visible to the local history
+ * @param r the revision
+ * @returns true if r is visible to the local history
+ */
 boolean isVisible(Revision r) {
     return r.getClusterId() == getClusterId()
             || (r.compareRevisionTime(documentNodeStore
@@ -703,6 +704,11 @@ boolean isVisible(Revision r) {
                     .getRevision(getClusterId())) < 0);
 }
 
+/**
+ * Checks if r is in the sliding window
+ * @param r the revision
+ * @returns true if r is in the sliding window
+ */
 boolean isInSlidingWindow(Revision r){
     return System.currentTimeMillis() - getSlidingWindowLength() < r.getTimestamp();
 }
