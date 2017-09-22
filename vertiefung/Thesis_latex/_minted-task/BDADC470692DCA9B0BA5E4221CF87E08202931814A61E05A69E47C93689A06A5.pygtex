@@ -1,0 +1,51 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+cm}{/**}
+\PYG{c+cm}{* Collects all local property changes committed by the current}
+\PYG{c+cm}{* cluster node.}
+\PYG{c+cm}{* @param committedLocally local changes committed by the current cluster node.}
+\PYG{c+cm}{* @param changes all revisions of local changes (committed and uncommitted).}
+\PYG{c+cm}{*/}
+\PYG{k+kt}{void} \PYG{n+nf}{collectLocalChanges}\PYG{o}{(}
+        \PYG{n}{Map}\PYG{o}{\PYGZlt{}}\PYG{n}{String}\PYG{o}{,} \PYG{n}{NavigableMap}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{,} \PYG{n}{String}\PYG{o}{\PYGZgt{}\PYGZgt{}} \PYG{n}{committedLocally}\PYG{o}{,}
+        \PYG{n}{Set}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{\PYGZgt{}} \PYG{n}{changes}\PYG{o}{)} \PYG{o}{\PYGZob{}}
+
+    \PYG{c+c1}{// for each public property or \PYGZdq{}\PYGZus{}deleted\PYGZdq{}}
+    \PYG{k}{for} \PYG{o}{(}\PYG{n}{String} \PYG{n}{property} \PYG{o}{:} \PYG{n}{filter}\PYG{o}{(}\PYG{n}{doc}\PYG{o}{.}\PYG{n+na}{keySet}\PYG{o}{(),} \PYG{n}{PROPERTY\PYGZus{}OR\PYGZus{}DELETED}\PYG{o}{))} \PYG{o}{\PYGZob{}}
+        \PYG{n}{NavigableMap}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{,} \PYG{n}{String}\PYG{o}{\PYGZgt{}} \PYG{n}{splitMap} \PYG{o}{=}
+                \PYG{k}{new} \PYG{n}{TreeMap}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{,} \PYG{n}{String}\PYG{o}{\PYGZgt{}(}\PYG{n}{StableRevisionComparator}\PYG{o}{.}\PYG{n+na}{INSTANCE}\PYG{o}{);}
+        \PYG{n}{committedLocally}\PYG{o}{.}\PYG{n+na}{put}\PYG{o}{(}\PYG{n}{property}\PYG{o}{,} \PYG{n}{splitMap}\PYG{o}{);}
+
+        \PYG{c+c1}{// local property revisions}
+        \PYG{n}{Map}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{,} \PYG{n}{String}\PYG{o}{\PYGZgt{}} \PYG{n}{valueMap} \PYG{o}{=} \PYG{n}{doc}\PYG{o}{.}\PYG{n+na}{getLocalMap}\PYG{o}{(}\PYG{n}{property}\PYG{o}{);}
+
+        \PYG{k+kt}{int} \PYG{n}{count} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{o}{;}
+
+        \PYG{c+c1}{// collect committed changes of this cluster node}
+        \PYG{k}{for} \PYG{o}{(}\PYG{n}{Map}\PYG{o}{.}\PYG{n+na}{Entry}\PYG{o}{\PYGZlt{}}\PYG{n}{Revision}\PYG{o}{,} \PYG{n}{String}\PYG{o}{\PYGZgt{}} \PYG{n}{entry} \PYG{o}{:} \PYG{n}{valueMap}\PYG{o}{.}\PYG{n+na}{entrySet}\PYG{o}{())} \PYG{o}{\PYGZob{}}
+            \PYG{n}{Revision} \PYG{n}{rev} \PYG{o}{=} \PYG{n}{entry}\PYG{o}{.}\PYG{n+na}{getKey}\PYG{o}{();}
+
+            \PYG{k}{if} \PYG{o}{(}\PYG{n}{property}\PYG{o}{.}\PYG{n+na}{equals}\PYG{o}{(}\PYG{l+s}{\PYGZdq{}\PYGZus{}deleted\PYGZdq{}}\PYG{o}{))} \PYG{o}{\PYGZob{}}
+                \PYG{c+c1}{// not visible}
+                \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isVisible}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{))\PYGZob{}}
+                    \PYG{k}{continue}\PYG{o}{;}
+                \PYG{o}{\PYGZcb{}}
+
+                \PYG{c+c1}{// not tau more recent revisions and is in sliding window}
+                \PYG{k}{if} \PYG{o}{(++}\PYG{n}{count} \PYG{o}{\PYGZlt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{()} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{n}{isInSlidingWindow}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{))\PYGZob{}}
+                    \PYG{k}{continue}\PYG{o}{;}
+                \PYG{o}{\PYGZcb{}}
+
+            \PYG{o}{\PYGZcb{}}
+
+            \PYG{k}{if} \PYG{o}{(}\PYG{n}{rev}\PYG{o}{.}\PYG{n+na}{getClusterId}\PYG{o}{()} \PYG{o}{==} \PYG{n}{context}\PYG{o}{.}\PYG{n+na}{getClusterId}\PYG{o}{())} \PYG{o}{\PYGZob{}}
+                \PYG{n}{changes}\PYG{o}{.}\PYG{n+na}{add}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{);}
+                \PYG{k}{if} \PYG{o}{(}\PYG{n}{isCommitted}\PYG{o}{(}\PYG{n}{context}\PYG{o}{.}\PYG{n+na}{getCommitValue}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{,} \PYG{n}{doc}\PYG{o}{)))} \PYG{o}{\PYGZob{}}
+                    \PYG{n}{splitMap}\PYG{o}{.}\PYG{n+na}{put}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{,} \PYG{n}{entry}\PYG{o}{.}\PYG{n+na}{getValue}\PYG{o}{());}
+                \PYG{o}{\PYGZcb{}} \PYG{k}{else} \PYG{k}{if} \PYG{o}{(}\PYG{n}{isGarbage}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{))} \PYG{o}{\PYGZob{}}
+                    \PYG{n}{addGarbage}\PYG{o}{(}\PYG{n}{rev}\PYG{o}{,} \PYG{n}{property}\PYG{o}{);}
+                \PYG{o}{\PYGZcb{}}
+            \PYG{o}{\PYGZcb{}}
+        \PYG{o}{\PYGZcb{}}
+    \PYG{o}{\PYGZcb{}}
+\PYG{o}{\PYGZcb{}}
+\end{Verbatim}

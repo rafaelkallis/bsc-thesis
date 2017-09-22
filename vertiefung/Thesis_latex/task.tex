@@ -15,6 +15,8 @@
 \usepackage{varwidth}
 \usepackage{verbatim}
 \usepackage{cleveref}
+\usepackage{minted}
+\usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
 
 \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
@@ -596,6 +598,121 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
 \end{figure}
 
 \chapter{IMPLEMENTATION}
+
+\begin{figure}[h]
+    \begin{framed}
+        \begin{scriptsize}
+            \begin{minted}{java}
+/**
+ * Determines if node is volatile.
+ * @param nodeDocument: document of node.
+ * @returns true iff node is volatile.
+ */            
+ boolean isVolatile(NodeDocument nodeDocument) {
+
+    int count = 0;
+    
+    for (Revision r : nodeDocument.getLocalDeleted().keySet()) {
+        if (!isInSlidingWindow(r)){
+            break;
+        }
+        if (!isVisible(r)){
+            continue;
+        }
+        if (++count >= getVolatilityThreshold()) {
+            return true;
+        }
+    }
+    return false;
+}
+            \end{minted}
+        \end{scriptsize}
+    \end{framed}
+    \caption{Java implementation for detecting volatile index nodes.}
+    \label{algo:is_volatile}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{framed}
+        \begin{scriptsize}
+            \begin{minted}{java}
+/**
+* Collects all local property changes committed by the current
+* cluster node.
+* @param committedLocally local changes committed by the current cluster node.
+* @param changes all revisions of local changes (committed and uncommitted).
+*/
+void collectLocalChanges(
+        Map<String, NavigableMap<Revision, String>> committedLocally,
+        Set<Revision> changes) {
+
+    // for each public property or "_deleted"
+    for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        NavigableMap<Revision, String> splitMap =
+                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
+        committedLocally.put(property, splitMap);
+
+        // local property revisions
+        Map<Revision, String> valueMap = doc.getLocalMap(property);
+
+        int count = 0;
+
+        // collect committed changes of this cluster node
+        for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
+            Revision rev = entry.getKey();
+
+            if (property.equals("_deleted")) {
+                // not visible
+                if (!isVisible(rev)){
+                    continue;
+                }
+
+                // not tau more recent revisions and is in sliding window
+                if (++count <= getVolatilityThreshold() && isInSlidingWindow(rev)){
+                    continue;
+                }
+
+            }
+
+            if (rev.getClusterId() == context.getClusterId()) {
+                changes.add(rev);
+                if (isCommitted(context.getCommitValue(rev, doc))) {
+                    splitMap.put(rev, entry.getValue());
+                } else if (isGarbage(rev)) {
+                    addGarbage(rev, property);
+                }
+            }
+        }
+    }
+}
+            \end{minted}
+        \end{scriptsize}
+    \end{framed}
+    \caption{Java implementation for splitting the node document.}
+    \label{algo:split_document}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{framed}
+        \begin{scriptsize}
+            \begin{minted}{java}
+boolean isVisible(Revision r) {
+    return r.getClusterId() == getClusterId()
+            || (r.compareRevisionTime(documentNodeStore
+                    .getHeadRevision()
+                    .getRevision(getClusterId())) < 0);
+}
+
+boolean isInSlidingWindow(Revision r){
+    return System.currentTimeMillis() - getSlidingWindowLength() < r.getTimestamp();
+}
+            \end{minted}
+        \end{scriptsize}
+    \end{framed}
+    \caption{Java implementations for helper functions.}
+    \label{algo:helper_functions}
+\end{figure}
+
 
 % In the following pages, we will take a closer look at Oak.
 % Specifically, we will see how Oak handles querying, writing and concurrency control.

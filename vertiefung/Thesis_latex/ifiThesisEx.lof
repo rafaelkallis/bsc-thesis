@@ -1,8 +1,0 @@
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {1.1}{\ignorespaces Apache Jackrabbit Oak's system architecture. The application, Adobe Experience Manage in this figure, connects to Oak.}}{5}
-\addvspace {10\p@ }
-\contentsline {figure}{\numberline {2.1}{\ignorespaces A tree and its JSON representation.}}{6}
-\contentsline {figure}{\numberline {2.2}{\ignorespaces A node's property in detail.}}{7}
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Assume cluster node $O_1$ synchronized at \texttt {01:02}. Assume $O_1$ starts transaction $T_1$ just after synchronization finished. This implies that \texttt {/a/b}'s property \texttt {x} has value 1 during transaction $T_1$, i.e., $ t_{sync}(T_1) = \texttt {\relax \fontsize {10}{12}\selectfont \abovedisplayskip 10\p@ plus2\p@ minus5\p@ \abovedisplayshortskip \z@ plus3\p@ \belowdisplayshortskip 6\p@ plus3\p@ minus3\p@ \def \leftmargin \leftmargini \parsep 5\p@ plus2.5\p@ minus\p@ \topsep 10\p@ plus4\p@ minus6\p@ \itemsep 5\p@ plus2.5\p@ minus\p@ {\leftmargin \leftmargini \topsep 6\p@ plus2\p@ minus2\p@ \parsep 3\p@ plus2\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip \add@extra@listi {ftns}01:02} \land n_1 = \texttt {/a/b} \DOTSB \tmspace +\thickmuskip {.2777em}\DOTSB \Relbar \joinrel \Rightarrow \tmspace +\thickmuskip {.2777em}n_1[\texttt {x}] = 1$. }}{8}
-\contentsline {figure}{\numberline {2.4}{\ignorespaces CAS Query example.}}{10}
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Tree with Property Index.}}{10}
