@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  21 SEP 2017 21:40
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  22 SEP 2017 10:57
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1517,7 +1517,7 @@ chapter 3.
 <architecture.pdf, id=58, 448.67625pt x 273.02pt>
 File: architecture.pdf Graphic file (type pdf)
  <use architecture.pdf>
-Package pdftex.def Info: architecture.pdf used on input line 634.
+Package pdftex.def Info: architecture.pdf used on input line 640.
 (pdftex.def)             Requested size: 227.62204pt x 138.50514pt.
 
 [7
@@ -1529,7 +1529,7 @@ chapter 4.
 ] [9] [10]
 chapter 5.
 
-Overfull \hbox (83.09027pt too wide) in paragraph at lines 861--864
+Overfull \hbox (83.09027pt too wide) in paragraph at lines 867--870
 \OT1/cmr/m/n/12 ad-di-tion to that, all an-ces-tor nodes, $\OML/cmm/m/it/12 anc
 \OT1/cmr/m/n/12 ([]) = \OMS/cmsy/m/n/12 f[]\OML/cmm/m/it/12 ; []; []\OMS/cmsy/m
 /n/12 g ^^Z
@@ -1550,42 +1550,42 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [12] [13]
 chapter 6.
 
-Overfull \hbox (41.03809pt too wide) in paragraph at lines 1376--1376
+Overfull \hbox (41.03809pt too wide) in paragraph at lines 1382--1382
 []    \OT1/cmtt/m/n/10 { "_id": "0:/",    /* ... */ },[] 
  []
 
 
-Overfull \hbox (41.03809pt too wide) in paragraph at lines 1377--1377
+Overfull \hbox (41.03809pt too wide) in paragraph at lines 1383--1383
 []    \OT1/cmtt/m/n/10 { "_id": "1:/a",   /* ... */ },[] 
  []
 
 
-Overfull \hbox (41.03809pt too wide) in paragraph at lines 1378--1378
+Overfull \hbox (41.03809pt too wide) in paragraph at lines 1384--1384
 []    \OT1/cmtt/m/n/10 { "_id": "2:/a/b", /* ... */ },[] 
  []
 
 
-Overfull \hbox (35.78813pt too wide) in paragraph at lines 1379--1379
+Overfull \hbox (35.78813pt too wide) in paragraph at lines 1385--1385
 []    \OT1/cmtt/m/n/10 { "_id": "2:/a/c", /* ... */ }[] 
  []
 
 
-Overfull \hbox (35.78813pt too wide) detected at line 1381
+Overfull \hbox (35.78813pt too wide) detected at line 1387
 []    \OT1/cmtt/m/n/10 { "_id": "2:/a/c", /* ... */ }[] 
  []
 
 
-Overfull \hbox (41.03809pt too wide) detected at line 1381
+Overfull \hbox (41.03809pt too wide) detected at line 1387
 []    \OT1/cmtt/m/n/10 { "_id": "2:/a/b", /* ... */ },[] 
  []
 
 
-Overfull \hbox (41.03809pt too wide) detected at line 1381
+Overfull \hbox (41.03809pt too wide) detected at line 1387
 []    \OT1/cmtt/m/n/10 { "_id": "1:/a",   /* ... */ },[] 
  []
 
 
-Overfull \hbox (41.03809pt too wide) detected at line 1381
+Overfull \hbox (41.03809pt too wide) detected at line 1387
 []    \OT1/cmtt/m/n/10 { "_id": "0:/",    /* ... */ },[] 
  []
 
@@ -1593,12 +1593,12 @@ Overfull \hbox (41.03809pt too wide) detected at line 1381
 
 ]
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <24.88> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 1442.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 1448.
 
  [15] [16] [17]
 
 LaTeX Warning: Reference `fig:tree_with_PI' on page 18 undefined on input line 
-1679.
+1685.
 
 [18] (./task.aux)
 
@@ -1646,7 +1646,7 @@ live/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texl
 ive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texli
 ve/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/texlive
 /2017/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on task.pdf (18 pages, 477334 bytes).
+Output written on task.pdf (18 pages, 479332 bytes).
 PDF statistics:
  248 PDF objects out of 1000 (max. 8388607)
  164 compressed objects within 2 object streams

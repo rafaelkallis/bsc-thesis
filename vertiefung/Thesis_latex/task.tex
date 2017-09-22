@@ -417,12 +417,12 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \begin{footnotesize}
         \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
         \Begin{
-            $n \longleftarrow \texttt{/index/k/v/m}$\;
-            $n[k] \longleftarrow \textsc{nil}$\;
-            \While{$n[\lambda] \neq \texttt{index} \land chd(n) = \emptyset \land n[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n)}$}{
-                $u \longleftarrow n$\;
-                $n \longleftarrow par(n)$\;
-                remove node $u$\;
+            $n^j \longleftarrow \texttt{/index/k/v/m}$\;
+            $n^j[k] \longleftarrow \textsc{nil}$\;
+            \While{$n^j[\lambda] \neq \texttt{index} \land chd(n^j) = \emptyset \land n^j[k] \neq v \land \textcolor{blue}{\lnot \ isVolatile(n^j,H_i)}$}{
+                $u^j \longleftarrow n^j$\;
+                $n^j \longleftarrow par(n^j)$\;
+                remove node $u^j$\;
             }
         }
     \end{footnotesize}
@@ -432,26 +432,27 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
 \label{sec:volatility}
 
 \begin{definition}
-    (Volatile Node): node $n^j$ is volatile iff $n^j$'s volatility count (\cref{def:vol_count}) over history $H_i$ is greater or equal than the volatility threshold $\tau$, i.e
-    \begin{large}$$ isVolatile(n^j, H_i) \iff vol(n^j, H_i) \geq \tau $$\end{large}
+    \begin{equation}
+            isVolatile(n^j) \iff vol(n^j) \geq \tau 
+    \end{equation}
+    (Volatile Node): Let $n^j$ denote a node. 
+    Node $n^j$ is a member of the nodeset of snapshot $G^j$, i.e $n^j \in N(G^j)$.
+    Snapshot $G^j$ is a member of history $H_i$, i.e $G^j \in H_i$.
+    Node $n^j$ is volatile iff $n^j$'s volatility count (\cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$.
 \end{definition}
 
 \begin{definition}
-    (Volatility Count): the number of times node $n^j$ was added or removed from snapshots contained in a sliding window of length $L$ over history $H_i$, i.e
-    \begin{large}
-        \begin{equation}
-            \begin{split}
-                vol(n^j, H_i) = | \{ G^b | \\
-                & G^b \in H_i \land \\
-                & t(G^b) \in [t_{n-L+1}, t_n] \land \\
-                & \exists G^a[ G^a = pre(G^b, H_i) \land (\\
-                & \quad n^a \notin N(G^a) \land n^b \in N(G^b) \lor \\ 
-                & \quad n^a \in N(G^a) \land n^b \notin N(G^b) \\
-                & )] \\
-                \} |
-            \end{split}
-        \end{equation}
-    \end{large}
+    \begin{equation}
+        \begin{split}
+            vol(n^j) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
+            \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
+            \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
+        \end{split}
+    \end{equation}
+    (Volatility Count): The number of times node $n^j$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
+    $t_n$ is the current time.
+    $t(G^b)$ returns the point in time where snapshot $G^b$ was committed, $N(G^a)$ returns the set of nodes which are members of snapshot $G^a$.
+    $pre(G^b)$ returns the predecessor of snapshot $G^b$.
     \label{def:vol_count}
 \end{definition}
 
@@ -569,21 +570,26 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
             \end{center}
         \end{multicols}
     \end{scriptsize}
-    Assume $\tau = 2$, $G^i,G^j,G^k,G^l \in H_i$ and $L$ has a value such that $G^i,G^j,G^k,G^l$ are in the sliding window.
-    $n^i, n^j, n^k, n^l$ represent node \texttt{/index/x/1/a/b} in snapshots $G^i, G^j, G^k, G^l$ respectively.
+    $\langle G^i,G^j,G^k,G^l \rangle$ is a partition of history $H_h$.
+
+    Assume $\tau = 2$ (volatility threshold) and $L = 4$ (sliding window length).
     
-    Given $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits $G^j$.
+    Given $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits $G^j$. $G^i = pre(G^j)$.
     
-    Given $G^j$, transaction $T_k$ adds property \texttt{x} with value $1$ to \texttt{/a/b} and commits $G^k$.
+    Given $G^j$, transaction $T_k$ adds the property-value pair \texttt{x:}$1$ to \texttt{/a/b} and commits $G^k$. $G^j = pre(G^k)$.
     
-    Given $G^k$, transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} and commits $G^l$.
+    Given $G^k$, transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} and commits $G^l$. $G^k = pre(G^l)$.
+
+    $t(G^i) = t, \quad t(G^j) = t + 1, \quad t(G^k) = t + 2, \quad t(G^l) = t + 3, \quad t(pre(G^i)) = t - 4$.
+    
+    $n^i, n^j, n^k, n^l$ represent versions of node $n = \texttt{\footnotesize /index/x/1/a/b}$ in snapshots $G^i, G^j, G^k, G^l$ respectively.
     
     Then:
     \begin{itemize}
-        \item $vol(n^i, H_i) = 0$, \quad $isVolatile(n^i, H_i) = false$
-        \item $vol(n^j, H_i) = 1$, \quad $isVolatile(n^j, H_i) = false$
-        \item $vol(n^k, H_i) = 2$, \quad $isVolatile(n^k, H_i) = true$
-        \item $vol(n^l, H_i) = 3$, \quad $isVolatile(n^l, H_i) = true$
+        \item $vol(n^i) = 0 \iff isVolatile(n^i) = F$
+        \item $vol(n^j) = 1 \iff isVolatile(n^j) = F$
+        \item $vol(n^k) = 2 \iff isVolatile(n^k) = T$
+        \item $vol(n^l) = 3 \iff isVolatile(n^l) = T$
     \end{itemize}    
     \caption{Volatility count changes with each snapshot.}
     \label{fig:vol_example}
