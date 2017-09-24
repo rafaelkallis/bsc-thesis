@@ -1,0 +1,47 @@
+/**
+* Collects all local property changes committed by the current
+* cluster node.
+* @param committedLocally local changes committed by the current cluster node.
+* @param changes all revisions of local changes (committed and uncommitted).
+*/
+void collectLocalChanges(
+        Map<String, NavigableMap<Revision, String>> committedLocally,
+        Set<Revision> changes) {
+
+    int vol = 0;
+
+    // for each public property or "_deleted"
+    for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        NavigableMap<Revision, String> splitMap =
+                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
+        committedLocally.put(property, splitMap);
+
+        // local property revisions
+        Map<Revision, String> valueMap = doc.getLocalMap(property);
+
+        // for each Revision & Value tuple in
+        for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
+            Revision r = entry.getKey();
+
+            if (property.equals("_deleted")) {
+                if (!isVisible(r)){
+                    continue;
+                }
+                if (isInSlidingWindow(r) && ++vol <= getVolatilityThreshold()){
+                    continue;
+                }
+            }
+            if (r.getClusterId() != context.getClusterId()) {
+                continue;
+            }
+
+            // move to split document
+            changes.add(r);
+            if (isCommitted(context.getCommitValue(r, doc))) {
+                splitMap.put(r, entry.getValue());
+            } else if (isGarbage(r)) {
+                addGarbage(r, property);
+            }
+        }
+    }
+}

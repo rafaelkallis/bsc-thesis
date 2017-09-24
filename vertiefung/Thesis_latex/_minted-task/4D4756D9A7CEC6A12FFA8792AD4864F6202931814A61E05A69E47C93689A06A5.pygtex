@@ -6,7 +6,7 @@
 \PYG{c+cm}{ */}
  \PYG{k+kt}{boolean} \PYG{n+nf}{isVolatile}\PYG{o}{(}\PYG{n}{NodeDocument} \PYG{n}{nodeDocument}\PYG{o}{)} \PYG{o}{\PYGZob{}}
 
-    \PYG{k+kt}{int} \PYG{n}{count} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{o}{;}
+    \PYG{k+kt}{int} \PYG{n}{vol} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{o}{;}
 
     \PYG{k}{for} \PYG{o}{(}\PYG{n}{Revision} \PYG{n}{r} \PYG{o}{:} \PYG{n}{nodeDocument}\PYG{o}{.}\PYG{n+na}{getLocalDeleted}\PYG{o}{().}\PYG{n+na}{keySet}\PYG{o}{())} \PYG{o}{\PYGZob{}}
         \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isInSlidingWindow}\PYG{o}{(}\PYG{n}{r}\PYG{o}{))\PYGZob{}}
@@ -15,7 +15,7 @@
         \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isVisible}\PYG{o}{(}\PYG{n}{r}\PYG{o}{))\PYGZob{}}
             \PYG{k}{continue}\PYG{o}{;}
         \PYG{o}{\PYGZcb{}}
-        \PYG{k}{if} \PYG{o}{(++}\PYG{n}{count} \PYG{o}{\PYGZgt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{())} \PYG{o}{\PYGZob{}}
+        \PYG{k}{if} \PYG{o}{(++}\PYG{n}{vol} \PYG{o}{\PYGZgt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{())} \PYG{o}{\PYGZob{}}
             \PYG{k}{return} \PYG{k+kc}{true}\PYG{o}{;}
         \PYG{o}{\PYGZcb{}}
     \PYG{o}{\PYGZcb{}}
