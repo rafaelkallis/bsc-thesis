@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  25 SEP 2017 13:04
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  25 SEP 2017 19:34
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1743,64 +1743,68 @@ Class scrreprt Warning: \float@addtolists detected!
 (scrreprt)              a package that still implements the
 (scrreprt)              deprecated \float@addtolist interface .
 
+
+LaTeX Warning: Citation `KV17' on page 2 undefined on input line 105.
+
 LaTeX Font Info:    Try loading font information for TS1+cmr on input line 109.
 
 (/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-) [2
-
-]
-chapter 2.
-<images/MONGO.png, id=32, 401.5pt x 401.5pt>
+)
+<images/MONGO.png, id=27, 401.5pt x 401.5pt>
 File: images/MONGO.png Graphic file (type png)
  <use images/MONGO.png>
-Package pdftex.def Info: images/MONGO.png used on input line 131.
+Package pdftex.def Info: images/MONGO.png used on input line 129.
 (pdftex.def)             Requested size: 28.45274pt x 28.45094pt.
 
-<images/OAK.png, id=34, 369.38pt x 369.38pt>
+<images/OAK.png, id=29, 369.38pt x 369.38pt>
 File: images/OAK.png Graphic file (type png)
  <use images/OAK.png>
-Package pdftex.def Info: images/OAK.png used on input line 132.
+Package pdftex.def Info: images/OAK.png used on input line 130.
 (pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
 File: images/OAK.png Graphic file (type png)
 
 <use images/OAK.png>
-Package pdftex.def Info: images/OAK.png used on input line 133.
+Package pdftex.def Info: images/OAK.png used on input line 131.
 (pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
 File: images/OAK.png Graphic file (type png)
  <use images/OAK.png>
-Package pdftex.def Info: images/OAK.png used on input line 134.
+Package pdftex.def Info: images/OAK.png used on input line 132.
 (pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
 
-<images/AEM.png, id=35, 501.875pt x 501.875pt>
+<images/AEM.png, id=30, 501.875pt x 501.875pt>
 File: images/AEM.png Graphic file (type png)
  <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 135.
+Package pdftex.def Info: images/AEM.png used on input line 133.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
 File: images/AEM.png Graphic file (type png)
 
 <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 136.
+Package pdftex.def Info: images/AEM.png used on input line 134.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
 File: images/AEM.png Graphic file (type png)
  <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 137.
+Package pdftex.def Info: images/AEM.png used on input line 135.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
- [3
 
- <./images/MONGO.png> <./images/OAK.png> <./images/AEM.png>]
-chapter 3.
-[4
-
-] [5] [6]
-chapter 4.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[7
+[2
 
-] [8]
-chapter 5.
+] [3 <./images/MONGO.png> <./images/OAK.png> <./images/AEM.png>]
+chapter 2.
+[4
+
+] [5] [6] [7]
+chapter 3.
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[8
+
+] [9]
+chapter 4.
 \openout5 = `task.pyg'.
 
 (./_minted-task/default-pyg-prefix.pygstyle) (./_minted-task/default.pygstyle)
@@ -1831,9 +1835,12 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[9
+[10
 
-] [10] [11] [12] [13] (./task.aux)
+] [11] [12] [13] [14] (./task.aux)
+
+LaTeX Warning: There were undefined references.
+
 runsystem(rm task.pyg)...executed.
 
  )
@@ -1842,13 +1849,13 @@ runsystem(rm task.pyg)...executed.
 ### simple group (level 1) entered at line 1061 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 43162 strings out of 492995
- 933831 string characters out of 6132704
- 1091954 words of memory out of 5000000
- 46168 multiletter control sequences out of 15000+600000
+ 43163 strings out of 492995
+ 933841 string characters out of 6132704
+ 1092739 words of memory out of 5000000
+ 46169 multiletter control sequences out of 15000+600000
  20975 words of font info for 82 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 154i,26n,182p,10377b,5536s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 154i,26n,182p,10377b,5539s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/cm-super/cm
 -super-ts1.enc}</usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmbx10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/c
@@ -1876,10 +1883,10 @@ ve/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texliv
 e/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texlive
 /2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/texlive/2
 017/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on task.pdf (13 pages, 475338 bytes).
+Output written on task.pdf (14 pages, 476229 bytes).
 PDF statistics:
- 174 PDF objects out of 1000 (max. 8388607)
- 121 compressed objects within 2 object streams
+ 177 PDF objects out of 1000 (max. 8388607)
+ 123 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  38 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -21,6 +21,7 @@
 
 \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
 \graphicspath{ {images/} }
+
 % --------- 
 
 \titlehead{Department of Informatics, University of Zürich}
@@ -46,7 +47,7 @@
 
 \newtheorem{definition}{Definition}
 % \newtheorem{figure}{Figure}
-% \newtheorem{example}{Example}
+\newtheorem{example}{Example}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
 
@@ -56,6 +57,8 @@
 \crefname{figure}{Fig.}{Figs.}
 \Crefname{figure}{Figure}{Figures}
 
+\crefname{example}{Ex.}{Ex.}
+\Crefname{example}{Example}{Examples}
 
 % \newenvironment{proof}
 %     {\noindent{\bf Proof:\rm}}{\hfill$\Box$\vspace{\medskipamount}}
@@ -86,7 +89,7 @@
 % \listoffigures
 % \listoftables
 
-\chapter{INTRODUCTION}
+\chapter{Introduction}
 
 Adding and removing data from hierarchical indexes causes them to grow and shrink.
 They grow and shrink, since adding or removing nodes cause a sequence of nodes to be added or removed in addition.
@@ -94,7 +97,7 @@ Skewed and update-heavy workloads trigger repeated structural index updates over
 Informally, a frequently added or removed node is called \textit{volatile}.
 Volatile nodes deteriorate index update performance due to the frequent structural index modifications.
 Frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
-Conflicting index updates further deteriorate update performance since they cause the transaction to abort and restart in a later point in time.
+Conflicting index updates further deteriorate update performance since they cause the transactions to synchronize in order to resolve the conflict.
 
 % Hierarchical indexes with skewed and update-heavy workloads grow and shrink often,
 % since adding and removing nodes cause a sequence of nodes to be added or removed in addition, thus deteriorating the index update performance.
@@ -102,22 +105,26 @@ Conflicting index updates further deteriorate update performance since they caus
 % Highly skewed workloads create hotspots where nodes are frequently added or removed, increasing conflicting index updates, as shown in (ref kevin paper).
 % A frequently added or removed node is a volatile node.
 
-Wellenzohn et al. (ref) propose a workload aware property index (WAPI). 
-The WAPI exploits the workloads' skewness by not removing volatile nodes from the index.
-By not removing these volatile nodes, we increase performance since we:
-\begin{itemize}
-    \item Reduce the number of structural index modifications, which are expensive because they implicitly cause a sequence of nodes to be added or removed from the index.
-    \item By reducing index modifications, we also decrease the number of index conflicts, which limit throughput since they cause a transaction to abort and restart.
-\end{itemize}
 
-The goal of this project is to implement a WAPI, as proposed by (ref kevin paper) in Apache Jackrabbit Oak in order to improve the transactional throughput of Jackrabbit Oak.
 
-\chapter{PRELIMINARIES}
+Wellenzohn et al.~\cite{KW17} propose a workload aware property index (WAPI). 
+The WAPI exploits the workloads' skewness by not removing volatile nodes from the index, 
+thus significantly reducing the number of structural index modifications.
+By reducing the number of structural index updates, we also decrease the likelihood
+of conflicting index updates by concurrent transactions.
+
+% By not removing these volatile nodes, we increase performance since we:
+% \begin{itemize}
+%     \item Reduce the number of structural index modifications, which are expensive because they implicitly cause a sequence of nodes to be added or removed from the index.
+%     \item By reducing index modifications, we also decrease the number of index conflicts, which limit throughput since they cause a transaction to abort and restart.
+% \end{itemize}
+
+The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in Apache Jackrabbit Oak in order to improve the transactional throughput of Jackrabbit Oak.
 
 \section{System Architecture}
 
-Apache Jackrabbit Oak (reference) (Oak) is a hierarchical distributed database system which makes use of a hierarchical index. 
-Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC) (reference), a commonly used optimistic technique (reference Principals of Distributed databases).
+Apache Jackrabbit Oak\footnote{https://jackrabbit.apache.org/oak/} (Oak) is a hierarchical distributed database system which makes use of a hierarchical index. 
+Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic technique~\cite{TM11}.
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture.
 Oak embodies the \textit{Database Tier}.
@@ -146,12 +153,11 @@ One such application is Adobe's enterprise content management system (CMS), the 
     \label{fig:architecture}
 \end{figure}
 
-\section{Notation}
-
 \chapter{WAPI}
 
 The general idea behind the WAPI is to take into account if an index node is volatile before performing structural index modifications.
 If a node is considered volatile, we prevent removing it from the index.
+
 In the following chapter, we will see how to add, query and remove nodes from the index.
 
 \section{Insertion}
@@ -164,6 +170,10 @@ Node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$.
 Let's consider \cref{fig:add_wapi}.
 Given snapshot $G^i$, transaction $T_j$ adds the property-value pair \texttt{x:1} to \texttt{/a/b} and commits snapshot $G^j$.
 The WAPI is updated as described in \cref{algo:add_triple_wapi}.
+Starting from /index, we descent down to /index/k, /index/k/v.
+Next, we descent down from /index/k/v with a replica from content node $m$'s absolute path from root.
+While we descent the WAPI, we create any node $n$ that does not exist.
+Finally, we set $n$'s property $k$ to $v$.
 
 \begin{figure}[h]
         \begin{multicols}{2}
@@ -230,11 +240,9 @@ The WAPI is updated as described in \cref{algo:add_triple_wapi}.
                 \caption{AddTripleWAPI}
                 \DontPrintSemicolon
                 \begin{footnotesize}
-                    \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                    \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a content node.}
                     \vspace{2.6mm}
-                    $n \longleftarrow \texttt{/index}$\;
-                    \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
-                        $n \longleftarrow n | \lambda$\;
+                    \For{$n \in \langle/i/k,~/i/k/v,~\dots,~/i/k/v/m\rangle$}{
                         \If{$n$ does not exist}{
                             create node $n$\;
                         }
@@ -242,6 +250,9 @@ The WAPI is updated as described in \cref{algo:add_triple_wapi}.
                     $n[k] \longleftarrow v$
                 \end{footnotesize}
             \end{algorithm}
+            \begin{scriptsize}
+                Where $/i$ is an abbreviation for /index.
+            \end{scriptsize}
         \end{multicols}
     \caption{Adding a node in a workload aware property index.}
     \label{fig:add_wapi}
@@ -249,13 +260,23 @@ The WAPI is updated as described in \cref{algo:add_triple_wapi}.
 
 \section{Querying}
 
-Oak mostly executes content-and-structure (CAS) queries \textbf{(ref)}.
-An example of such a query can be found in \cref{fig:cas_query}.
+Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}.
 
 \begin{definition}
-    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query returns all descendants of $m$ which have $k$ set to the $v$.
-    {\large$Q_{k,v,m} = \{ \, n \, | \, n[k] = v \land n \in desc(m) \, \} $}
+    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query returns all descendants of $m$ which have $k$ set to the $v$, 
+    i.e $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$.
 \end{definition}
+
+\Cref{algo:query_wapi} describes how we answer the query using the WAPI.
+Given property $k$, value $v$ and node $m$, we start descending down to node \texttt{/index/k/v/m}.
+Next, we iterate through all descendants $n$ of node $m$.
+We return a set consisting of content nodes $*n$ corresponding to every $n$ with property $k$ set to $v$.
+If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \emptyset$.
+\begin{example}
+    Let's consider query $Q(x, 1, /a)$, that is every descendant of \texttt{/a} with \texttt{x} set to $1$.
+    Assuming we execute the query on the tree depicted in \cref{fig:cas_query},
+    we receive a set including node /a/b, i.e $Q(x, 1, /a) = \{~/a/b~\}$
+\end{example}
 
 \begin{figure}[h]
     \begin{multicols}{2}
@@ -288,58 +309,51 @@ An example of such a query can be found in \cref{fig:cas_query}.
         \columnbreak
         \begin{algorithm}[H]
             \DontPrintSemicolon
-            \begin{scriptsize}
-                \label{algo:query_pi}
+            \begin{footnotesize}
+                \label{algo:query_wapi}
                 \caption{QueryWAPI}
-                \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-                \KwResult{A set of paths satisfying CAS query $Q_{k,v,m}$}
-                $n \longleftarrow \texttt{/index}$\;
-                \For{$\lambda \in \langle\, k,\, v,\, \dots\,,\, par(m)[\lambda],\, m[\lambda] \, \rangle$}{
-                    $n \longleftarrow n | \lambda$\;
-                    \If{$n$ does not exist}{
-                        \Return{$\emptyset$}\;
-                    }
-                }
+                \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+                \KwResult{A set of nodes satisfying $Q(k,v,m)$}
                 $r \longleftarrow \emptyset$\;
-                \For{$d \in desc(n)$}{
-                    \If{$d[k] = v$}{
-                        $r \longleftarrow r \cup \{ trunc(d) \}$\;
+                \For{$n \in desc(\texttt{/index/k/v/m})$}{
+                    \If{$n[k] = v$}{
+                        $r \longleftarrow r \cup \{ *n \}$\;
                     }
                 }
                 \Return{r}\;
-            \end{scriptsize}
+            \end{footnotesize}
         \end{algorithm}
+        \begin{scriptsize}
+            Where $desc(\texttt{/index/k/v/m})$ is the set of descendants of node \texttt{/index/k/v/m}, $n[k]$ is property $k$ of node $n$ and $*n$ is the content node corresponding to $n$.
+        \end{scriptsize}
     \end{multicols}
-    \begin{footnotesize}
-        Having the following query, that is every descendant of \texttt{/a} with \texttt{x} set to $1$,
-        we receive a set including node \texttt{/a/b}.
-    \end{footnotesize}
-    \begin{large}
-        $$ Q_{\texttt{x}, 1, \texttt{/a}} = \{\,\texttt{\normalsize/a/b}\,\}$$
-    \end{large}
     \caption{CAS Query example.}
     \label{fig:cas_query}
 \end{figure}
 
 \section{Deletion}
 
-A workload aware property index differentiates itself mostly when nodes are removed.
-It detects which nodes are volatile and avoids removing them.
+During deletion, we intend to remove a node from the WAPI.
+Volatile nodes influence the logic of the deletion process.
+A workload aware property index detects which nodes are volatile and does not remove them.
 The process of classifying a node as volatile, will be explained in more details in \Cref{ch:volatility}.
+For the moment we assume that a function $isVolatile(n)$ is given that classifies $n$ either as volatile or as non-volatile.
+
+\Cref{algo:remove_triple_wapi} describes the process of removing a node from the workload aware property index.
 We first propagate down to node $m$, which we intend to remove.
 We remove property $k$ from $m$.
 If $m$ is a leaf node and does not have property $k$ and is not volatile, we remove it.
 If $m$ was removed, we repeat the process on its parent node.
-The process ends if we propagate up to \texttt{\index} or have a node with children or a volatile node.
+The process ends if we propagate up to \texttt{/index} or have a node with children or a volatile node or a node that has property $k$.
 
-\Cref{fig:remove_wapi} depicts the following scenario.
-Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
-Given snapshot $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits snapshot $G^j$.
-Since \texttt{/index/x/1/a/b} is volatile, it is not removed from the WAPI.
-Given snapshot $G^j$, transaction $T_k$ removes property \texttt{x} from \texttt{/a/c} and commits snapshot $G^k$.
-Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
-
-\Cref{algo:remove_triple_wapi} describes the process of removing a node from the workload aware property index.
+\begin{example}
+    \Cref{fig:remove_wapi} depicts the following scenario.
+    Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
+    Given snapshot $G^i$, transaction $T_j$ removes property $x=1$ from \texttt{/a/b} and commits snapshot $G^j$.
+    Since \texttt{/index/x/1/a/b} is volatile, it was not removed from the WAPI.
+    Given snapshot $G^j$, transaction $T_k$ removes property \texttt{x} from \texttt{/a/c} and commits snapshot $G^k$.
+    Since \texttt{/index/x/1/a/b} is not volatile, it was removed from the WAPI.
+\end{example}
 
 \begin{figure}[h]
     \begin{large}
@@ -452,22 +466,32 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \DontPrintSemicolon
     \begin{footnotesize}
         \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-        \Begin{
-            $n \longleftarrow \texttt{/index/k/v/m}$\;
-            $n[k] \longleftarrow \textsc{nil}$\;
-            \While{$n \neq \texttt{/index} \land chd(n) = \emptyset \land n[k] \neq v \land \lnot \ isVolatile(n)$}{
-                $u \longleftarrow n$\;
-                $n \longleftarrow par(n)$\;
-                remove node $u$\;
-            }
+        $n \longleftarrow \texttt{/index/k/v/m}$\;
+        $n[k] \longleftarrow \textsc{nil}$\;
+        \While{$n \neq \texttt{/index} \land chd(n) = \emptyset \land n[k] \neq v \land \lnot \ isVolatile(n)$}{
+            $u \longleftarrow n$\;
+            $n \longleftarrow par(n)$\;
+            remove node $u$\;
         }
     \end{footnotesize}
 \end{algorithm}
 
-\chapter{VOLATILITY}
+\chapter{Volatility}
 \label{ch:volatility}
 
+Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
+workload to check whether a node $n$ is volatile. The workload on Oak instance
+$O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
+\rangle$ of snapshots, called a history.  $t_n$ is the current time.  $t(G^b)$
+is the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
+nodes which are members of snapshot $G^a$.  $pre(G^b)$ is the predecessor of
+snapshot $G^b$.
+
+Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called volatility threshold.
+The volatility count of $n$ is defined as the number of times $n$ was added or removed from snapshots in history $H_i$ over a sliding window of length $L$.
+
 \begin{definition}
+    (Volatility Count): The number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
     \begin{equation}
         \begin{split}
             vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
@@ -475,19 +499,30 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
             \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
         \end{split}
     \end{equation}
-    (Volatility Count): The number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
-    $t_n$ is the current time.
-    $t(G^b)$ is the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of nodes which are members of snapshot $G^a$.
-    $pre(G^b)$ is the predecessor of snapshot $G^b$.
     \label{def:vol_count}
 \end{definition}
 
 \begin{definition}
-    \begin{equation}
-            isVolatile(n) \iff vol(n) \geq \tau 
-    \end{equation}
-    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (\Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$.
+    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (\Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$, i.e 
+    $$ isVolatile(n) \iff vol(n) \geq \tau $$
 \end{definition}
+
+\begin{example}
+    Let's consider the snapshots depicted in \cref{fig:vol_example}.
+    Assume $\langle G^i,G^j,G^k,G^l \rangle$ is a partition of history $H_h$ on Oak instance $O_h$.
+    $O_h$ executes transactions $T_j, T_k, T_l$. Snapshot $G^i$ was committed during $t(G^i) = t$.
+    Given snapshot $G^i$, transaction $T_j$ removes property $x$ from \texttt{/a/b} and commits snapshot $G^j$ during $t(G^j) = t + 1$.
+    Next, transaction $T_k$ adds the property $x=1$ to \texttt{/a/b} given snapshot $G^j$ and commits snapshot $G^k$ during $t(G^k) = t + 2$.
+    Finally transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} given $G^k$ and commits $G^l$ during $t(G^l) = t + 3$.
+    
+    If $\tau = 2$ (volatility threshold), $L = 4$ (sliding window length) and $n = \texttt{\footnotesize /index/x/1/a/b}$, then:
+    \begin{itemize}
+        \item at time $t_n = t$ \quad \ \ we have that: \quad $vol(n) = 0 \implies isVolatile(n) = \bot$
+        \item at time $t_n = t + 1 $ we have that: \quad $ vol(n) = 1  \implies isVolatile(n) = \bot$
+        \item at time $t_n = t + 2 $ we have that: \quad $ vol(n) = 2  \implies isVolatile(n) = \top$
+        \item at time $t_n = t + 3 $ we have that: \quad $ vol(n) = 3  \implies isVolatile(n) = \top$
+    \end{itemize}    
+\end{example}
 
 \begin{figure}[h]
     \begin{large}
@@ -520,6 +555,8 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
                 }
 
                 Snapshot $G^i$
+
+                $t(G^i) = t$
             \end{center}
             \columnbreak
             \begin{center}
@@ -541,6 +578,8 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
                 }
 
                 Snapshot $G^j$
+
+                $t(G^j) = t + 1$
             \end{center}
             \columnbreak
             \begin{center}
@@ -568,6 +607,8 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
                 }
 
                 Snapshot $G^k$
+
+                $t(G^k) = t + 2$
             \end{center}
             \columnbreak
             \begin{center}
@@ -600,32 +641,61 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
                 }
 
                 Snapshot $G^l$
+
+                $t(G^l) = t + 3$
             \end{center}
         \end{multicols}
     \end{scriptsize}
-    $\langle G^i,G^j,G^k,G^l \rangle$ is a partition of history $H_h$.
-    
-    Given $G^i$, transaction $T_j$ removes property \texttt{x} from \texttt{/a/b} and commits $G^j$.
-    
-    Given $G^j$, transaction $T_k$ adds the property-value pair \texttt{x:}$1$ to \texttt{/a/b} and commits $G^k$.
-    
-    Given $G^k$, transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} and commits $G^l$.
-
-    Assume $t(G^i) = t, \quad t(G^j) = t + 1, \quad t(G^k) = t + 2, \quad t(G^l) = t + 3$.
-    If $\tau = 2$ (volatility threshold), $L = 4$ (sliding window length) and $n = \texttt{\footnotesize /index/x/1/a/b}$, then:
-    \begin{itemize}
-        \item at time $t_n = t$ \quad \ \ we have that: $ vol(n) = 0 \geq \tau\iff isVolatile(n) = \bot$
-        \item at time $t_n = t + 1 $ we have that: $ vol(n) = 1 \geq \tau \iff isVolatile(n) = \bot$
-        \item at time $t_n = t + 2 $ we have that: $ vol(n) = 2 \geq \tau \iff isVolatile(n) = \top$
-        \item at time $t_n = t + 3 $ we have that: $ vol(n) = 3 \geq \tau \iff isVolatile(n) = \top$
-    \end{itemize}    
     \caption{Volatility count changes with each snapshot.}
     \label{fig:vol_example}
 \end{figure}
 
-\chapter{IMPLEMENTATION}
+\chapter{Implementation}
 
 \section{Checking Node Volatility}
+
+In order to classify node $n$ as volatile, we have to compute $n$'s volatility count using the corresponding JSON\footnote{http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf} document on MongoDB.
+The document contains all revisions of $n$ throughout history $H_i$ of an Oak instance $O_i$.
+\Cref{fig:json_simple} depicts such a document.
+We omitted non relevant properties.
+Property \texttt{"\_deleted"} contains key value pairs which encode when the node was added or removed from snapshots, called revisions.
+Each value's key is composed with a timestamp, a counter that is used to differentiate between value changes during the same instance of time and the identifier of the oak instance committing the change.
+\begin{example}
+    Let's consider \texttt{r15cac0dbb00-0-2} in \cref{fig:json_simple}.
+    \texttt{r} is a standard prefix and can be neglected.
+    The \texttt{15cac0dbb00} following \texttt{r}, is a timestamp (number of milliseconds since the Epoch) in hexadecimal encoding which represents the time during which the change was committed.
+    The \texttt{0} following the timestamp, is a counter which is used for tie-breaking between transactions committed during the same instance of time.
+    The \texttt{2} following the counter, tells that the change was committed by the Oak instance with an id of \texttt{2}.
+\end{example}
+
+\begin{figure}[h]
+    \begin{scriptsize}
+        \begin{centerverbatim}{   
+    "_id": "5:/index/x/1/a/b", 
+    "_deleted": {             
+        "r15cac0dbb00-0-2": false,
+        "r15cabff1500-0-2": true,
+        "r15ca9f191c0-0-1": false,
+        /* ... */
+    },
+    /* ... */
+}\end{centerverbatim}
+    \end{scriptsize}
+    \caption{JSON document of an index node.}
+    \label{fig:json_simple}
+\end{figure}
+
+Having seen what a node document looks like, we can now describe how we classify a node as volatile.
+\Cref{fig:is_volatile} shows the native implementation of $isVolatile(n)$ in Java.
+\begin{example}
+    As shown in \cref{fig:is_volatile}, $isVolatile(n)$ is given a node's corresponding document.
+    We iterate through the revisions of property \texttt{"\_deleted"} in most-recent first fashion.
+    If a revision is outside the sliding window we stop iterating because remaining revisions cannot be more recent.
+    We increment the volatility count for every visible revision.
+    A revision is visible if it is contained in the Oak instance's history.
+    If the volatility count reaches at least $\tau$ we break the loop.
+    When exiting the loop, we finally check if the volatility count is at least $\tau$ and return the result.
+\end{example}
 
 \begin{figure}[h]
     \begin{framed}
@@ -648,16 +718,16 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
             continue;
         }
         if (++vol >= getVolatilityThreshold()) {
-            return true;
+            break;
         }
     }
-    return false;
+    return vol >= getVolatilityThreshold();
 }
             \end{minted}
         \end{scriptsize}
     \end{framed}
     \caption{Java implementation for detecting volatile index nodes.}
-    \label{algo:is_volatile}
+    \label{fig:is_volatile}
 \end{figure}
 
 \begin{figure}[h]
@@ -850,5 +920,8 @@ void collectLocalChanges(
         \item "Split" is true iff the revision is moved to the split document.
     \end{itemize}
 \end{figure}
+
+\bibliographystyle{abbrv}
+\bibliography{vertiefung}
 
 \end{document}

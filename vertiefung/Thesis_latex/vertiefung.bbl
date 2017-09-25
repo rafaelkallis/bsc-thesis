@@ -1,0 +1,24 @@
+\begin{thebibliography}{1}
+
+\bibitem{CM15}
+C.~Mathis, T.~H{\"{a}}rder, K.~Schmidt, and S.~B{\"{a}}chle.
+\newblock {XML} indexing and storage: fulfilling the wish list.
+\newblock {\em Computer Science - R{\&}D}, 30(1):51--68, 2015.
+
+\bibitem{TM11}
+M.~T. {\"{O}}zsu and P.~Valduriez.
+\newblock {\em Principles of Distributed Database Systems, Third Edition}.
+\newblock Springer, 2011.
+
+\bibitem{GW02}
+G.~Weikum and G.~Vossen.
+\newblock {\em Transactional Information Systems: Theory, Algorithms, and the
+  Practice of Concurrency Control and Recovery}.
+\newblock Morgan Kaufmann, 2002.
+
+\bibitem{KW17}
+K.~Wellenzohn, M.~B{\"o}hlen, S.~Helmer, M.~Reutegger, and S.~Sakr.
+\newblock {A Workload-Aware Index for Tree-Structured Data}.
+\newblock To be published.
+
+\end{thebibliography}

@@ -1,6 +1,6 @@
 # Fdb version 3
-["pdflatex"] 1506337458 "task.tex" "task.pdf" "task" 1506337461
-  "/dev/null" 1506337402 0 d41d8cd98f00b204e9800998ecf8427e ""
+["pdflatex"] 1506360884 "task.tex" "task.pdf" "task" 1506360887
+  "/dev/null" 1506360825 0 d41d8cd98f00b204e9800998ecf8427e ""
   "/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1480098666 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2017/texmf-dist/fonts/map/fontname/texfonts.map" 1480098670 3287 e6b82fe08f5336d4d5ebc73fb1152e87 ""
   "/usr/local/texlive/2017/texmf-dist/fonts/tfm/jknappen/ec/tcrm1200.tfm" 1480098696 1536 74b7293ec3713bb7fdca8dd1bd1f469c ""
@@ -249,9 +249,9 @@
   "images/MONGO.png" 1506260560 28538 04d9e67ef39d83bc689a2f0300a7e438 ""
   "images/OAK.png" 1506259933 53327 9ee2de9655fd22f370c492adf90cba11 ""
   "task.aex" 0 -1 0 ""
-  "task.aux" 1506337461 4978 cf875f0e832ddaabb6f0e8ea33cfc943 ""
+  "task.aux" 1506360887 4667 c74cb3023249dd81c19d3cb787be452c ""
   "task.pyg" 0 -1 0 ""
-  "task.tex" 1506337457 34103 595c5751b7f00a296f7edf1ec0456a68 ""
+  "task.tex" 1506360880 35047 af6bc1fa3fddd0c71d46728d96241d0a ""
   "task.w18" 0 -1 0 ""
   (generated)
   "task.pdf"
