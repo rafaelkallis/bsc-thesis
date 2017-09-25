@@ -28,7 +28,7 @@
                 \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isVisible}\PYG{o}{(}\PYG{n}{r}\PYG{o}{))\PYGZob{}}
                     \PYG{k}{continue}\PYG{o}{;}
                 \PYG{o}{\PYGZcb{}}
-                \PYG{k}{if} \PYG{o}{(}\PYG{n}{isInSlidingWindow}\PYG{o}{(}\PYG{n}{r}\PYG{o}{)} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{o}{++}\PYG{n}{vol} \PYG{o}{\PYGZlt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{())\PYGZob{}}
+                \PYG{k}{if} \PYG{o}{(}\PYG{n}{isInSlidingWindow}\PYG{o}{(}\PYG{n}{r}\PYG{o}{)} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{n}{vol}\PYG{o}{++} \PYG{o}{\PYGZlt{}} \PYG{n}{getVolatilityThreshold}\PYG{o}{())\PYGZob{}}
                     \PYG{k}{continue}\PYG{o}{;}
                 \PYG{o}{\PYGZcb{}}
             \PYG{o}{\PYGZcb{}}
