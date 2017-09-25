@@ -53,6 +53,9 @@
 \crefname{algocfline}{algorithm}{algorithms}
 \Crefname{algocfline}{Algorithm}{Algorithms}
 
+\crefname{figure}{Fig.}{Figs.}
+\Crefname{figure}{Figure}{Figures}
+
 
 % \newenvironment{proof}
 %     {\noindent{\bf Proof:\rm}}{\hfill$\Box$\vspace{\medskipamount}}
@@ -115,9 +118,12 @@ The goal of this project is to implement a WAPI, as proposed by (ref kevin paper
 
 Apache Jackrabbit Oak (reference) (Oak) is a hierarchical distributed database system which makes use of a hierarchical index. 
 Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC) (reference), a commonly used optimistic technique (reference Principals of Distributed databases).
-Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB.
-Although Oak is an open-source project, it is being actively maintained by Adobe (reference).
-Adobe's content management system (CMS) makes use of Oak in one of their products, specifically Adobe Experience Manager.
+
+\Cref{fig:architecture} depicts Oak's multi-tier architecture.
+Oak embodies the \textit{Database Tier}.
+Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB, labeled as \textit{Persistance Tier}.
+On the other end, applications can make use of Oak as shown in \cref{fig:architecture} under \textit{Application Tier}.
+One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager.
 
 \begin{figure}[h]
     \begin{center}
@@ -137,21 +143,24 @@ Adobe's content management system (CMS) makes use of Oak in one of their product
         \end{tikzpicture}
     \end{center}
     \caption{Apache Jackrabbit Oak's system architecture.}
+    \label{fig:architecture}
 \end{figure}
 
 \section{Notation}
 
 \chapter{WAPI}
 
-The WAPI is hierarchically organized under \texttt{/index} node.
-The second index level consists of all properties $k$ we want to index.
-The third index level contains any values $v$ of $k$.
-The remaining index levels replicate all nodes from the root node to any content node with $k$ set to $v$.
+The general idea behind the WAPI is to take into account if an index node is volatile before performing structural index modifications.
+If a node is considered volatile, we prevent removing it from the index.
 In the following chapter, we will see how to add, query and remove nodes from the index.
 
 \section{Insertion}
 
-Node $n$ is added to the WAPI iff $n$ has a property $k$ set to $v$.
+The WAPI is hierarchically organized under \texttt{/index} node.
+The second index level consists of all properties $k$ we want to index.
+The third index level contains any values $v$ of $k$.
+The remaining index levels replicate all nodes from the root node to any content node with $k$ set to $v$.
+Node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$.
 Let's consider \cref{fig:add_wapi}.
 Given snapshot $G^i$, transaction $T_j$ adds the property-value pair \texttt{x:1} to \texttt{/a/b} and commits snapshot $G^j$.
 The WAPI is updated as described in \cref{algo:add_triple_wapi}.
@@ -477,7 +486,7 @@ Since \texttt{/index/x/1/a/b} is not volatile, it is removed from the WAPI.
     \begin{equation}
             isVolatile(n) \iff vol(n) \geq \tau 
     \end{equation}
-    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (\cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$.
+    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (\Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$.
 \end{definition}
 
 \begin{figure}[h]
