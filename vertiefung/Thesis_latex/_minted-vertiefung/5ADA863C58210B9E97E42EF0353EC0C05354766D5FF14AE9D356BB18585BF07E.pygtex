@@ -15,7 +15,7 @@
         \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isVisible}\PYG{o}{(}\PYG{n}{r}\PYG{o}{))\PYGZob{}}
             \PYG{k}{continue}\PYG{o}{;}
         \PYG{o}{\PYGZcb{}}
-        \PYG{k}{if} \PYG{o}{(++}\PYG{n}{vol} \PYG{o}{\PYGZgt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{())} \PYG{o}{\PYGZob{}}
+        \PYG{k}{if} \PYG{o}{(}\PYG{n}{vol}\PYG{o}{++} \PYG{o}{\PYGZgt{}=} \PYG{n}{getVolatilityThreshold}\PYG{o}{())} \PYG{o}{\PYGZob{}}
             \PYG{k}{break}\PYG{o}{;}
         \PYG{o}{\PYGZcb{}}
     \PYG{o}{\PYGZcb{}}

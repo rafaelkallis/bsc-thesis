@@ -18,6 +18,8 @@
 \usepackage{minted}
 \usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
+\usepackage{caption}
+\usepackage{subcaption}
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
@@ -736,7 +738,7 @@ Having seen what a node document looks like, we can now describe how we classify
         if (!isVisible(r)){
             continue;
         }
-        if (++vol >= getVolatilityThreshold()) {
+        if (vol++ >= getVolatilityThreshold()) {
             break;
         }
     }
@@ -748,6 +750,166 @@ Having seen what a node document looks like, we can now describe how we classify
     \caption{Java implementation for detecting volatile index nodes.}
     \label{fig:is_volatile}
 \end{figure}
+
+\section{Document Splitting}
+
+Jackrabbit Oak periodically checks the node's corresponding documents for their size and if necessary splits them up and moved old data to a new split document.
+In order to avoid round-trips while computing the volatility count, we modify the document split implementation as mentioned in~\cite{KW17}.
+We essentially leave at most $\tau$ revisions in the document and move all other revision to a new split document.
+Since Oak has to operate in a distributed environment, we only move revisions committed by the local instance thus preventing race conditions.
+
+\Cref{fig:split_document} depicts the java implementation of the document splitting process.
+The function iterates through the revisions of the \texttt{"\_deleted"} property of the given document in a most-recent first fashion.
+A revision gets moved to the split document iff it is visible, is not in the sliding window or at least $\tau$ revisions already exist in the document and the revision was committed by the local Oak instance, 
+i.e $visible(r) \land [t(r) \notin [t_{n-L+1},t_n] \lor vol \geq \tau] \land c(r) = O_i \iff moveToSplitDocument(r)$.
+
+\begin{example}
+    \label{ex:split_doc}
+    Let's look at \cref{fig:split_doc_mongo}.
+    We see how a node's corresponding document is split, assuming $\tau = 3$, $O_i = 1$, $t_{\texttt{last\_sync}} = $ {\footnotesize 2017.06.15 13:59}, $L = 24$ hours, $t_n = $ {\footnotesize 2017.06.15 14:01}.
+    \Cref{fig:split_doc_debug} shows a table with intermediate values during computation.
+    "$t(r)$" is the point of time revision $r$ was committed. Only the day, hours and minutes are showed for brevity.
+    "$c(r)$" is the cluster node which committed revision $r$.
+    "Vis." is true iff the revision is visible to the local cluster node.
+    "$\in$Win." is true iff the revision is in the sliding window.
+    "Vol." represents the volatility count during that step of the iteration. 
+    "Split" is true iff the revision is moved to the split document.
+
+    We will briefly walk you through the iteration during the document split depicted in \cref{fig:split_doc_mongo}.
+    $r_1$ does not increment the volatility count, since it is not visible to the local Oak instance.
+    Thus $r_1$ is not moved to the split document.
+    The three next revisions, $r_2,r_3,r_4$, increment volatility because they are in the sliding window but are not moved to the split document because $vol < \tau$.
+    $r_5$ is still in the sliding window and therefore increments volatility.
+    Since there are already $\tau$ revisions in the document, we move $r_5$ to the split document.
+    Finally, any following revisions committed by the local Oak instance ($r_7, r_8, r_9$) are moved to the split document since there are $\tau$ revisions in the document.
+\end{example}
+
+\begin{figure}[h]
+    \begin{framed}
+        \begin{scriptsize}
+            \begin{minted}{java}
+/**
+* Splits the "_deleted" property on the given document.
+* @param NodeDocument the node document.
+*/
+void splitDeleted(NodeDocument nodeDocument) {
+
+    int vol = 0;
+
+    for (Revision r : nodeDocument.getLocalDeleted().keySet()){
+        if (!isVisible(r)){
+            continue;
+        }
+        if (isInSlidingWindow(r) && vol++ < getVolatilityThreshold()){
+            continue;
+        }
+        if (r.getClusterId() != getClusterId()) {
+            continue;
+        }
+        moveToSplitDocument(r);
+    }
+}
+            \end{minted}
+        \end{scriptsize}
+    \end{framed}
+    \caption{Java implementation for splitting the node document.}
+    \label{fig:split_document}
+\end{figure}
+
+\begin{figure}[h]
+    \begin{subfigure}[b]{0.5\textwidth}
+        \begin{scriptsize}
+            \begin{centerverbatim}
+{   
+  "_id": "5:/index/x/1/a/b", 
+  "_deleted": {                 /* DD HH:MM */
+    "r15cac0dbb00-0-2": false,  /* 15 14:00 */
+    "r15cabff1500-0-2": true,   /* 15 13:44 */
+    "r15ca9f191c0-0-1": false,  /* 15 04:10 */
+    "r15ca76fc8e0-0-1": true,   /* 14 16:29 */
+    "r15ca73b9980-0-1": false,  /* 14 15:32 */
+    "r15ca5e9c520-0-2": true,   /* 14 09:23 */
+    "r15ca5a8c480-0-1": false,  /* 14 08:12 */
+    "r15ca5a6efc0-0-1": true,   /* 14 08:10 */
+    "r15ca58e37a0-0-1": false   /* 14 07:43 */
+  },
+  /* ... */
+}
+            \end{centerverbatim}
+        \end{scriptsize}
+        \caption{Before splitting.}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+        \begin{scriptsize}
+            \begin{centerverbatim}
+{   
+  "_id": "5:/index/x/1/a/b", 
+  "_deleted": {                 /* DD HH:MM */
+    "r15cac0dbb00-0-2": false,  /* 15 14:00 */
+    "r15cabff1500-0-2": true,   /* 15 13:44 */
+    "r15ca9f191c0-0-1": false,  /* 15 04:10 */
+    "r15ca76fc8e0-0-1": true,   /* 14 16:29 */
+    "r15ca5e9c520-0-2": true    /* 14 09:23 */
+  },
+  /* ... */
+},
+{   
+  "_id": "6:/index/x/1/a/b/r15ca58e37a0-0-1", 
+  "_deleted": {                 /* DD HH:MM */
+    "r15ca73b9980-0-1": false,  /* 14 15:32 */
+    "r15ca5a8c480-0-1": false,  /* 14 08:12 */
+    "r15ca5a6efc0-0-1": true,   /* 14 08:10 */
+    "r15ca58e37a0-0-1": false   /* 14 07:43 */
+  },
+  /* ... */
+}
+            \end{centerverbatim}
+        \end{scriptsize}
+        \caption{After splitting.}
+    \end{subfigure}
+    \caption{Document splitting. We use the same parameters as in \cref{ex:split_doc}.}
+    \label{fig:split_doc_mongo}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \begin{footnotesize}
+            \begin{tabular}{|c|c|c|c|c|c|c|} 
+                \hline
+                $r$     & $t(r)$ &    $c(r)$ &        Vis. &      $\in$Win. &         Vol. &      Split \\
+                \hline
+                $r_1$ & 15 14:00 &  2 &             $\bot$ &         $\top$ &                 0 &                 $\bot$ \\ 
+                \hline
+                $r_2$ & 15 13:44 &  2 &             $\top$ &         $\top$ &                 1 &                 $\bot$ \\
+                \hline
+                $r_3$ & 15 04:10 &  1 &             $\top$ &         $\top$ &                 2 &                 $\bot$ \\
+                \hline
+                $r_4$ & 14 16:29 &  1 &             $\top$ &         $\top$ &                 3 &                 $\bot$ \\
+                \hline
+                $r_5$ & 14 15:32 &  1 &             $\top$ &         $\top$ &                 4 &                 $\top$ \\
+                \hline
+                $r_6$ & 14 09:23 &  2 &             $\top$ &         $\bot$ &                 4 &                 $\bot$ \\
+                \hline
+                $r_7$ & 14 08:12 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
+                \hline
+                $r_8$ & 14 08:10 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
+                \hline
+                $r_9$ & 14 07:43 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
+                \hline
+            \end{tabular}
+        \end{footnotesize}
+    \end{center}
+    \caption{
+        Intermediate values of computation while splitting document \texttt{/index/x/1/a/b} as shown in \cref{fig:split_doc_mongo}.
+        We use the same parameters as in \cref{ex:split_doc}.
+    }
+    \label{fig:split_doc_debug}
+\end{figure}
+
+\bibliographystyle{abbrv}
+\bibliography{vertiefung}
+
+\chapter{Appendix}
 
 \begin{figure}[h]
     \begin{framed}
@@ -779,168 +941,5 @@ boolean isInSlidingWindow(Revision r){
     \caption{Java implementation for helper functions.}
     \label{algo:helper_functions}
 \end{figure}
-
-\section{Document Splitting}
-
-\begin{figure}[h]
-    \begin{framed}
-        \begin{scriptsize}
-            \begin{minted}{java}
-/**
-* Collects all local property changes committed by the current
-* cluster node.
-* @param committedLocally local changes committed by the current cluster node.
-* @param changes all revisions of local changes (committed and uncommitted).
-*/
-void collectLocalChanges(
-        Map<String, NavigableMap<Revision, String>> committedLocally,
-        Set<Revision> changes) {
-
-    int vol = 0;
-    
-    // for each public property or "_deleted"
-    for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
-        NavigableMap<Revision, String> splitMap =
-                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
-        committedLocally.put(property, splitMap);
-
-        // local property revisions
-        Map<Revision, String> valueMap = doc.getLocalMap(property);
-        
-        // for each Revision & Value tuple in 
-        for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
-            Revision r = entry.getKey();
-
-            if (property.equals("_deleted")) {
-                if (!isVisible(r)){
-                    continue;
-                }
-                if (isInSlidingWindow(r) && vol++ < getVolatilityThreshold()){
-                    continue;
-                }
-            }
-            if (r.getClusterId() != context.getClusterId()) {
-                continue;
-            }
-
-            // move to split document
-            changes.add(r);
-            if (isCommitted(context.getCommitValue(r, doc))) {
-                splitMap.put(r, entry.getValue());
-            } else if (isGarbage(r)) {
-                addGarbage(r, property);
-            }
-        }
-    }
-}
-            \end{minted}
-        \end{scriptsize}
-    \end{framed}
-    \caption{Java implementation for splitting the node document.}
-    \label{algo:split_document}
-\end{figure}
-
-\begin{figure}[h]
-    \begin{algorithm}[H]
-        \DontPrintSemicolon
-        \begin{footnotesize}
-            \label{algo:split_document_wapi}
-            \caption{SplitDocumentWAPI}
-            \KwData{Document $d$.}
-            $vol \longleftarrow 0$\;
-            \ForEach{versioned property $k \in d$}{
-                \ForEach{revision $r \in d[k]$}{
-                    \If{$k = \texttt{\_deleted}$}{
-                        \If{$c(r) \neq O_i \land t_{\texttt{last\_sync}} < t(r)$}{\textbf{continue}\;}
-                        \If{$t(r) \in [t_{n-L+1},t_n]$}{
-                            $vol \longleftarrow vol + 1$\;
-                            \If{$vol \leq \tau$}{\textbf{continue}\;}
-                        }
-                    }
-                    \If{$c(r) \neq O_i$}{\textbf{continue}\;}
-                    \texttt{moveToSplitDocument($d$, $k$, $r$)}\;
-                }
-            }
-        \end{footnotesize}
-    \end{algorithm}
-    Where $\tau$ is the volatility threshold, 
-    $L$ the sliding window length, 
-    $O_i$ the local cluster node, 
-    $t_n$ the current time, 
-    $c(r)$ the cluster node which committed revision $r$ and 
-    $t(r)$ the point of time revision $r$ was committed.
-\end{figure}
-
-\begin{figure}[h]
-    
-\end{figure}
-
-\begin{figure}
-    \begin{multicols}{2}
-        \begin{scriptsize}
-            \begin{center}
-                \begin{verbatim}
-{   
-  "_id": "5:/index/x/1/a/b", 
-  "_deleted": {                 /* DD HH:MM */
-    "r15cac0dbb00-0-2": false,  /* 15 14:00 */
-    "r15cabff1500-0-2": true,   /* 15 13:44 */
-    "r15ca9f191c0-0-1": false,  /* 15 04:10 */
-    "r15ca76fc8e0-0-1": true,   /* 14 16:29 */
-    "r15ca73b9980-0-1": false,  /* 14 15:32 */
-    "r15ca5e9c520-0-2": true,   /* 14 09:23 */
-    "r15ca5a8c480-0-1": false,  /* 14 08:12 */
-    "r15ca5a6efc0-0-1": true,   /* 14 08:10 */
-    "r15ca58e37a0-0-1": false,  /* 14 07:43 */
-  },
-  /* ... */
-}\end{verbatim}
-            \end{center}
-        \end{scriptsize}
-        \columnbreak
-        
-        \begin{center}
-            \begin{footnotesize}
-                \begin{tabular}{|c|c|c|c|c|c|} 
-                    \hline
-                    $t(r)$ &    $c(r)$ &        Vis. &      $\in$Win. &         Vol. &      Split \\
-                    \hline
-                    15 14:00 &  2 &             $\bot$ &         $\top$ &                 0 &                 $\bot$ \\ 
-                    \hline
-                    15 13:44 &  2 &             $\top$ &         $\top$ &                 1 &                 $\bot$ \\
-                    \hline
-                    15 04:10 &  1 &             $\top$ &         $\top$ &                 2 &                 $\bot$ \\
-                    \hline
-                    14 16:29 &  1 &             $\top$ &         $\top$ &                 3 &                 $\bot$ \\
-                    \hline
-                    14 15:32 &  1 &             $\top$ &         $\top$ &                 4 &                 $\top$ \\
-                    \hline
-                    14 09:23 &  2 &             $\top$ &         $\bot$ &                 4 &                 $\bot$ \\
-                    \hline
-                    14 08:12 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                    \hline
-                    14 08:10 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                    \hline
-                    14 07:43 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                    \hline
-                \end{tabular}
-            \end{footnotesize}
-        \end{center}
-    \end{multicols}
-    Intermediate values of computation while splitting document a.
-
-    Assume $\tau = 3$, $O_i = 1$, $t_{\texttt{last\_sync}} = $ {\footnotesize 2017.06.15 13:59}, $L = 24$ hours, $t_n = $ {\footnotesize 2017.06.15 14:01}.
-    \begin{itemize}
-        \item "$t(r)$" is the point of time revision $r$ was committed. Only the day, hours and minutes are showed for brevity.
-        \item "$c(r)$" is the cluster node which committed revision $r$.
-        \item "Vis." is true iff the revision is \textbf{visible} to the local cluster node.
-        \item "$\in$Win." is true iff the revision is \textbf{in the sliding window}.
-        \item "Vol." represents the \textbf{volatility} count during that step of the iteration. 
-        \item "Split" is true iff the revision is moved to the split document.
-    \end{itemize}
-\end{figure}
-
-\bibliographystyle{abbrv}
-\bibliography{vertiefung}
 
 \end{document}

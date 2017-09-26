@@ -1,0 +1,23 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+cm}{/**}
+\PYG{c+cm}{* Splits the \PYGZdq{}\PYGZus{}deleted\PYGZdq{} property on the given document.}
+\PYG{c+cm}{* @param NodeDocument the node document.}
+\PYG{c+cm}{*/}
+\PYG{k+kt}{void} \PYG{n+nf}{splitDeleted}\PYG{o}{(}\PYG{n}{NodeDocument} \PYG{n}{nodeDocument}\PYG{o}{)} \PYG{o}{\PYGZob{}}
+
+    \PYG{k+kt}{int} \PYG{n}{vol} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{o}{;}
+
+    \PYG{k}{for} \PYG{o}{(}\PYG{n}{Revision} \PYG{n}{r} \PYG{o}{:} \PYG{n}{nodeDocument}\PYG{o}{.}\PYG{n+na}{getLocalDeleted}\PYG{o}{().}\PYG{n+na}{keySet}\PYG{o}{())\PYGZob{}}
+        \PYG{k}{if} \PYG{o}{(!}\PYG{n}{isVisible}\PYG{o}{(}\PYG{n}{r}\PYG{o}{))\PYGZob{}}
+            \PYG{k}{continue}\PYG{o}{;}
+        \PYG{o}{\PYGZcb{}}
+        \PYG{k}{if} \PYG{o}{(}\PYG{n}{isInSlidingWindow}\PYG{o}{(}\PYG{n}{r}\PYG{o}{)} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{n}{vol}\PYG{o}{++} \PYG{o}{\PYGZlt{}} \PYG{n}{getVolatilityThreshold}\PYG{o}{())\PYGZob{}}
+            \PYG{k}{continue}\PYG{o}{;}
+        \PYG{o}{\PYGZcb{}}
+        \PYG{k}{if} \PYG{o}{(}\PYG{n}{r}\PYG{o}{.}\PYG{n+na}{getClusterId}\PYG{o}{()} \PYG{o}{!=} \PYG{n}{getClusterId}\PYG{o}{())} \PYG{o}{\PYGZob{}}
+            \PYG{k}{continue}\PYG{o}{;}
+        \PYG{o}{\PYGZcb{}}
+        \PYG{n}{moveToSplitDocument}\PYG{o}{(}\PYG{n}{r}\PYG{o}{);}
+    \PYG{o}{\PYGZcb{}}
+\PYG{o}{\PYGZcb{}}
+\end{Verbatim}
