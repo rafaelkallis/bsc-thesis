@@ -4,103 +4,78 @@
 \citation{KW17}
 \citation{GW02}
 \citation{TM11}
-\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{2}}
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {1.1}System Architecture}{2}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Apache Jackrabbit Oak's system architecture.\relax }}{3}}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}System Architecture}{2}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Workload Aware Property Index}{2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Apache Jackrabbit Oak's system architecture.\relax }}{3}}
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:architecture}{{1.1}{3}}
-\newlabel{fig:architecture@cref}{{[figure][1][1]1.1}{3}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {2}Workload Aware Property Index}{4}}
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {2.1}Insertion}{4}}
+\newlabel{fig:architecture}{{1}{3}}
+\newlabel{fig:architecture@cref}{{[figure][1][]1}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Insertion}{3}}
+\citation{CM15}
 \newlabel{algo:add_triple_wapi}{{1}{4}}
 \newlabel{algo:add_triple_wapi@cref}{{[algocfline][1][]1}{4}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {1}{\ignorespaces AddTripleWAPI\relax }}{4}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Adding a node in a workload aware property index.\relax }}{4}}
-\newlabel{fig:add_wapi}{{2.1}{4}}
-\newlabel{fig:add_wapi@cref}{{[figure][1][2]2.1}{4}}
-\citation{CM15}
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Querying}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Adding a node in WAPI. \texttt  {/i} is an abbreviation for \texttt  {/index}.\relax }}{4}}
+\newlabel{fig:add_wapi}{{2}{4}}
+\newlabel{fig:add_wapi@cref}{{[figure][2][]2}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Querying}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Deletion}{4}}
 \newlabel{algo:query_wapi}{{2}{5}}
 \newlabel{algo:query_wapi@cref}{{[algocfline][2][]2}{5}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {2}{\ignorespaces QueryWAPI\relax }}{5}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces CAS Query example.\relax }}{5}}
-\newlabel{fig:cas_query}{{2.2}{5}}
-\newlabel{fig:cas_query@cref}{{[figure][2][2]2.2}{5}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.3}Deletion}{5}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Removing a node from the WAPI. Assume \texttt  {/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.\relax }}{6}}
-\newlabel{fig:remove_wapi}{{2.3}{6}}
-\newlabel{fig:remove_wapi@cref}{{[figure][3][2]2.3}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces CAS Query example.\relax }}{5}}
+\newlabel{fig:cas_query}{{3}{5}}
+\newlabel{fig:cas_query@cref}{{[figure][3][]3}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Removing a node from the WAPI. Assume \texttt  {/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.\relax }}{5}}
+\newlabel{fig:remove_wapi}{{4}{5}}
+\newlabel{fig:remove_wapi@cref}{{[figure][4][]4}{5}}
+\citation{KW17}
 \newlabel{algo:remove_triple_wapi}{{3}{6}}
 \newlabel{algo:remove_triple_wapi@cref}{{[algocfline][3][]3}{6}}
 \@writefile{loa}{\contentsline {algocf}{\numberline {3}{\ignorespaces RemoveTripleWAPI\relax }}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Volatility}{6}}
+\newlabel{ch:volatility}{{3}{6}}
+\newlabel{ch:volatility@cref}{{[section][3][]3}{6}}
+\newlabel{def:vol_count}{{2}{6}}
+\newlabel{def:vol_count@cref}{{[definition][2][]2}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Volatility count changes with each snapshot.\relax }}{7}}
+\newlabel{fig:vol_example}{{5}{7}}
+\newlabel{fig:vol_example@cref}{{[figure][5][]5}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Implementation}{7}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Checking Node Volatility}{7}}
 \citation{KW17}
-\@writefile{toc}{\contentsline {chapter}{\numberline {3}Volatility}{7}}
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{loa}{\addvspace {10\p@ }}
-\newlabel{ch:volatility}{{3}{7}}
-\newlabel{ch:volatility@cref}{{[chapter][3][]3}{7}}
-\newlabel{def:vol_count}{{2}{7}}
-\newlabel{def:vol_count@cref}{{[definition][2][]2}{7}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Volatility count changes with each snapshot.\relax }}{8}}
-\newlabel{fig:vol_example}{{3.1}{8}}
-\newlabel{fig:vol_example@cref}{{[figure][1][3]3.1}{8}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Implementation}{9}}
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}Checking Node Volatility}{9}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces JSON document of an index node.\relax }}{9}}
-\newlabel{fig:json_simple}{{4.1}{9}}
-\newlabel{fig:json_simple@cref}{{[figure][1][4]4.1}{9}}
-\citation{KW17}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.2}{\ignorespaces Java implementation for detecting volatile index nodes.\relax }}{10}}
-\newlabel{fig:is_volatile}{{4.2}{10}}
-\newlabel{fig:is_volatile@cref}{{[figure][2][4]4.2}{10}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}Document Splitting}{10}}
-\newlabel{ex:split_doc}{{7}{10}}
-\newlabel{ex:split_doc@cref}{{[example][7][]7}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces JSON document of an index node.\relax }}{8}}
+\newlabel{fig:json_simple}{{6}{8}}
+\newlabel{fig:json_simple@cref}{{[figure][6][]6}{8}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Document Splitting}{8}}
+\newlabel{ex:split_doc}{{7}{8}}
+\newlabel{ex:split_doc@cref}{{[example][7][]7}{8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Java implementation for detecting volatile index nodes.\relax }}{9}}
+\newlabel{fig:is_volatile}{{7}{9}}
+\newlabel{fig:is_volatile@cref}{{[figure][7][]7}{9}}
 \bibstyle{abbrv}
 \bibdata{vertiefung}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.3}{\ignorespaces Java implementation for splitting the node document.\relax }}{11}}
-\newlabel{fig:split_document}{{4.3}{11}}
-\newlabel{fig:split_document@cref}{{[figure][3][4]4.3}{11}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.4}{\ignorespaces Document splitting. We use the same parameters as in \cref  {ex:split_doc}.\relax }}{12}}
-\newlabel{fig:split_doc_mongo}{{4.4}{12}}
-\newlabel{fig:split_doc_mongo@cref}{{[figure][4][4]4.4}{12}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4.5}{\ignorespaces  Intermediate values of computation while splitting document \texttt  {/index/x/1/a/b} as shown in \cref  {fig:split_doc_mongo}. We use the same parameters as in \cref  {ex:split_doc}. \relax }}{12}}
-\newlabel{fig:split_doc_debug}{{4.5}{12}}
-\newlabel{fig:split_doc_debug@cref}{{[figure][5][4]4.5}{12}}
 \bibcite{CM15}{1}
 \bibcite{TM11}{2}
 \bibcite{GW02}{3}
 \bibcite{KW17}{4}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Java implementation for splitting the node document.\relax }}{10}}
+\newlabel{fig:split_document}{{8}{10}}
+\newlabel{fig:split_document@cref}{{[figure][8][]8}{10}}
 \gdef\minted@oldcachelist{,
   default-pyg-prefix.pygstyle,
   default.pygstyle,
   5ADA863C58210B9E97E42EF0353EC0C05354766D5FF14AE9D356BB18585BF07E.pygtex,
   0C945881417A4CC3E2751A739E06E0C25354766D5FF14AE9D356BB18585BF07E.pygtex,
   0638A9E40132ED17C15128AD18A265DD5354766D5FF14AE9D356BB18585BF07E.pygtex}
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Appendix}{14}}
-\@writefile{lof}{\addvspace {10\p@ }}
-\@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{lol}{\addvspace {10\p@ }}
-\@writefile{loa}{\addvspace {10\p@ }}
-\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Java implementation for helper functions.\relax }}{14}}
-\newlabel{algo:helper_functions}{{5.1}{14}}
-\newlabel{algo:helper_functions@cref}{{[figure][1][5]5.1}{14}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Document splitting. We use the same parameters as in \cref  {ex:split_doc}.\relax }}{11}}
+\newlabel{fig:split_doc_mongo}{{9}{11}}
+\newlabel{fig:split_doc_mongo@cref}{{[figure][9][]9}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Appendix}{11}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces  Intermediate values of computation while splitting document \texttt  {/index/x/1/a/b} as shown in \cref  {fig:split_doc_mongo}. We use the same parameters as in \cref  {ex:split_doc}. \relax }}{12}}
+\newlabel{fig:split_doc_debug}{{10}{12}}
+\newlabel{fig:split_doc_debug@cref}{{[figure][10][]10}{12}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Java implementation for helper functions.\relax }}{12}}
+\newlabel{algo:helper_functions}{{11}{12}}
+\newlabel{algo:helper_functions@cref}{{[figure][11][]11}{12}}

@@ -1,4 +1,4 @@
-\documentclass[abstracton,12pt]{scrreprt}
+\documentclass[abstracton,12pt]{scrartcl}
 
 \usepackage[utf8]{inputenc}
 % \usepackage[T1]{fontenc}
@@ -9,6 +9,7 @@
 \usepackage{amssymb}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{pdfpages}
 \usepackage{forest}
 \usepackage{multicol}
@@ -20,6 +21,7 @@
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{soul}
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
@@ -52,6 +54,8 @@
 % \dedication{dedicated to xxx}
 
 % --------- 
+
+\theoremstyle{definition}
 
 \newtheorem{definition}{Definition}
 % \newtheorem{figure}{Figure}
@@ -97,42 +101,31 @@
 % \listoffigures
 % \listoftables
 
-\chapter{Introduction}
+\newpage
+\section{Introduction}
 
-Adding and removing data from hierarchical indexes causes them to grow and shrink.
-They grow and shrink, since adding or removing nodes cause a sequence of nodes to be added or removed in addition.
+Frequently adding and removing data from hierarchical indexes causes them to repeatedly grow and shrink.
+A single insertion or deletion can trigger a sequence of structural index modifications (node insertions/deletions) in a hierarchical index.
 Skewed and update-heavy workloads trigger repeated structural index updates over a small subset of nodes to the index.
 Informally, a frequently added or removed node is called \textit{volatile}.
-Volatile nodes deteriorate index update performance due to the frequent structural index modifications.
-Frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
-Conflicting index updates further deteriorate update performance since they cause the transactions to synchronize in order to resolve the conflict.
+Volatile nodes deteriorate index update performance due to two reasons.
+First, frequent structural index modifications are expensive since they require many disk accesses.
+Second, frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
+Conflicting index updates further deteriorate update performance since transactions need to be synchronized in order to resolve the conflict.
 
-% Hierarchical indexes with skewed and update-heavy workloads grow and shrink often,
-% since adding and removing nodes cause a sequence of nodes to be added or removed in addition, thus deteriorating the index update performance.
-% Index update performance also suffers from conflicting index updates.
-% Highly skewed workloads create hotspots where nodes are frequently added or removed, increasing conflicting index updates, as shown in (ref kevin paper).
-% A frequently added or removed node is a volatile node.
-
-
-
-Wellenzohn et al.~\cite{KW17} propose a workload aware property index (WAPI). 
-The WAPI exploits the workloads' skewness by not removing volatile nodes from the index, 
-thus significantly reducing the number of structural index modifications.
-By reducing the number of structural index updates, we also decrease the likelihood
-of conflicting index updates by concurrent transactions.
-
-% By not removing these volatile nodes, we increase performance since we:
-% \begin{itemize}
-%     \item Reduce the number of structural index modifications, which are expensive because they implicitly cause a sequence of nodes to be added or removed from the index.
-%     \item By reducing index modifications, we also decrease the number of index conflicts, which limit throughput since they cause a transaction to abort and restart.
-% \end{itemize}
+Wellenzohn et al.~\cite{KW17} propose the Workload-Aware Property Index (WAPI). 
+The WAPI exploits the workloads' skewness by identifying and not removing volatile nodes from the index, 
+thus significantly reducing the number of expensive structural index modifications.
+As a result the likelihood of conflicting index updates by concurrent transactions is reduced.
 
 The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in Apache Jackrabbit Oak in order to improve the transactional throughput of Jackrabbit Oak.
 
-\section{System Architecture}
+\textcolor{red}{TODO: outline structure of vertiefungsarbeit}
+
+\subsection{System Architecture}
 
 Apache Jackrabbit Oak\footnote{https://jackrabbit.apache.org/oak/} (Oak) is a hierarchical distributed database system which makes use of a hierarchical index. 
-Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic technique~\cite{TM11}.
+Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic concurrency control technique~\cite{TM11}.
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture.
 Oak embodies the \textit{Database Tier}.
@@ -161,29 +154,29 @@ One such application is Adobe's enterprise content management system (CMS), the 
     \label{fig:architecture}
 \end{figure}
 
-\chapter{Workload Aware Property Index}
+\section{Workload Aware Property Index}
 
 The general idea behind the WAPI is to take into account if an index node is volatile before performing structural index modifications.
 If a node is considered volatile, we prevent removing it from the index.
 
-In the following chapter, we will see how to add, query and remove nodes from the index.
+In the following section, we will see how to add, query and remove nodes from the index.
 
-\section{Insertion}
+\subsection{Insertion}
 
 The WAPI is hierarchically organized under \texttt{/index} node.
 The second index level consists of all properties $k$ we want to index.
-The third index level contains any values $v$ of $k$.
+The third index level contains any values $v$ of property $k$.
 The remaining index levels replicate all nodes from the root node to any content node with $k$ set to $v$.
-Node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$.
+Some node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$.
 
-The WAPI is updated as described in \cref{algo:add_triple_wapi}.
-Starting from /index, we descent down to /index/k, /index/k/v.
-Next, we descent down from /index/k/v with a replica from content node $m$'s absolute path from root.
-While we descent the WAPI, we create any node $n$ that does not exist.
-Finally, we set $n$'s property $k$ to $v$.
+The WAPI is updated as described in \Cref{algo:add_triple_wapi}.
+Starting from \texttt{/index}, we descend down to \texttt{/index/k}, \texttt{/index/k/v}.
+Next, we descend down from \texttt{/index/k/v} with a replica from content node $m$'s absolute path from root.
+While we descend the WAPI, we create any node $n$ that does not exist and assign it to $tail$.
+Finally, we set $tail$'s property $k$ to $v$. $tail$ corresponds to \texttt{/index/k/v/m}.
 
 \begin{example}
-    Let's consider \cref{fig:add_wapi}.
+    Consider \cref{fig:add_wapi}.
     Given snapshot $G^i$, transaction $T_j$ adds the property $x=1$ to \texttt{/a/b} and commits snapshot $G^j$.
     Starting from \texttt{/index} and descending down to \texttt{/index/x/1/a/b}, we create each node on the way since they do not exist yet.
     Finally, we set property $x=1$ on \texttt{/index/x/1/a/b}.
@@ -257,44 +250,43 @@ Finally, we set $n$'s property $k$ to $v$.
                 \begin{footnotesize}
                     \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a content node.}
                     \vspace{2.6mm}
-                    \For{$n \in \langle/i/k,~/i/k/v,~\dots,~/i/k/v/m\rangle$}{
+                    $tail \longleftarrow \texttt{/index}$\;
+                    \For{$n \in \langle \texttt{/i/k},~\texttt{/i/k/v},\dots,\texttt{/i/k/v/m}\rangle$}{
                         \If{$n$ does not exist}{
                             create node $n$\;
                         }
+                        $tail \longleftarrow n$\;
                     }
-                    $n[k] \longleftarrow v$
+                    $tail[k] \longleftarrow v$
                 \end{footnotesize}
             \end{algorithm}
-            \begin{scriptsize}
-                Where $/i$ is an abbreviation for /index.
-            \end{scriptsize}
         \end{multicols}
     \vspace{-8mm}
-    \caption{Adding a node in a workload aware property index.}
+    \caption{Adding a node in WAPI. \texttt{/i} is an abbreviation for \texttt{/index}.}
     \label{fig:add_wapi}
 \end{figure}
 
 \newpage
 
-\section{Querying}
+\subsection{Querying}
 
 Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}.
 
 \begin{definition}
-    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query returns all descendants of $m$ which have $k$ set to the $v$, 
-    i.e $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$.
+    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e 
+    $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$
 \end{definition}
 
 \Cref{algo:query_wapi} describes how we answer the query using the WAPI.
 Given property $k$, value $v$ and node $m$, we start descending down to node \texttt{/index/k/v/m}.
-Next, we iterate through all descendants $n$ of node $m$.
-We return a set consisting of content nodes $*n$ corresponding to every $n$ with property $k$ set to $v$.
+Next, we iterate through all its descendants $n$.
+We return a set consisting of \textit{content} nodes $*n$ corresponding to every \textit{index} node $n$ with property $k$ set to $v$.
 If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \emptyset$.
 
 \begin{example}
-    Let's consider query $Q(x, 1, /a)$, that is every descendant of \texttt{/a} with \texttt{x} set to $1$.
+    Consider $Q(x, 1, \texttt{/a})$, every descendant of \texttt{/a} with \texttt{x} set to $1$.
     Assuming we execute the query on the tree depicted in \cref{fig:cas_query},
-    we receive a set including node /a/b, i.e $Q(x, 1, /a) = \{~/a/b~\}$
+    we receive a set including node \texttt{/a/b}, i.e $Q(x, 1, \texttt{/a}) = \{~\texttt{/a/b}~\}$
 \end{example}
 
 \begin{figure}[h]
@@ -350,7 +342,7 @@ If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \em
     \label{fig:cas_query}
 \end{figure}
 
-\section{Deletion}
+\subsection{Deletion}
 
 During deletion, we intend to remove a node from the WAPI.
 Volatile nodes influence the logic of the deletion process.
@@ -495,7 +487,7 @@ The process ends if we propagate up to \texttt{/index} or have a node with child
     \end{footnotesize}
 \end{algorithm}
 
-\chapter{Volatility}
+\section{Volatility}
 \label{ch:volatility}
 
 Volatility is the measure which is used by the WAPI in order to distinguish when to remove a node or not from the index.
@@ -671,9 +663,9 @@ The volatility count of $n$ is defined as the number of times $n$ was added or r
     \label{fig:vol_example}
 \end{figure}
 
-\chapter{Implementation}
+\section{Implementation}
 
-\section{Checking Node Volatility}
+\subsection{Checking Node Volatility}
 
 In order to classify node $n$ as volatile, we have to compute $n$'s volatility count using the corresponding JSON\footnote{http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf} document on MongoDB.
 The document contains all revisions of $n$ throughout history $H_i$ of an Oak instance $O_i$.
@@ -751,7 +743,7 @@ Having seen what a node document looks like, we can now describe how we classify
     \label{fig:is_volatile}
 \end{figure}
 
-\section{Document Splitting}
+\subsection{Document Splitting}
 
 Jackrabbit Oak periodically checks the node's corresponding documents for their size and if necessary splits them up and moved old data to a new split document.
 In order to avoid round-trips while computing the volatility count, we modify the document split implementation as mentioned in~\cite{KW17}.
@@ -906,10 +898,12 @@ void splitDeleted(NodeDocument nodeDocument) {
     \label{fig:split_doc_debug}
 \end{figure}
 
+\newpage
 \bibliographystyle{abbrv}
 \bibliography{vertiefung}
 
-\chapter{Appendix}
+\newpage
+\section{Appendix}
 
 \begin{figure}[h]
     \begin{framed}
