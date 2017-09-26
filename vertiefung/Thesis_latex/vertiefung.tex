@@ -18,9 +18,15 @@
 \usepackage{minted}
 \usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
+% \usepackage{geometry}
+% \usepackage{titlesec}
 
 \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
 \graphicspath{ {images/} }
+
+% \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
+% \titleformat{\chapter}{}{\thechapter}{}{}
+% \titlespacing{\chapter}{-100pt}{-100pt}{-100pt}
 
 % --------- 
 
@@ -128,9 +134,9 @@ Multiple transactions can work concurrently by making use of Multiversion Concur
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture.
 Oak embodies the \textit{Database Tier}.
-Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB, labeled as \textit{Persistance Tier}.
+Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as \textit{Persistance Tier}.
 On the other end, applications can make use of Oak as shown in \cref{fig:architecture} under \textit{Application Tier}.
-One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager.
+One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
     \begin{center}
@@ -153,7 +159,7 @@ One such application is Adobe's enterprise content management system (CMS), the 
     \label{fig:architecture}
 \end{figure}
 
-\chapter{WAPI}
+\chapter{Workload Aware Property Index}
 
 The general idea behind the WAPI is to take into account if an index node is volatile before performing structural index modifications.
 If a node is considered volatile, we prevent removing it from the index.
@@ -167,21 +173,28 @@ The second index level consists of all properties $k$ we want to index.
 The third index level contains any values $v$ of $k$.
 The remaining index levels replicate all nodes from the root node to any content node with $k$ set to $v$.
 Node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$.
-Let's consider \cref{fig:add_wapi}.
-Given snapshot $G^i$, transaction $T_j$ adds the property-value pair \texttt{x:1} to \texttt{/a/b} and commits snapshot $G^j$.
+
 The WAPI is updated as described in \cref{algo:add_triple_wapi}.
 Starting from /index, we descent down to /index/k, /index/k/v.
 Next, we descent down from /index/k/v with a replica from content node $m$'s absolute path from root.
 While we descent the WAPI, we create any node $n$ that does not exist.
 Finally, we set $n$'s property $k$ to $v$.
 
+\begin{example}
+    Let's consider \cref{fig:add_wapi}.
+    Given snapshot $G^i$, transaction $T_j$ adds the property $x=1$ to \texttt{/a/b} and commits snapshot $G^j$.
+    Starting from \texttt{/index} and descending down to \texttt{/index/x/1/a/b}, we create each node on the way since they do not exist yet.
+    Finally, we set property $x=1$ on \texttt{/index/x/1/a/b}.
+\end{example}
+
 \begin{figure}[h]
+    \vspace{-5mm}
         \begin{multicols}{2}
-            \begin{large}
-                $$ G^i \xrightarrow{\quad T_j \quad} G^j $$
-            \end{large}
+            \noindent
+            \begin{large}$$ G^i \xrightarrow{\quad T_j \quad} G^j $$\end{large}
             \begin{scriptsize}
                 \begin{multicols}{2}
+                    \noindent
                     \begin{center}
                         \framebox(100,130){
                             \begin{forest} qtree,
@@ -232,9 +245,9 @@ Finally, we set $n$'s property $k$ to $v$.
                 \end{multicols}
             \end{scriptsize}
             \columnbreak
-            \ 
+            ~
 
-            \vspace{12.2mm}
+            \vspace{7.8mm}
             \begin{algorithm}[H]
                 \label{algo:add_triple_wapi}
                 \caption{AddTripleWAPI}
@@ -254,9 +267,12 @@ Finally, we set $n$'s property $k$ to $v$.
                 Where $/i$ is an abbreviation for /index.
             \end{scriptsize}
         \end{multicols}
+    \vspace{-8mm}
     \caption{Adding a node in a workload aware property index.}
     \label{fig:add_wapi}
 \end{figure}
+
+\newpage
 
 \section{Querying}
 
@@ -272,6 +288,7 @@ Given property $k$, value $v$ and node $m$, we start descending down to node \te
 Next, we iterate through all descendants $n$ of node $m$.
 We return a set consisting of content nodes $*n$ corresponding to every $n$ with property $k$ set to $v$.
 If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \emptyset$.
+
 \begin{example}
     Let's consider query $Q(x, 1, /a)$, that is every descendant of \texttt{/a} with \texttt{x} set to $1$.
     Assuming we execute the query on the tree depicted in \cref{fig:cas_query},
@@ -478,6 +495,8 @@ The process ends if we propagate up to \texttt{/index} or have a node with child
 
 \chapter{Volatility}
 \label{ch:volatility}
+
+Volatility is the measure which is used by the WAPI in order to distinguish when to remove a node or not from the index.
 
 Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
 workload to check whether a node $n$ is volatile. The workload on Oak instance
