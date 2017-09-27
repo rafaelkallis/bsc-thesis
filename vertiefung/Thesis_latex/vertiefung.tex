@@ -704,7 +704,7 @@ A key is a revisions that is composed of three parts connected by a dash (-): (1
 
 Having seen what a node document looks like, we can now describe how we classify a node as volatile.
 \Cref{fig:is_volatile} shows the native implementation of $isVolatile(n)$ in Java.
-As shown in \Cref{fig:is_volatile}, $isVolatile(n)$ is given a node's corresponding document.
+$isVolatile(n)$ is given a node's corresponding document.
 We iterate through the revisions of property \texttt{"\_deleted"} in most-recent first fashion.
 Notice that the \texttt{keySet} referred to in the Java code is, in Java's terminology, an ordered set.
 If a revision is outside the sliding window we stop iterating because remaining revisions cannot be more recent.
