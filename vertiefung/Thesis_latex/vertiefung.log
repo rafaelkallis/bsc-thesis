@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  27 SEP 2017 12:39
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.11)  27 SEP 2017 18:59
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1776,36 +1776,36 @@ go-eps-converted-to.pdf> <./dbtgBW-eps-converted-to.pdf>] <images/MONGO.png, id
 File: images/MONGO.png Graphic file (type png)
 
 <use images/MONGO.png>
-Package pdftex.def Info: images/MONGO.png used on input line 139.
+Package pdftex.def Info: images/MONGO.png used on input line 141.
 (pdftex.def)             Requested size: 28.45274pt x 28.45094pt.
  <images/OAK.png, id=29, 369.38pt x 369.38pt>
 File: images/OAK.png Graphic file (type png)
 
 <use images/OAK.png>
-Package pdftex.def Info: images/OAK.png used on input line 140.
-(pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
-File: images/OAK.png Graphic file (type png)
- <use images/OAK.png>
-Package pdftex.def Info: images/OAK.png used on input line 141.
-(pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
-File: images/OAK.png Graphic file (type png)
- <use images/OAK.png>
 Package pdftex.def Info: images/OAK.png used on input line 142.
+(pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
+File: images/OAK.png Graphic file (type png)
+ <use images/OAK.png>
+Package pdftex.def Info: images/OAK.png used on input line 143.
+(pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
+File: images/OAK.png Graphic file (type png)
+ <use images/OAK.png>
+Package pdftex.def Info: images/OAK.png used on input line 144.
 (pdftex.def)             Requested size: 28.45274pt x 28.45192pt.
 
 <images/AEM.png, id=30, 501.875pt x 501.875pt>
 File: images/AEM.png Graphic file (type png)
  <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 143.
+Package pdftex.def Info: images/AEM.png used on input line 145.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
 File: images/AEM.png Graphic file (type png)
 
 <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 144.
+Package pdftex.def Info: images/AEM.png used on input line 146.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
 File: images/AEM.png Graphic file (type png)
  <use images/AEM.png>
-Package pdftex.def Info: images/AEM.png used on input line 145.
+Package pdftex.def Info: images/AEM.png used on input line 147.
 (pdftex.def)             Requested size: 28.45274pt x 28.44942pt.
 
 
@@ -1819,18 +1819,23 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[4] [5]
-Overfull \hbox (2.0965pt too wide) in paragraph at lines 525--531
+[4]
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[5]
+Overfull \hbox (2.0965pt too wide) in paragraph at lines 536--542
 []\OT1/cmr/bx/n/12 Example 4. []\OT1/cmr/m/n/12 Con-sider the snap-shots de-pic
 ted in Fig-ure 5. As-sume $\OML/cmm/m/it/12 H[] \OT1/cmr/m/n/12 = \OMS/cmsy/m/n
 /12 h\OML/cmm/m/it/12 G[]; G[]; G[]; G[]\OMS/cmsy/m/n/12 i$\OT1/cmr/m/n/12 .
  []
 
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 534.
+[6]
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 545.
 
-(/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
+ (/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-) [6] [7]
+) [7]
 \openout5 = `vertiefung.pyg'.
 
 
@@ -1840,28 +1845,28 @@ File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 85BF07E.pygtex
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <8> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 7.
-) [8]
+) [8] [9]
 \openout5 = `vertiefung.pyg'.
 
 
 (./_minted-vertiefung/0C945881417A4CC3E2751A739E06E0C25354766D5FF14AE9D356BB185
 85BF07E.pygtex)
-Overfull \hbox (2.61108pt too wide) in paragraph at lines 815--865
+Overfull \hbox (2.61108pt too wide) in paragraph at lines 828--878
 [][] [] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 900--900
+Underfull \hbox (badness 10000) in paragraph at lines 913--913
 [][][]|\OT1/cmr/m/n/12 In-ter-me-di-ate val-ues of com-pu-ta-tion while split-t
 ing doc-u-ment
  []
 
-[9] [10] (./vertiefung.bbl) [11]
+[10] [11] (./vertiefung.bbl) [12]
 \openout5 = `vertiefung.pyg'.
 
 
 (./_minted-vertiefung/0638A9E40132ED17C15128AD18A265DD5354766D5FF14AE9D356BB185
-85BF07E.pygtex) [12] (./vertiefung.aux)
+85BF07E.pygtex) [13] (./vertiefung.aux)
 runsystem(rm vertiefung.pyg)...executed.
 
  )
@@ -1870,41 +1875,43 @@ runsystem(rm vertiefung.pyg)...executed.
 ### simple group (level 1) entered at line 1061 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 44368 strings out of 492995
- 954586 string characters out of 6132704
- 1111373 words of memory out of 5000000
- 47356 multiletter control sequences out of 15000+600000
- 20706 words of font info for 81 fonts, out of 8000000 for 9000
+ 44374 strings out of 492995
+ 954653 string characters out of 6132704
+ 1113871 words of memory out of 5000000
+ 47360 multiletter control sequences out of 15000+600000
+ 21884 words of font info for 85 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  154i,23n,182p,10383b,6593s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/cm-super/cm
 -super-ts1.enc}</usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmbx10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/c
 m/cmbx12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmcsc10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmitt10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmmi12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/c
-mmi6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmm
-i7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8
-.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.p
-fb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
-></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb><
-/usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></us
-r/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/l
-ocal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/
-local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/l
-ocal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/loc
-al/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/loca
-l/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local
-/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/
-texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/t
-exlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/tex
-live/2017/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on vertiefung.pdf (12 pages, 453935 bytes).
+/cmbx8.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mcsc10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mitt10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+mi12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmm
+i6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7
+.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.p
+fb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
+></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><
+/usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></u
+sr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/
+local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/loc
+al/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/lo
+cal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
+al/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local
+/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/
+texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/local/t
+exlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/local/tex
+live/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texl
+ive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/local/texli
+ve/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb></usr/local/texlive
+/2017/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb>
+Output written on vertiefung.pdf (13 pages, 474691 bytes).
 PDF statistics:
- 158 PDF objects out of 1000 (max. 8388607)
- 109 compressed objects within 2 object streams
+ 170 PDF objects out of 1000 (max. 8388607)
+ 118 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  38 words of extra memory for PDF output out of 10000 (max. 10000000)
 
