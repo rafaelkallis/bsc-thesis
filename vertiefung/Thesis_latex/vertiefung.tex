@@ -130,7 +130,7 @@ Multiple transactions can work concurrently by making use of Multiversion Concur
 \Cref{fig:architecture} depicts Oak's multi-tier architecture.
 Oak embodies the \textit{Database Tier}.
 Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as \textit{Persistance Tier}.
-On the other end, applications can make use of Oak as shown in \cref{fig:architecture} under \textit{Application Tier}.
+On the other end, applications can make use of Oak as shown in \Cref{fig:architecture} under \textit{Application Tier}.
 One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
@@ -176,7 +176,7 @@ While we descend the WAPI, we create any node $n$ that does not exist and assign
 Finally, we set $tail$'s property $k$ to $v$. $tail$ corresponds to \texttt{/index/k/v/m}.
 
 \begin{example}
-    Consider \cref{fig:add_wapi}.
+    Consider \Cref{fig:add_wapi}.
     Given snapshot $G^i$, transaction $T_j$ adds the property $x=1$ to \texttt{/a/b} and commits snapshot $G^j$.
     Starting from \texttt{/index} and descending down to \texttt{/index/x/1/a/b}, we create each node on the way since they do not exist yet.
     Finally, we set property $x=1$ on \texttt{/index/x/1/a/b}.
@@ -285,7 +285,7 @@ If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \em
 
 \begin{example}
     Consider $Q(x, 1, \texttt{/a})$, every descendant of \texttt{/a} with \texttt{x} set to $1$.
-    Assuming we execute the query on the tree depicted in \cref{fig:cas_query},
+    Assuming we execute the query on the tree depicted in \Cref{fig:cas_query},
     we receive a set including node \texttt{/a/b}, i.e $Q(x, 1, \texttt{/a}) = \{~\texttt{/a/b}~\}$
 \end{example}
 
@@ -351,19 +351,20 @@ The process of classifying a node as volatile, will be explained in more details
 For the moment we assume that a function $isVolatile(n)$ is given that classifies $n$ either as volatile or as non-volatile.
 
 \Cref{algo:remove_triple_wapi} describes the process of removing a node from the workload aware property index.
-We first propagate down to node $m$, which we intend to remove.
-We remove property $k$ from $m$.
-If $m$ is a leaf node and does not have property $k$ and is not volatile, we remove it.
+We first descend down to node $m$, which we intend to remove.
+We remove property $k$ from $m$ by setting $k$'s value to \textsc{NIL}.
+If $m$ is (a) a leaf node, and (b) does not have property $k$ and (c) is not volatile, we remove it.
 If $m$ was removed, we repeat the process on its parent node.
-The process ends if we propagate up to \texttt{/index} or have a node with children or a volatile node or a node that has property $k$.
+The process ends if we propagate up to \texttt{/index} or we reach a node that violates at least one of the above three conditions.
 
 \begin{example}
     \Cref{fig:remove_wapi} depicts the following scenario.
     Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
     Given snapshot $G^i$, transaction $T_j$ removes property $x=1$ from \texttt{/a/b} and commits snapshot $G^j$.
-    Since \texttt{/index/x/1/a/b} is volatile, it was not removed from the WAPI.
+    Since \texttt{/index/x/1/a/b} is volatile, it was not removed from the WAPI, only its property $x=1$ is removed.
     Given snapshot $G^j$, transaction $T_k$ removes property \texttt{x} from \texttt{/a/c} and commits snapshot $G^k$.
-    Since \texttt{/index/x/1/a/b} is not volatile, it was removed from the WAPI.
+    Since \texttt{/index/x/1/a/c} is not volatile, it was removed from the WAPI.
+    Since its parent node has another child node, the parent is not removed.
 \end{example}
 
 \begin{figure}[h]
@@ -495,16 +496,16 @@ Volatility is the measure which is used by the WAPI in order to distinguish when
 Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
 workload to check whether a node $n$ is volatile. The workload on Oak instance
 $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-\rangle$ of snapshots, called a history.  $t_n$ is the current time.  $t(G^b)$
-is the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
+\rangle$ of snapshots, called a history. Let $t_n$ be the current time and $t(G^b)$
+be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
 nodes which are members of snapshot $G^a$.  $pre(G^b)$ is the predecessor of
-snapshot $G^b$.
+snapshot $G^b$ in $H_i$.
 
 Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called volatility threshold.
 The volatility count of $n$ is defined as the number of times $n$ was added or removed from snapshots in history $H_i$ over a sliding window of length $L$.
 
 \begin{definition}
-    (Volatility Count): The number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
+    (Volatility Count): The volatility count of node $n$ is the number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
     \begin{equation}
         \begin{split}
             vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
@@ -521,20 +522,23 @@ The volatility count of $n$ is defined as the number of times $n$ was added or r
 \end{definition}
 
 \begin{example}
-    Let's consider the snapshots depicted in \cref{fig:vol_example}.
-    Assume $\langle G^i,G^j,G^k,G^l \rangle$ is a partition of history $H_h$ on Oak instance $O_h$.
-    $O_h$ executes transactions $T_j, T_k, T_l$. Snapshot $G^i$ was committed during $t(G^i) = t$.
-    Given snapshot $G^i$, transaction $T_j$ removes property $x$ from \texttt{/a/b} and commits snapshot $G^j$ during $t(G^j) = t + 1$.
-    Next, transaction $T_k$ adds the property $x=1$ to \texttt{/a/b} given snapshot $G^j$ and commits snapshot $G^k$ during $t(G^k) = t + 2$.
-    Finally transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} given $G^k$ and commits $G^l$ during $t(G^l) = t + 3$.
-    
+    Consider the snapshots depicted in \Cref{fig:vol_example}.
+    Assume $H_h = \langle G^i,G^j,G^k,G^l \rangle$.
+    $O_h$ executes transactions $T_j, T_k, T_l$. Snapshot $G^i$ was committed at time $t(G^i) = t$.
+    Given snapshot $G^i$, transaction $T_j$ removes property $x$ from \texttt{/a/b} and commits snapshot $G^j$ at time $t(G^j) = t + 1$.
+    Next, transaction $T_k$ adds the property $x=1$ to \texttt{/a/b} given snapshot $G^j$ and commits snapshot $G^k$ at time $t(G^k) = t + 2$.
+    Finally transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} given $G^k$ and commits $G^l$ at time $t(G^l) = t + 3$.
+
     If $\tau = 2$ (volatility threshold), $L = 4$ (sliding window length) and $n = \texttt{\footnotesize /index/x/1/a/b}$, then:
     \begin{itemize}
         \item at time $t_n = t$ \quad \ \ we have that: \quad $vol(n) = 0 \implies isVolatile(n) = \bot$
         \item at time $t_n = t + 1 $ we have that: \quad $ vol(n) = 1  \implies isVolatile(n) = \bot$
         \item at time $t_n = t + 2 $ we have that: \quad $ vol(n) = 2  \implies isVolatile(n) = \top$
         \item at time $t_n = t + 3 $ we have that: \quad $ vol(n) = 3  \implies isVolatile(n) = \top$
-    \end{itemize}    
+    \end{itemize}
+    
+    Since $n$ is not volatile at $t_n = t$, transaction $T_j$ removes it from the index.
+    But at $t_n = t + 2$, $n$ is volatile (colored red) and transaction $T_l$ does not remove it.
 \end{example}
 
 \begin{figure}[h]
@@ -659,7 +663,7 @@ The volatility count of $n$ is defined as the number of times $n$ was added or r
             \end{center}
         \end{multicols}
     \end{scriptsize}
-    \caption{Volatility count changes with each snapshot.}
+    \caption{Node \texttt{/index/x/1/a/b} becomes volatile after a deletion by $T_j$ and insertion by $T_k$. Therefore the node cannot be deleted by transaction $T_l$.}
     \label{fig:vol_example}
 \end{figure}
 
@@ -667,18 +671,18 @@ The volatility count of $n$ is defined as the number of times $n$ was added or r
 
 \subsection{Checking Node Volatility}
 
-In order to classify node $n$ as volatile, we have to compute $n$'s volatility count using the corresponding JSON\footnote{http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf} document on MongoDB.
-The document contains all revisions of $n$ throughout history $H_i$ of an Oak instance $O_i$.
+In order to classify a node $n$ as volatile, we have to compute $n$'s volatility count using the corresponding JSON\footnote{http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf} document on MongoDB.
+The document contains all \textit{revisions} (i.e, versions) of $n$ throughout history $H_i$ of an Oak instance $O_i$.
 \Cref{fig:json_simple} depicts such a document.
 We omitted non relevant properties.
-Property \texttt{"\_deleted"} contains key value pairs which encode when the node was added or removed from snapshots, called revisions.
-Each value's key is composed with a timestamp, a counter that is used to differentiate between value changes during the same instance of time and the identifier of the oak instance committing the change.
+Property \texttt{"\_deleted"} contains key value pairs which encode when the node was added or removed from snapshots.
+A key is a revisions that is composed of three parts connected by a dash (-): (1) a timestamp, (2) a counter that is used to differentiate between value changes at the same instance of time, and (3) the identifier $i$ of the Oak instance $O_i$ committing the change.
 \begin{example}
-    Let's consider \texttt{r15cac0dbb00-0-2} in \cref{fig:json_simple}.
+    Consider \texttt{r15cac0dbb00-0-2} in \Cref{fig:json_simple}.
     \texttt{r} is a standard prefix and can be neglected.
-    The \texttt{15cac0dbb00} following \texttt{r}, is a timestamp (number of milliseconds since the Epoch) in hexadecimal encoding which represents the time during which the change was committed.
-    The \texttt{0} following the timestamp, is a counter which is used for tie-breaking between transactions committed during the same instance of time.
-    The \texttt{2} following the counter, tells that the change was committed by the Oak instance with an id of \texttt{2}.
+    The \texttt{15cac0dbb00} following \texttt{r}, is a timestamp (number of milliseconds since the Epoch) in hexadecimal encoding which represents the time at which the change was committed.
+    The \texttt{0} following the timestamp, is a counter which is used for tie-breaking between transactions committed at the same instance of time.
+    The \texttt{2} following the counter, tells that the change was committed by the Oak instance $O_2$ with an id of \texttt{2}.
 \end{example}
 
 \begin{figure}[h]
@@ -700,17 +704,16 @@ Each value's key is composed with a timestamp, a counter that is used to differe
 
 Having seen what a node document looks like, we can now describe how we classify a node as volatile.
 \Cref{fig:is_volatile} shows the native implementation of $isVolatile(n)$ in Java.
-\begin{example}
-    As shown in \cref{fig:is_volatile}, $isVolatile(n)$ is given a node's corresponding document.
-    We iterate through the revisions of property \texttt{"\_deleted"} in most-recent first fashion.
-    If a revision is outside the sliding window we stop iterating because remaining revisions cannot be more recent.
-    We increment the volatility count for every visible revision.
-    A revision is visible if it is contained in the Oak instance's history.
-    If the volatility count reaches at least $\tau$ we break the loop.
-    When exiting the loop, we finally check if the volatility count is at least $\tau$ and return the result.
-\end{example}
+As shown in \Cref{fig:is_volatile}, $isVolatile(n)$ is given a node's corresponding document.
+We iterate through the revisions of property \texttt{"\_deleted"} in most-recent first fashion.
+Notice that the \texttt{keySet} referred to in the Java code is, in Java's terminology, an ordered set.
+If a revision is outside the sliding window we stop iterating because remaining revisions cannot be more recent.
+We increment the volatility count for every visible revision.
+A revision is visible if it is contained in the Oak instance's history.
+If the volatility count reaches at least $\tau$ we break the loop.
+When exiting the loop, we finally check if the volatility count is at least $\tau$ and return the result.
 
-\begin{figure}[h]
+\begin{figure}
     \begin{framed}
         \begin{scriptsize}
             \begin{minted}{java}
@@ -736,7 +739,7 @@ Having seen what a node document looks like, we can now describe how we classify
     }
     return vol >= getVolatilityThreshold();
 }
-            \end{minted}
+\end{minted}
         \end{scriptsize}
     \end{framed}
     \caption{Java implementation for detecting volatile index nodes.}
@@ -745,29 +748,29 @@ Having seen what a node document looks like, we can now describe how we classify
 
 \subsection{Document Splitting}
 
-Jackrabbit Oak periodically checks the node's corresponding documents for their size and if necessary splits them up and moved old data to a new split document.
+Jackrabbit Oak periodically checks a node's corresponding documents for their size and if necessary splits them up and moves old data to a new split document.
 In order to avoid round-trips while computing the volatility count, we modify the document split implementation as mentioned in~\cite{KW17}.
-We essentially leave at most $\tau$ revisions in the document and move all other revision to a new split document.
-Since Oak has to operate in a distributed environment, we only move revisions committed by the local instance thus preventing race conditions.
+We essentially leave at most $\tau$ revisions in the document and move all other revisions to a new split document.
+Since Oak has to operate in a distributed environment, we only move revisions committed by the local instance in order to prevent race conditions.
 
-\Cref{fig:split_document} depicts the java implementation of the document splitting process.
-The function iterates through the revisions of the \texttt{"\_deleted"} property of the given document in a most-recent first fashion.
-A revision gets moved to the split document iff it is visible, is not in the sliding window or at least $\tau$ revisions already exist in the document and the revision was committed by the local Oak instance, 
-i.e $visible(r) \land [t(r) \notin [t_{n-L+1},t_n] \lor vol \geq \tau] \land c(r) = O_i \iff moveToSplitDocument(r)$.
+\Cref{fig:split_document} depicts the Java implementation of the document splitting process.
+We iterate through the revisions of the \texttt{"\_deleted"} property of the given document in most-recent first fashion.
+A revision gets moved to the split document iff: (1) it is visible, (2) is not in the sliding window or at least $\tau$ revisions already exist in the document and (3) the revision was committed by the local Oak instance, 
+i.e, $visible(r) \land [t(r) \notin [t_{n-L+1},t_n] \lor vol \geq \tau] \land c(r) = O_i \iff moveToSplitDocument(r)$.
 
 \begin{example}
     \label{ex:split_doc}
-    Let's look at \cref{fig:split_doc_mongo}.
+    Consider \Cref{fig:split_doc_mongo}.
     We see how a node's corresponding document is split, assuming $\tau = 3$, $O_i = 1$, $t_{\texttt{last\_sync}} = $ {\footnotesize 2017.06.15 13:59}, $L = 24$ hours, $t_n = $ {\footnotesize 2017.06.15 14:01}.
     \Cref{fig:split_doc_debug} shows a table with intermediate values during computation.
     "$t(r)$" is the point of time revision $r$ was committed. Only the day, hours and minutes are showed for brevity.
     "$c(r)$" is the cluster node which committed revision $r$.
     "Vis." is true iff the revision is visible to the local cluster node.
     "$\in$Win." is true iff the revision is in the sliding window.
-    "Vol." represents the volatility count during that step of the iteration. 
+    "Vol." represents the volatility count at that step of the iteration. 
     "Split" is true iff the revision is moved to the split document.
 
-    We will briefly walk you through the iteration during the document split depicted in \cref{fig:split_doc_mongo}.
+    We will briefly walk you through the iteration during the document split depicted in \Cref{fig:split_doc_mongo}.
     $r_1$ does not increment the volatility count, since it is not visible to the local Oak instance.
     Thus $r_1$ is not moved to the split document.
     The three next revisions, $r_2,r_3,r_4$, increment volatility because they are in the sliding window but are not moved to the split document because $vol < \tau$.
@@ -776,7 +779,7 @@ i.e $visible(r) \land [t(r) \notin [t_{n-L+1},t_n] \lor vol \geq \tau] \land c(r
     Finally, any following revisions committed by the local Oak instance ($r_7, r_8, r_9$) are moved to the split document since there are $\tau$ revisions in the document.
 \end{example}
 
-\begin{figure}[h]
+\begin{figure}
     \begin{framed}
         \begin{scriptsize}
             \begin{minted}{java}
@@ -808,7 +811,7 @@ void splitDeleted(NodeDocument nodeDocument) {
     \label{fig:split_document}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
     \begin{subfigure}[b]{0.5\textwidth}
         \begin{scriptsize}
             \begin{centerverbatim}
@@ -859,7 +862,7 @@ void splitDeleted(NodeDocument nodeDocument) {
         \end{scriptsize}
         \caption{After splitting.}
     \end{subfigure}
-    \caption{Document splitting. We use the same parameters as in \cref{ex:split_doc}.}
+    \caption{Document splitting. We use the same parameters as in \Cref{ex:split_doc}.}
     \label{fig:split_doc_mongo}
 \end{figure}
 
@@ -892,18 +895,27 @@ void splitDeleted(NodeDocument nodeDocument) {
         \end{footnotesize}
     \end{center}
     \caption{
-        Intermediate values of computation while splitting document \texttt{/index/x/1/a/b} as shown in \cref{fig:split_doc_mongo}.
-        We use the same parameters as in \cref{ex:split_doc}.
+        Intermediate values of computation while splitting document \texttt{/index/x/1/a/b} as shown in \Cref{fig:split_doc_mongo}.
+        We use the same parameters as in \Cref{ex:split_doc}.
     }
     \label{fig:split_doc_debug}
 \end{figure}
 
 \newpage
+
 \bibliographystyle{abbrv}
 \bibliography{vertiefung}
 
 \newpage
+
 \section{Appendix}
+
+\subsection{Helper Functions}
+
+\Cref{fig:helper_functions} presents the Java implementation of two helper functions.
+$isVisible(r)$ determines if revision $r$ is visible to the local Oak instance $O_i$.
+As mentioned in \cite{KW17}, $r$ is visible to $O_i$ iff it is contained in a snapshot in history $H_i$.
+$isInSlidingWindow(r)$ determines if revision $r$ is in the siliding window.
 
 \begin{figure}[h]
     \begin{framed}
@@ -933,7 +945,7 @@ boolean isInSlidingWindow(Revision r){
         \end{scriptsize}
     \end{framed}
     \caption{Java implementation for helper functions.}
-    \label{algo:helper_functions}
+    \label{fig:helper_functions}
 \end{figure}
 
 \end{document}
