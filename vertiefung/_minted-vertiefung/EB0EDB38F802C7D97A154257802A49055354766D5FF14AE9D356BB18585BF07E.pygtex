@@ -1,10 +1,10 @@
 \begin{Verbatim}[commandchars=\\\{\}]
 \PYG{c+cm}{/**}
-\PYG{c+cm}{ * Determines if node is volatile.}
-\PYG{c+cm}{ * @param nodeDocument: document of node.}
-\PYG{c+cm}{ * @returns true iff node is volatile.}
-\PYG{c+cm}{ */}
- \PYG{k+kt}{boolean} \PYG{n+nf}{isVolatile}\PYG{o}{(}\PYG{n}{NodeDocument} \PYG{n}{nodeDocument}\PYG{o}{)} \PYG{o}{\PYGZob{}}
+\PYG{c+cm}{    * Determines if node is volatile.}
+\PYG{c+cm}{    * @param nodeDocument: document of node.}
+\PYG{c+cm}{    * @returns true iff node is volatile.}
+\PYG{c+cm}{    */}
+    \PYG{k+kt}{boolean} \PYG{n+nf}{isVolatile}\PYG{o}{(}\PYG{n}{NodeDocument} \PYG{n}{nodeDocument}\PYG{o}{)} \PYG{o}{\PYGZob{}}
 
     \PYG{k+kt}{int} \PYG{n}{vol} \PYG{o}{=} \PYG{l+m+mi}{0}\PYG{o}{;}
 
