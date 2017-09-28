@@ -366,7 +366,6 @@ If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \em
 \subsection{Deletion}
 
 If a property-value pair is deleted from a content node, the corresponding index entry is deleted from WAPI.
-During deletion, we intend to remove a node from the WAPI.
 Volatile nodes influence the logic of the deletion process.
 A workload aware property index detects which nodes are volatile and does not remove them.
 The process of classifying a node as volatile, will be explained in more details in \Cref{sec:volatility}.
@@ -807,11 +806,11 @@ A revision gets moved to the split document iff: (1) it is not the most recent r
     ``Split'' is true iff the revision is moved to the split document.
 
     We will briefly walk through the iterations during the document split depicted in \Cref{fig:split_doc_mongo}.
-    $r^1$ does not increment the volatility count, since it is not visible to the local Oak instance because $t_{\texttt{last\_sync}} < t(r^1)$.
-    Thus $r^1$ is not moved to the split document.
-    The three next revisions, $r^2,r^3,r^4$, increment the volatility count because they are in the sliding window but are not moved to the split document because $vol < \tau$.
-    $r^5$ is still in the sliding window and therefore increment the volatility count.
-    Since there are already $\tau$ revisions in the document, we move $r^5$ to the split document.
+    Revision $r^1$ is not visible to the local Oak instance $O_1$ because it was committed on $O_2$ after the last synchronization, i.e. $t_{\texttt{last\_sync}} < t(r^1)$.
+    Therefore, $r^1$ does not increment the volatility count and is not moved to the split document.
+    The three next revisions, $r^2,r^3,r^4$, increment the volatility count because they are in the sliding window but are not moved to the split document because $vol \leq \tau$.
+    $r^5$ is still in the sliding window and therefore increments the volatility count.
+    Since there are already $\tau$ revisions in the document and $r^5$ was committed on $O_1$, we move $r^5$ to the split document.
     Finally, any following revisions committed by the local Oak instance (i.e, $r^7, r^8, r^9$) are moved to the split document since there are already $\tau$ revisions in the document, enough to decide the node's volatility.
 \end{example}
 
@@ -955,18 +954,18 @@ void splitDeleted(NodeDocument nodeDocument) {
 \subsection{Helper Functions}
 
 \Cref{fig:helper^functions} presents the Java implementation of two helper functions.
-$isVisible(r)$ determines if revision $r$ is visible to the local Oak instance $O_i$.
-$isInSlidingWindow(r)$ determines if revision $r$ is in the siliding window.
+\texttt{isVisible(r)} determines if revision $r$ is visible to the local Oak instance $O_i$.
+\texttt{isInSlidingWindow(r)} determines if revision $r$ is in the sliding window.
 
 \begin{figure}[h]
     \begin{framed}
         \begin{scriptsize}
             \begin{minted}{java}
 /**
-    * Checks if r is visible to the local cluster node
-    * @param r the revision
-    * @returns true iff r is visible to the local cluster node
-    */
+ * Checks if r is visible to the local cluster node
+ * @param r the revision
+ * @returns true iff r is visible to the local cluster node
+ */
 boolean isVisible(Revision r) {
     return r.getClusterId() == getClusterId()
             || (r.compareRevisionTime(documentNodeStore
@@ -975,11 +974,11 @@ boolean isVisible(Revision r) {
 }
 
 /**
-    * Checks if r is in the sliding window
-    * @param r the revision
-    * @returns true iff r is in the sliding window
-    */
-boolean isInSlidingWindow(Revision r){
+ * Checks if r is in the sliding window
+ * @param r the revision
+ * @returns true iff r is in the sliding window
+ */
+boolean isInSlidingWindow(Revision r) {
     return System.currentTimeMillis() - getSlidingWindowLength() < r.getTimestamp();
 }
             \end{minted}
