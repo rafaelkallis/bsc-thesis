@@ -7,7 +7,6 @@ import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 
 import javax.jcr.NoSuchWorkspaceException;
@@ -36,12 +35,17 @@ public class ClusterNode {
     public ClusterNode setUp() {
         if (!this.ready) {
             this.mongoClient = new MongoClient();
-            System.err.println("TEST");
-            this.nodeStore = new DocumentMK.Builder().setMongoDB(this.mongoClient.getDB("oak"))
-                    .setClusterId(this.clusterId).setAsyncDelay(30000).getNodeStore();
+            this.nodeStore = new DocumentMK.Builder()
+                    .setMongoDB(this.mongoClient.getDB("oak"))
+                    .setClusterId(this.clusterId)
+                    .setVolatilityThreshold(4)
+                    .setSlidingWindowLength(24 * 60 * 60 * 1000)
+                    .getNodeStore();
 
-            final Oak oak = new Oak(nodeStore).with(new InitialContent()).with(new OpenSecurityProvider())
-                    .with(new PropertyIndexEditorProvider()).with(new PropertyIndexProvider());
+            final Oak oak = new Oak(nodeStore)
+                    .with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(new PropertyIndexEditorProvider());
 
             this.contentRepository = oak.createContentRepository();
             this.ready = true;
@@ -98,14 +102,14 @@ public class ClusterNode {
         }
     }
 
-    public static void initializePropertyIndex(String propName) {
+    public static void initializePropertyIndex(final String propName) {
         ClusterNode.simpleWrite(root -> {
             Tree index = root.getTree("/oak:index");
             if (!index.hasChild(propName)) {
                 Tree prop = index.addChild(propName);
                 prop.setProperty("type", "property");
                 prop.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
-                prop.setProperty("propertyNames", Collections.singleton(propName), Type.NAMES);
+                prop.setProperty("propertyNames", propName, Type.NAME);
                 prop.setProperty("unique", false);
                 prop.setProperty("reindex", true);
             }

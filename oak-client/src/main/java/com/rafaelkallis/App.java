@@ -8,17 +8,76 @@ import java.util.List;
 import javax.jcr.query.Query;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 
 public class App {
-    public static void main(String[] args) {
-        // final MongoClient m = new MongoClient();
-        // m.dropDatabase("oak");
-        // m.close();
+    public static void main(String[] args) throws InterruptedException {
+        final MongoClient m = new MongoClient();
+        m.dropDatabase("oak");
+        m.close();
 
         ClusterNode.initializePropertyIndex("pub");
-        // performAvoidableConflict();
-        // performQuery();
+//        addAndRemoveProperty();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+//        performAvoidableConflict();
+
+        forceSplit();
+
+//        MongoClient mongoClient = new MongoClient();
+//        DocumentNodeStore nodeStore = new DocumentMK.Builder()
+//                .setMongoDB(mongoClient.getDB("oak"))
+//                .setClusterId(99)
+//                .setVolatilityThreshold(2)
+//                .setSlidingWindowLength(24 * 60 * 60 * 1000)
+//                .getNodeStore();
+//
+//        nodeStore.runBackgroundOperations();
+//        nodeStore.dispose();
+//        mongoClient.close();
+
+//         performQuery();
+        // ClusterNode.simpleWrite(root -> {
+        //     root.getTree("/").addChild("home");
+        // }, 1).commit();
+
+        // ClusterNode.simpleWrite(root -> {
+        //     root.getTree("/home").remove();
+        // }, 2).commit();
+    }
+
+    private static void addAndRemoveProperty() throws InterruptedException {
+        ClusterNode.simpleWrite(root -> {
+            root.getTree("/").addChild("addAndRemoveProperty");
+            root.getTree("/addAndRemoveProperty").setProperty("pub", "now");
+        }, 1).commit();
+        ClusterNode.simpleWrite(root -> {
+            root.getTree("/addAndRemoveProperty").removeProperty("pub");
+        }, 2).commit();
+        // ClusterNode.simpleWrite(root -> {
+        //     root.getTree("/addAndRemoveProperty").remove();
+        // }, 3).commit();
+    }
+
+    private static void forceSplit() {
+        ClusterNode.simpleWrite(root -> {
+            root.getTree("/").addChild("addAndRemoveProperty");
+        }, 1).commit();
+        for(int i =0; i< 101; i++){
+            ClusterNode.simpleWrite(root -> {
+                root.getTree("/addAndRemoveProperty").setProperty("pub", "now");
+            }, 1).commit();
+            ClusterNode.simpleWrite(root -> {
+                root.getTree("/addAndRemoveProperty").removeProperty("pub");
+            }, 1).commit();
+        }
     }
 
     private static void performAvoidableConflict() {
@@ -35,9 +94,7 @@ public class App {
         // act
         Commitable t4 = ClusterNode.simpleWrite(root -> root.getTree("/home/news/breaking").removeProperty("pub"), 1);
         Commitable t5 = ClusterNode.simpleWrite(root -> root.getTree("/home/loans/rates").setProperty("pub", "now"), 2);
-        System.err.println("BEFORE !!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         invariant(t4.commit() && t5.commit(), "t4 or t5 failed");
-        System.err.println("AFTER !!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
         // assert
         invariant(ClusterNode.simpleWrite(root -> {
