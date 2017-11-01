@@ -16,7 +16,7 @@
 \usepackage{varwidth}
 \usepackage{verbatim}
 \usepackage{cleveref}
-\usepackage{minted}
+%\usepackage{minted}
 \usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{caption}
@@ -35,14 +35,14 @@
 % --------- 
 
 \titlehead{Department of Informatics, University of Zürich}
-\subject{\vspace*{2cm}BSc Vertiefungsarbeit}
-\title{Detecting Volatile Index Nodes in Apache Jackrabbit Oak}
+\subject{\vspace*{2cm}BSc Thesis}
+\title{An Adaptive Index for Hierarchical Distributed Database Systems}
 \author{
     Rafael Kallis\\[-5pt]
     \scriptsize Matrikelnummer: 14-708-887\\[-5pt]
     \scriptsize Email: \texttt{rk@rafaelkallis.com}
 }
-\date{\vspace*{2cm}October 3, 2017}
+\date{\vspace*{2cm}February 1, 2018}
 \publishers{
     \small supervised by Prof.\ Dr.\ Michael\ Böhlen and Kevin\ Wellenzohn \\[5cm]
     \begin{tikzpicture}[overlay]
@@ -91,10 +91,6 @@
 
 % \chapter*{Acknowledgements}
 
-% \begin{abstract}
-%   ...
-% \end{abstract}
-
 % \chapter*{Zusammenfassung}
 
 % \tableofcontents
@@ -102,6 +98,21 @@
 % \listoftables
 
 \newpage
+
+%\begin{abstract}
+%Frequently adding and removing data from hierarchical indexes causes them to repeatedly grow and shrink.
+%A single insertion or deletion can trigger a sequence of structural index modifications (node insertions/deletions) in a hierarchical index.
+%Skewed and update-heavy workloads trigger repeated structural index updates over a small subset of nodes to the index.
+
+%Informally, a frequently added or removed node is called \textit{volatile}.
+%Volatile nodes deteriorate index update performance due to two reasons.
+%First, frequent structural index modifications are expensive since they cause many disk accesses.
+%Second, frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
+%Conflicting index updates further deteriorate update performance since concurrency control protocols need to resolve the conflict.
+
+
+%\end{abstract}
+
 \section{Introduction}
 
 Frequently adding and removing data from hierarchical indexes causes them to repeatedly grow and shrink.
@@ -119,10 +130,19 @@ The WAPI exploits the workloads' skewness by identifying and not removing volati
 thus significantly reducing the number of expensive structural index modifications.
 Since fewer nodes are inserted/deleted, the likelihood of conflicting index updates by concurrent transactions is reduced.
 
-The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak) in order to improve the transactional throughput of Oak.
-In \Cref{sec:wapi} we describe how nodes are inserted, queried and deleted from the WAPI.
-Next, we describe how volatility is computed in \Cref{sec:volatility}.
-Finally, a reference implementation in Java is presented in \Cref{sec:implementation}.
+When the workload characteristics change, new index nodes can become volatile while others cease to be volatile and become \textit{unproductive}. Unproductive index nodes slow down queries as traversing an unproductive node is useless, because neither the node itself nor any of its descendants contain an indexed property and thus cannot yield a query match. Additionally, unproductive nodes occupy storage space that could otherwise be reclaimed. lf the workload changes frequently, unproductive nodes quickly accumulate in the index and the query performance deteriorates over time. Therefore, unproductive nodes must be cleaned up to keep query performance stable over time and reclaim disk space as the workload changes.
+
+Wellenzohn et al.~\cite{KW17} propose periodic Garbage Collection (GC), which traverses the entire index subtree and prunes all unproductive index nodes at once.
+Additionally we propose Query-Time Pruning (QTP), an incremental approach to cleaning up unproductive nodes in the index. The idea is to turn queries into updates. Since Oak already traverses unproductive nodes as part of query processing, these nodes could be pruned at the same time. In comparison to GC, with QTP only one query has to traverse an unproductive node, while subsequent queries can skip this overhead and thus perform better.
+
+The goal of this BSc thesis is to study, implement, and empirically compare GC and QTP as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak).
+
+%The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak) in order to improve the transactional throughput of Oak.
+%In \Cref{sec:wapi} we describe how nodes are inserted, queried and deleted from the WAPI.
+%Next, we describe how volatility is computed in \Cref{sec:volatility}.
+%Finally, a reference implementation in Java is presented in \Cref{sec:implementation}.
+
+\section{Background}
 
 \subsection{Apache Jackrabbit Oak (Oak)}
 
@@ -132,35 +152,121 @@ Multiple transactions can work concurrently by making use of Multiversion Concur
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture.
 Oak embodies the \textit{Database Tier}.
-% Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as \textit{Persistence Tier}.
-Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB, labeled as \textit{Persistence Tier}.
+% Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB labeled as \textit{Persistence Tier}.
+Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as \textit{Persistence Tier}.
 On the other end, applications can make use of Oak as shown in \Cref{fig:architecture} under \textit{Application Tier}.
-% One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
-One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager.
+% One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager
+One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
     \begin{center}
-        \begin{tikzpicture}[scale=0.7,thick]
-            \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}};
-            \node (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}};
-            \node (oak_b) at (0, 2) {\includegraphics[width = 0.7cm]{OAK}};
-            \node (oak_c) at (2, 2) {\includegraphics[width = 0.7cm]{OAK}};
-            \node (app_a) at (-2, 4) {\includegraphics[width = 0.7cm]{AEM}};
-            \node (app_b) at (0, 4) {\includegraphics[width = 0.7cm]{AEM}};
-            \node (app_c) at (2, 4) {\includegraphics[width = 0.7cm]{AEM}};
-            \node (mongo_desc) at (5, 0) {\footnotesize \textit{Persistence Tier}};
-            \node (oak_desc) at (5, 2) {\footnotesize \textit{Database Tier}};
-            \node (mongo_desc) at (5, 4) {\footnotesize \textit{Application Tier}};
-            \foreach \from/\to in {app_a/oak_a, app_b/oak_b, app_c/oak_c, oak_a/mongo, oak_b/mongo, oak_c/mongo}
-            \draw [->] (\from) -- (\to);
-        \end{tikzpicture}
+	    \begin{tikzpicture}[scale=0.7,thick]
+	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}};
+	    \node (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}};
+	    \node (oak_b) at (0, 2) {\includegraphics[width = 0.7cm]{OAK}};
+	    \node (oak_c) at (2, 2) {\includegraphics[width = 0.7cm]{OAK}};
+	    \node (app_a) at (-2, 4) {\includegraphics[width = 0.7cm]{AEM}};
+	    \node (app_b) at (0, 4) {\includegraphics[width = 0.7cm]{AEM}};
+	    \node (app_c) at (2, 4) {\includegraphics[width = 0.7cm]{AEM}};
+	    \node (mongo_desc) at (5, 0) {\footnotesize \textit{Persistence Tier}};
+	    \node (oak_desc) at (5, 2) {\footnotesize \textit{Database Tier}};
+	    \node (mongo_desc) at (5, 4) {\footnotesize \textit{Application Tier}};
+	    \foreach \from/\to in {app_a/oak_a, app_b/oak_b, app_c/oak_c, oak_a/mongo, oak_b/mongo, oak_c/mongo}
+	    \draw [->] (\from) -- (\to);
+	\end{tikzpicture}
     \end{center}
-    \vspace{-0.5cm}
+    %\vspace{-0.5cm}
     \caption{Apache Jackrabbit Oak's system architecture.}
     \label{fig:architecture}
 \end{figure}
 
+\subsection{Workload Aware Property Index (WAPI)}
+\label{sec:wapi}
+
+Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as follows.
+
+\begin{definition}
+    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e 
+    $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$
+\end{definition}
+
+The WAPI is a hierarchical index and indexes the properties of nodes in order to answer CAS-queries efficiently.
+Additionally, it takes into account if an index node is volatile before performing structural index modifications.
+If a node is considered volatile, we do not remove it from the index.
+
+Volatility is the measure which is used by the WAPI in order to distinguish when to remove a node or not from the index.
+
+Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
+workload to check whether a node $n$ is volatile. The workload on Oak instance
+$O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
+\rangle$ of snapshots, called a history. Let $t_n$ be the current time and $t(G^b)$
+be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
+nodes which are members of snapshot $G^a$.  $pre(G^b)$ is the predecessor of
+snapshot $G^b$ in $H_i$.
+
+Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called volatility threshold.
+The volatility count of $n$ is defined as the number of times $n$ was added or removed from snapshots in a sliding window of length $L$ over history $H_i$.
+Let $n^i$ denote version $i$ of node $n$ that belongs to the node set $N(G^i)$ of snapshot $G^i$.
+Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have the same absolute path from the root node.
+
+\begin{definition}
+    (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
+    \begin{equation}
+        \begin{split}
+            vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
+            \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
+            \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
+        \end{split}
+    \end{equation}
+    \label{def:vol_count}
+\end{definition}
+
+\begin{definition}
+    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see \Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$, i.e 
+    $$ isVolatile(n) \iff vol(n) \geq \tau $$
+\end{definition}
+
+\section{Simulating a Changing Workload}
+
+In order to empirically evaluate and compare GC and QTP under a changing workload, a experiment harness has to be setup.
+
+datasets
+
+zipf distribution
+
+changing Workload
+
+parameters
+
+\section{Unproductive Nodes}
+
+time / index nodes
+
+time / volatile nodes
+
+time / unproductive nodes
+
+time / query execution runtime
+
+time / update execution runtime
+
+unproductive nodes / query execution runtime
+
+unproductive nodes / update execution runtime
+
+\tau / unproductive nodes
+
+L / unproductive nodes
+
+\section{Periodic Garbage Collection (GC)}
+
+\section{Query Time Pruning (QTP)}
+
+\section{Benchmarks}
+
 \newpage
+
+\section{OLD STUFF}
 
 \section{Workload Aware Property Index (WAPI)}
 \label{sec:wapi}
@@ -747,9 +853,11 @@ If the volatility count reaches at least $\tau$ we break the loop.
 When exiting the loop, we finally check if the volatility count is at least $\tau$ and return the result.
 The Java-implementation of the helper functions \texttt{isVisible} and \texttt{isInSlidingWindow} is provided in the Appendix.
 
+
 \begin{figure}
     \begin{framed}
         \begin{scriptsize}
+\begin{verbatim}
             \begin{minted}{java}
 /**
     * Determines if node is volatile.
@@ -774,11 +882,14 @@ The Java-implementation of the helper functions \texttt{isVisible} and \texttt{i
     return vol >= getVolatilityThreshold();
 }
 \end{minted}
+\end{verbatim}
         \end{scriptsize}
+
     \end{framed}
     \caption{Java implementation for detecting volatile index nodes.}
     \label{fig:is_volatile}
 \end{figure}
+
 
 \subsection{Document Splitting}
 
@@ -814,9 +925,11 @@ A revision gets moved to the split document iff: (1) it is not the most recent r
     Finally, any following revisions committed by the local Oak instance (i.e, $r^7, r^8, r^9$) are moved to the split document since there are already $\tau$ revisions in the document, enough to decide the node's volatility.
 \end{example}
 
+
 \begin{figure}
     \begin{framed}
         \begin{scriptsize}
+\begin{verbatim}
             \begin{minted}{java}
 /**
 * Splits the "_deleted" property on the given document.
@@ -846,11 +959,13 @@ void splitDeleted(NodeDocument nodeDocument) {
     }
 }
             \end{minted}
+\end{verbatim}
         \end{scriptsize}
     \end{framed}
     \caption{Java implementation for splitting the node document.}
     \label{fig:split_document}
 \end{figure}
+
 
 \begin{figure}
     \begin{subfigure}[b]{0.5\textwidth}
@@ -945,7 +1060,7 @@ void splitDeleted(NodeDocument nodeDocument) {
 \newpage
 
 \bibliographystyle{abbrv}
-\bibliography{vertiefung}
+\bibliography{thesis}
 
 \newpage
 
@@ -957,10 +1072,12 @@ void splitDeleted(NodeDocument nodeDocument) {
 \texttt{isVisible(r)} determines if revision $r$ is visible to the local Oak instance $O_i$.
 \texttt{isInSlidingWindow(r)} determines if revision $r$ is in the sliding window.
 
+
 \begin{figure}[h]
     \begin{framed}
-        \begin{scriptsize}
-            \begin{minted}{java}
+	\begin{scriptsize}
+\begin{verbatim}
+	    \begin{minted}{java}
 /**
  * Checks if r is visible to the local cluster node
  * @param r the revision
@@ -968,9 +1085,9 @@ void splitDeleted(NodeDocument nodeDocument) {
  */
 boolean isVisible(Revision r) {
     return r.getClusterId() == getClusterId()
-            || (r.compareRevisionTime(documentNodeStore
-                    .getHeadRevision()
-                    .getRevision(getClusterId())) < 0);
+	    || (r.compareRevisionTime(documentNodeStore
+		    .getHeadRevision()
+		    .getRevision(getClusterId())) < 0);
 }
 
 /**
@@ -981,11 +1098,13 @@ boolean isVisible(Revision r) {
 boolean isInSlidingWindow(Revision r) {
     return System.currentTimeMillis() - getSlidingWindowLength() < r.getTimestamp();
 }
-            \end{minted}
-        \end{scriptsize}
+	    \end{minted}
+\end{verbatim}
+	\end{scriptsize}
     \end{framed}
     \caption{Java implementation for helper functions.}
     \label{fig:helper^functions}
 \end{figure}
+
 
 \end{document}
