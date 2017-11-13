@@ -15,18 +15,21 @@
 \usepackage{multicol}
 \usepackage{varwidth}
 \usepackage{verbatim}
-\usepackage{cleveref}
 %\usepackage{minted}
 \usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{cleveref}
 \usepackage{soul}
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
 \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
-\graphicspath{ {images/} }
+\graphicspath{
+  {images/},
+  {images/unproductive_nodes/1/}
+}
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
 % \titleformat{\chapter}{}{\thechapter}{}{}
@@ -78,12 +81,10 @@
 \newenvironment{centerverbatim}{\par\centering\varwidth{\linewidth}\verbatim}
     {\endverbatim\endvarwidth\par}
 
-\def\bbbr{{\rm I\!R}}
-\def\bbbm{{\rm I\!M}}
-\def\bbbn{{\rm I\!N}}
-\def\bbbz{{\rm I\!Z}}
-
-% --------- 
+% \def\bbbr{{\rm I\!R}}
+% \def\bbbm{{\rm I\!M}}
+% \def\bbbn{{\rm I\!N}}
+% \def\bbbz{{\rm I\!Z}}
 
 \begin{document}
 
@@ -94,1017 +95,508 @@
 % \chapter*{Zusammenfassung}
 
 % \tableofcontents
-% \listoffigures
-% \listoftables
+% \listoffigures \listoftables
 
 \newpage
 
-%\begin{abstract}
-%Frequently adding and removing data from hierarchical indexes causes them to repeatedly grow and shrink.
-%A single insertion or deletion can trigger a sequence of structural index modifications (node insertions/deletions) in a hierarchical index.
-%Skewed and update-heavy workloads trigger repeated structural index updates over a small subset of nodes to the index.
+% \begin{abstract}
+%   Frequently adding and removing data from hierarchical indexes causes them to
+%   repeatedly grow and shrink. A single insertion or deletion can trigger a
+%   sequence of structural index modifications (node insertions/deletions) in a
+%   hierarchical index. Skewed and update-heavy workloads trigger repeated
+%   structural index updates over a small subset of nodes to the index.
 
-%Informally, a frequently added or removed node is called \textit{volatile}.
-%Volatile nodes deteriorate index update performance due to two reasons.
-%First, frequent structural index modifications are expensive since they cause many disk accesses.
-%Second, frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
-%Conflicting index updates further deteriorate update performance since concurrency control protocols need to resolve the conflict.
+%   Informally, a frequently added or removed node is called \textit{volatile}.
+%   Volatile nodes deteriorate index update performance due to two reasons.
+%   First, frequent structural index modifications are expensive since they
+%   cause many disk accesses. Second, frequent structural index modifications
+%   also increase the likelihood of conflicting index updates by concurrent
+%   transactions. Conflicting index updates further deteriorate update
+%   performance since concurrency control protocols need to resolve the
+%   conflict.
 
 
-%\end{abstract}
+% \end{abstract}
 
 \section{Introduction}
 
-Frequently adding and removing data from hierarchical indexes causes them to repeatedly grow and shrink.
-A single insertion or deletion can trigger a sequence of structural index modifications (node insertions/deletions) in a hierarchical index.
-Skewed and update-heavy workloads trigger repeated structural index updates over a small subset of nodes to the index.
+Frequently adding and removing data from hierarchical indexes causes them to
+repeatedly grow and shrink. A single insertion or deletion can trigger a
+sequence of structural index modifications (node insertions/deletions) in a
+hierarchical index. Skewed and update-heavy workloads trigger repeated
+structural index updates over a small subset of nodes to the index.
 
 Informally, a frequently added or removed node is called \textit{volatile}.
-Volatile nodes deteriorate index update performance due to two reasons.
-First, frequent structural index modifications are expensive since they cause many disk accesses.
-Second, frequent structural index modifications also increase the likelihood of conflicting index updates by concurrent transactions.
-Conflicting index updates further deteriorate update performance since concurrency control protocols need to resolve the conflict.
+Volatile nodes deteriorate index update performance due to two reasons. First,
+frequent structural index modifications are expensive since they cause many disk
+accesses. Second, frequent structural index modifications also increase the
+likelihood of conflicting index updates by concurrent transactions. Conflicting
+index updates further deteriorate update performance since concurrency control
+protocols need to resolve the conflict.
 
-Wellenzohn et al.~\cite{KW17} propose the Workload-Aware Property Index (WAPI). 
-The WAPI exploits the workloads' skewness by identifying and not removing volatile nodes from the index, 
-thus significantly reducing the number of expensive structural index modifications.
-Since fewer nodes are inserted/deleted, the likelihood of conflicting index updates by concurrent transactions is reduced.
+Wellenzohn et al.~\cite{KW17} propose the Workload-Aware Property Index (WAPI).
+The WAPI exploits the workloads' skewness by identifying and not removing
+volatile nodes from the index, thus significantly reducing the number of
+expensive structural index modifications. Since fewer nodes are
+inserted/deleted, the likelihood of conflicting index updates by concurrent
+transactions is reduced.
 
-When the workload characteristics change, new index nodes can become volatile while others cease to be volatile and become \textit{unproductive}. Unproductive index nodes slow down queries as traversing an unproductive node is useless, because neither the node itself nor any of its descendants contain an indexed property and thus cannot yield a query match. Additionally, unproductive nodes occupy storage space that could otherwise be reclaimed. lf the workload changes frequently, unproductive nodes quickly accumulate in the index and the query performance deteriorates over time. Therefore, unproductive nodes must be cleaned up to keep query performance stable over time and reclaim disk space as the workload changes.
+When the workload characteristics change, new index nodes can become volatile
+while others cease to be volatile and become \textit{unproductive}. Unproductive
+index nodes slow down queries as traversing an unproductive node is useless,
+because neither the node itself nor any of its descendants contain an indexed
+property and thus cannot yield a query match. Additionally, unproductive nodes
+occupy storage space that could otherwise be reclaimed. lf the workload changes
+frequently, unproductive nodes quickly accumulate in the index and the query
+performance deteriorates over time. Therefore, unproductive nodes must be
+cleaned up to keep query performance stable over time and reclaim disk space as
+the workload changes.
 
-Wellenzohn et al.~\cite{KW17} propose periodic Garbage Collection (GC), which traverses the entire index subtree and prunes all unproductive index nodes at once.
-Additionally we propose Query-Time Pruning (QTP), an incremental approach to cleaning up unproductive nodes in the index. The idea is to turn queries into updates. Since Oak already traverses unproductive nodes as part of query processing, these nodes could be pruned at the same time. In comparison to GC, with QTP only one query has to traverse an unproductive node, while subsequent queries can skip this overhead and thus perform better.
+Wellenzohn et al.~\cite{KW17} propose periodic Garbage Collection (GC), which
+traverses the entire index subtree and prunes all unproductive index nodes at
+once. Additionally we propose Query-Time Pruning (QTP), an incremental approach
+to cleaning up unproductive nodes in the index. The idea is to turn queries into
+updates. Since Oak already traverses unproductive nodes as part of query
+processing, these nodes could be pruned at the same time. In comparison to GC,
+with QTP only one query has to traverse an unproductive node, while subsequent
+queries can skip this overhead and thus perform better.
 
-The goal of this BSc thesis is to study, implement, and empirically compare GC and QTP as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak).
+The goal of this BSc thesis is to study, implement, and empirically compare GC
+and QTP as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak).
 
-%The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak) in order to improve the transactional throughput of Oak.
-%In \Cref{sec:wapi} we describe how nodes are inserted, queried and deleted from the WAPI.
-%Next, we describe how volatility is computed in \Cref{sec:volatility}.
-%Finally, a reference implementation in Java is presented in \Cref{sec:implementation}.
+% The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in
+% Apache Jackrabbit Oak (Oak) in order to improve the transactional throughput
+% of Oak. In \Cref{sec:wapi} we describe how nodes are inserted, queried and
+% deleted from the WAPI. Next, we describe how volatility is computed in
+% \Cref{sec:volatility}. Finally, a reference implementation in Java is
+% presented in \Cref{sec:implementation}.
 
 \section{Background}
 
 \subsection{Apache Jackrabbit Oak (Oak)}
 
-% Oak\footnote{https://jackrabbit.apache.org/oak/} is a hierarchical distributed database system which makes use of a hierarchical index. 
-Oak is a hierarchical distributed database system which makes use of a hierarchical index. 
-Multiple transactions can work concurrently by making use of Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic concurrency control technique~\cite{TM11}.
+% Oak\footnote{https://jackrabbit.apache.org/oak/} is a hierarchical distributed
+% database system which makes use of a hierarchical index.
+Oak is a hierarchical distributed database system which makes use of a
+hierarchical index. Multiple transactions can work concurrently by making use of
+Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic
+concurrency control technique~\cite{TM11}.
 
-\Cref{fig:architecture} depicts Oak's multi-tier architecture.
-Oak embodies the \textit{Database Tier}.
-% Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB labeled as \textit{Persistence Tier}.
-Whilst Oak is responsible for handling the database logic, it stores the actual data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as \textit{Persistence Tier}.
-On the other end, applications can make use of Oak as shown in \Cref{fig:architecture} under \textit{Application Tier}.
-% One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager
-One such application is Adobe's enterprise content management system (CMS), the Adobe Experience Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
+\Cref{fig:architecture} depicts Oak's multi-tier architecture. Oak embodies the
+\textit{Database Tier}.
+% Whilst Oak is responsible for handling the database logic, it stores the
+% actual data on MongoDB labeled as \textit{Persistence Tier}.
+Whilst Oak is responsible for handling the database logic, it stores the actual
+data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as
+\textit{Persistence Tier}. On the other end, applications can make use of Oak as
+shown in \Cref{fig:architecture} under \textit{Application Tier}.
+% One such application is Adobe's enterprise content management system (CMS),
+% the Adobe Experience Manager
+w/One such application is Adobe's enterprise content management system (CMS),
+the Adobe Experience
+Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
-    \begin{center}
-	    \begin{tikzpicture}[scale=0.7,thick]
-	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}};
-	    \node (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}};
-	    \node (oak_b) at (0, 2) {\includegraphics[width = 0.7cm]{OAK}};
-	    \node (oak_c) at (2, 2) {\includegraphics[width = 0.7cm]{OAK}};
-	    \node (app_a) at (-2, 4) {\includegraphics[width = 0.7cm]{AEM}};
-	    \node (app_b) at (0, 4) {\includegraphics[width = 0.7cm]{AEM}};
-	    \node (app_c) at (2, 4) {\includegraphics[width = 0.7cm]{AEM}};
-	    \node (mongo_desc) at (5, 0) {\footnotesize \textit{Persistence Tier}};
-	    \node (oak_desc) at (5, 2) {\footnotesize \textit{Database Tier}};
-	    \node (mongo_desc) at (5, 4) {\footnotesize \textit{Application Tier}};
-	    \foreach \from/\to in {app_a/oak_a, app_b/oak_b, app_c/oak_c, oak_a/mongo, oak_b/mongo, oak_c/mongo}
-	    \draw [->] (\from) -- (\to);
-	\end{tikzpicture}
-    \end{center}
-    %\vspace{-0.5cm}
-    \caption{Apache Jackrabbit Oak's system architecture.}
-    \label{fig:architecture}
+  \begin{center}
+    \begin{tikzpicture}[scale=0.7,thick]
+	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}}; \node
+      (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_b)
+      at (0, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_c) at (2, 2)
+      {\includegraphics[width = 0.7cm]{OAK}}; \node (app_a) at (-2, 4)
+      {\includegraphics[width = 0.7cm]{AEM}}; \node (app_b) at (0, 4)
+      {\includegraphics[width = 0.7cm]{AEM}}; \node (app_c) at (2, 4)
+      {\includegraphics[width = 0.7cm]{AEM}}; \node (mongo_desc) at (5, 0)
+      {\footnotesize \textit{Persistence Tier}}; \node (oak_desc) at (5, 2)
+      {\footnotesize \textit{Database Tier}}; \node (mongo_desc) at (5, 4)
+      {\footnotesize \textit{Application Tier}}; \foreach \from/\to in
+      {app_a/oak_a, app_b/oak_b, app_c/oak_c, oak_a/mongo, oak_b/mongo,
+        oak_c/mongo} \draw [->] (\from) -- (\to);
+    \end{tikzpicture}
+  \end{center}
+  % \vspace{-0.5cm}
+  \caption{Apache Jackrabbit Oak's system architecture.}
+  \label{fig:architecture}
 \end{figure}
 
 \subsection{Workload Aware Property Index (WAPI)}
 \label{sec:wapi}
 
-Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as follows.
+Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as
+follows.
 
 \begin{definition}
-    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e 
+  (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query
+  $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e
     $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$
-\end{definition}
+  \end{definition}
 
-The WAPI is a hierarchical index and indexes the properties of nodes in order to answer CAS-queries efficiently.
-Additionally, it takes into account if an index node is volatile before performing structural index modifications.
-If a node is considered volatile, we do not remove it from the index.
+  The WAPI is a hierarchical index and indexes the properties of nodes in order
+  to answer CAS-queries efficiently. Additionally, it takes into account if an
+  index node is volatile before performing structural index modifications. If a
+  node is considered volatile, we do not remove it from the index.
 
-Volatility is the measure which is used by the WAPI in order to distinguish when to remove a node or not from the index.
+  Volatility is the measure which is used by the WAPI in order to distinguish
+  when to remove a node or not from the index.
 
-Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
-workload to check whether a node $n$ is volatile. The workload on Oak instance
-$O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-\rangle$ of snapshots, called a history. Let $t_n$ be the current time and $t(G^b)$
-be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
-nodes which are members of snapshot $G^a$.  $pre(G^b)$ is the predecessor of
-snapshot $G^b$ in $H_i$.
+  Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
+  workload to check whether a node $n$ is volatile. The workload on Oak instance
+  $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
+  \rangle$ of snapshots, called a history. Let $t_n$ be the current time and
+  $t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
+  set of nodes which are members of snapshot $G^a$. $pre(G^b)$ is the
+  predecessor of snapshot $G^b$ in $H_i$.
 
-Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called volatility threshold.
-The volatility count of $n$ is defined as the number of times $n$ was added or removed from snapshots in a sliding window of length $L$ over history $H_i$.
-Let $n^i$ denote version $i$ of node $n$ that belongs to the node set $N(G^i)$ of snapshot $G^i$.
-Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have the same absolute path from the root node.
-
-\begin{definition}
-    (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
-    \begin{equation}
-        \begin{split}
-            vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
-            \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
-            \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-        \end{split}
-    \end{equation}
-    \label{def:vol_count}
-\end{definition}
+  Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called
+  volatility threshold. The volatility count of $n$ is defined as the number of
+  times $n$ was added or removed from snapshots in a sliding window of length
+  $L$ over history $H_i$. Let $n^i$ denote version $i$ of node $n$ that belongs
+  to the node set $N(G^i)$ of snapshot $G^i$. Given two snapshots $G^a$ and
+  $G^b$ we write $n^a$ and $n^b$ to emphasize that nodes $n^a$ and $n^b$ are two
+  versions of the same node $n$, i.e, they have the same absolute path from the
+  root node.
 
 \begin{definition}
-    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see \Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$, i.e 
-    $$ isVolatile(n) \iff vol(n) \geq \tau $$
+  (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of
+  times node $n$ was added or removed from snapshots contained in a sliding
+  window with length $L$ over history $H_i$.
+  \begin{equation}
+    \begin{split}
+      vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
+      \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
+      \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
+    \end{split}
+  \end{equation}
+  \label{def:vol_count}
 \end{definition}
 
-\section{Simulating a Changing Workload}
-
-In order to empirically evaluate and compare GC and QTP under a changing workload, a experiment harness has to be setup.
-
-datasets
-
-zipf distribution
-
-changing Workload
-
-parameters
+\begin{definition}
+  (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see
+  \Cref{def:vol_count}) is greater or equal than the volatility threshold
+  $\tau$, i.e
+  $$ volatile(n) \iff vol(n) \geq \tau $$
+\end{definition}
 
 \section{Unproductive Nodes}
 
-time / index nodes
+When time passes and the database workload changes, volatile nodes cease to be
+volatile and they become unproductive.
+\begin{definition}
+  (Unproductive Node): Node $n$ is unproductive iff $n$, and any descendant of
+  $n$, is neither matching nor volatile, i.e
+  $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
+  (volatile(m) \lor *m[k] \neq v)) $$
+\end{definition}
 
-time / volatile nodes
+\begin{example}
+  Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume $H_h
+  = \langle G^0,G^1,G^2,G^3,G^4,G^5,G^6 \rangle$. $O_h$ executes transactions
+  $T_1, T_2, T_3, T_4, T_5, T_6$. Snapshot $G^0$ was committed at time $t(G^0) =
+  t$. Given snapshot $G^0$, transaction $T_1$ adds property $x=1$
+  \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
+  transaction $T_2$ removes property $x$ from \texttt{/a/b/d} given snapshot
+  $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
+  not pruned during $T^2$ since they are volatile. Transaction $T_3$ adds
+  property $x=1$ to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
+  $t(G^3) = t+3$. Notice how \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are
+  the only unproductive index nodes and \texttt{/i/x/1/a/c/e} as well as
+  \texttt{/i/x/1/a/c/e} are the only volatile index nodes in $G^3$. Transaction
+  $T^4$ again adds property $x=1$ to \texttt{/a/b/d} given snapshot $G^3$ and
+  commits snapshot $G^4$ at time $t(G^4) = t+4$. In $G^4$, nodes
+  \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not unproductive anymore
+  since \texttt{/i/x/1/a/b/d}'s content node is matching. Transaction $T^5$
+  again removes property $x$ from \texttt{/a/b/d} given snapshot $G^4$ and
+  commits snapshot $G^5$ at time $t(G^5) = t+5$. Since nodes
+  \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not volatile, they are
+  pruned from the property index during $T^5$. Finally transaction $T^6$ removes
+  property $x=1$ from \texttt{/a/c/e} given snapshot $G^5$ and commits snapshot
+  $G^6$ at time $t(G^6) = t+6$. Index nodes \texttt{/i/x/1/a/c/e} and
+  \texttt{/i/x/1/a/c} are pruned from the property index during $T^6$ because
+  they are not volatile.
+\end{example}
 
-time / unproductive nodes
+\begin{figure}[h]
+  \centering
+  \begin{large}
+  $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
+  \xrightarrow{\quad T_3 \quad} G^3 \xrightarrow{\quad T_4 \quad} G^4
+  \xrightarrow{\quad T_5 \quad} G^5 \xrightarrow{\quad T_6 \quad} G^6 $$
+\end{large}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$] [,phantom] [,phantom] [,phantom]
+        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
+        [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \end{forest}
 
-time / query execution runtime
+      \vspace{27mm}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^0$
+ 
+    $t(G^0) = t$ }
+\end{subfigure}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
+        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ] [,phantom] ] ] ] ]
+        [,phantom] [,phantom] [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$
+        [$\lambda:d$ \\ $x:1$] ] [,phantom] [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^1$
+ 
+    $t(G^1) = t+1$ }
+\end{subfigure}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
+        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom] ] ] ] ] [,phantom]
+        [,phantom] [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$]
+        ] [,phantom] [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \end{forest}
 
-time / update execution runtime
+      \vspace{3.2mm}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^2$
+ 
+    $t(G^2) = t+2$ }
+\end{subfigure}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
+        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom] [$\lambda:c$
+        [$\lambda:e$ \\ $x:1$] ] ] ] ] ] [,phantom] [,phantom] [,phantom]
+        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
+        [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^3$
+ 
+    $t(G^3) = t+3$ }
+\end{subfigure}
 
-unproductive nodes / query execution runtime
+\vspace{5mm}
 
-unproductive nodes / update execution runtime
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
+        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ] [,phantom]
+        [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ] ] ] [,phantom] [,phantom]
+        [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ]
+        [,phantom] [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^4$
+ 
+    $t(G^4) = t+4$ }
+\end{subfigure}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
+        [$\lambda:a$ [,phantom] [,phantom] [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ]
+        ] ] ] ] [,phantom] [,phantom] [,phantom] [,phantom] [$\lambda:a$
+        [$\lambda:b$ [$\lambda:d$] ] [,phantom] [$\lambda:c$ [$\lambda:e$ \\
+        $x:1$] ] ] ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^5$
+ 
+    $t(G^5) = t+5$ }
+\end{subfigure}
+\begin{subfigure}{0.24\textwidth}
+  \centering \scriptsize{
+    \begin{framed}
+      \begin{forest} qtree, [ [$\lambda:i$] [,phantom] [,phantom] [,phantom]
+        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
+        [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \end{forest}
 
-\tau / unproductive nodes
+      \vspace{27mm}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^6$
+ 
+    $t(G^6) = t+6$ }
+\end{subfigure}
+\caption{ Unproductive Nodes. \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/b} are
+  unproductive in snapshot $G^3$. They are not volatile and don't match either.
+}
+\label{fig:unproductive_nodes}
+\end{figure}
 
-L / unproductive nodes
+Unproductive nodes slow down queries. During query execution, traversing an
+unproductive node is useless, because neither the node itself nor any of its
+descendants contains an indexed property and therefore cannot contribute a query
+match. We formalize the statements above into the following scientific
+questions:
+
+\begin{framed}
+  \begin{itemize}
+  \item[$Q_1$] Query execution runtime increases over time.
+  \item[$Q_2$] Unproductive nodes account for the increase in query execution
+    runtime.
+  \end{itemize}
+\end{framed}
+
+We recorded the query execution runtime throughout the experiment and present
+the data below.
+\Cref{fig:query_runtime_synthetic_millis,fig:query_runtime_aem_millis} show the
+recorded query runtime over time as observed from the synthetic and AEM dataset respectively. 
+\Cref{fig:query_runtime_synthetic_updates,fig:query_runtime_aem_updates} show the
+recorded query runtime over update operations from the synthetic and AEM dataset respectively. 
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{millis_query_runtime}
+    \caption{}
+    \label{fig:query_runtime_synthetic_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{millis_query_runtime}
+    \caption{}
+    \label{fig:query_runtime_aem_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{updates_query_runtime}
+    \caption{}
+    \label{fig:query_runtime_synthetic_updates}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{updates_query_runtime}
+    \caption{}
+    \label{fig:query_runtime_aem_updates}
+  \end{subfigure}
+  \caption{Query Execution Runtime}
+  \label{fig:query_runtime}
+\end{figure}
+
+Next, we present data regarding the type of index nodes being traversed while
+executing a query.
+\Crefrange{fig:trav_nodes_synthetic_millis}{fig:trav_nodes_aem_updates} depict
+the number of traversed volatile and unproductive index nodes during query
+execution with respect to time and update operations from our datasets.
+Additionally,
+\Crefrange{fig:trav_node_density_synthetic_millis}{fig:trav_node_density_aem_updates}
+show the density of volatile and unproductive nodes over time and update
+operations from our datasets.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{millis_traversed_index_nodes}
+    \caption{}
+    \label{fig:trav_nodes_synthetic_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{millis_traversed_index_nodes} 
+    \caption{}
+    \label{fig:trav_nodes_aem_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{updates_traversed_index_nodes}
+    \caption{}
+    \label{fig:trav_nodes_synthetic_updates}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{updates_traversed_index_nodes}
+    \caption{}
+    \label{fig:trav_nodes_aem_updates}
+  \end{subfigure}
+
+  % index density
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{millis_index_node_density}
+    \caption{}
+    \label{fig:trav_node_density_synthetic_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{millis_index_node_density} 
+    \caption{}
+    \label{fig:trav_node_density_aem_millis}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{updates_index_node_density}
+    \caption{}
+    \label{fig:trav_node_density_synthetic_updates}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=7cm]{updates_index_node_density}
+    \caption{}
+    \label{fig:trav_node_density_aem_updates}
+  \end{subfigure}
+ \caption{Index nodes encountered while executing a query}
+ \label{fig:query_runtime}
+\end{figure}
+
+The collected data shows a significant increase in query execution runtime over the
+recorded time. The number of unproductive nodes grows over time while the number
+of volatile nodes seem to stall after 30 seconds. We also observe that the
+majority of traversed nodes during query execution are unproductivea and
+therefore must likely account for the increase in query runtime. Interestingly,
+we also observe the volatile and unproductive node density to converge below
+$0.2$ and above $0.8$ respectively.
+
+\subsection{Volatility threshold ($\tau$)}
+
+\subsection{Sliding window length ($L$)}
+
+% \tau / unproductive nodes
+
+% L / unproductive nodes
 
 \section{Periodic Garbage Collection (GC)}
 
 \section{Query Time Pruning (QTP)}
 
-\section{Benchmarks}
+\section{Experimental Evaluation}
 
-\newpage
+% In order to empirically evaluate and compare GC and QTP under a changing
+% workload, a experiment harness has to be setup.
 
-\section{OLD STUFF}
+% datasets
 
-\section{Workload Aware Property Index (WAPI)}
-\label{sec:wapi}
+% zipf distribution
 
-The WAPI is a hierarchical index and indexes the properties of nodes.
-It takes into account if an index node is volatile before performing structural index modifications.
-If a node is considered volatile, we do not remove it from the index.
-In the following section, we will see how to add, query and remove nodes from the index.
+% changing Workload
 
-\subsection{Insertion}
-
-The WAPI is hierarchically organized under \texttt{/index} node.
-The second index level consists of all properties $k$ we want to index.
-The third index level contains any values $v$ of property $k$.
-The remaining index levels replicate all nodes from the root node to any content node with $k$ set to $v$.
-Some node $m$ is added to the WAPI iff $m$ has a property $k$ set to $v$, as shown in \Cref{algo:add_triple_wapi}.
-Starting from \texttt{/index}, we descend down to \texttt{/index/k}, followed by \texttt{/index/k/v}.
-Next, we descend down from \texttt{/index/k/v} along the index nodes on the absolute path from the root to node $m$.
-While we descend the WAPI, we create any node $n$ that does not exist and assign it to variable $tail$.
-At the end of the tree traversal, $tail$ corresponds to index node \texttt{/index/k/v/m}. 
-$tail$'s property $k$ is finally set to $v$.
-
-\begin{example}
-    Consider \Cref{fig:add_wapi}.
-    Given snapshot $G^i$, transaction $T_j$ adds the property-value pair $x=1$ to \texttt{/a/b} and commits snapshot $G^j$.
-    Starting from \texttt{/index} and descending down to \texttt{/index/x/1/a/b}, we create each node on the way since they do not exist yet.
-    Finally, we set property $x=1$ on \texttt{/index/x/1/a/b}.
-\end{example}
-
-\vspace{1.3cm}
-
-\begin{figure}[h]
-    \vspace{-5mm}
-        \begin{multicols}{2}
-            \noindent
-            \begin{large}$$ G^i \xrightarrow{\quad T_j \quad} G^j $$\end{large}
-            \begin{scriptsize}
-                \begin{multicols}{2}
-                    \noindent
-                    \begin{center}
-                        \framebox(100,130){
-                            \begin{forest} qtree,
-                                [
-                                    [$\lambda:\texttt{index}$]
-                                    [,phantom]
-                                    [$\lambda:a$,name=a
-                                        [,phantom]
-                                        [$\lambda:b$,name=b]
-                                        [,phantom]
-                                        [$\lambda:c$]
-                                    ]
-                                ]
-                            \end{forest}
-        
-                            \vspace{27mm}
-                        }
-        
-                        Snapshot $G^i$
-                    \end{center}
-                    \columnbreak
-                    \begin{center}
-                        \framebox(100,130){
-                            \begin{forest} qtree,
-                                [
-                                    [$\lambda:\texttt{index}$
-                                        [$\lambda:\texttt{x}$
-                                            [$\lambda:\texttt{1}$
-                                                [$\lambda:a$
-                                                [$\lambda:b$ \\ $\texttt{x}:1$]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                    [,phantom]
-                                    [$\lambda:a$,name=a
-                                        [,phantom]
-                                        [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
-                                        [,phantom]
-                                        [$\lambda:c$]
-                                    ]
-                                ]
-                            \end{forest}
-                        }
-        
-                        Snapshot $G^j$
-                    \end{center}    
-                \end{multicols}
-            \end{scriptsize}
-            \columnbreak
-            ~
-
-            \vspace{7.8mm}
-            \begin{algorithm}[H]
-                \label{algo:add_triple_wapi}
-                \caption{AddTripleWAPI}
-                \DontPrintSemicolon
-                \begin{footnotesize}
-                    \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a content node.}
-                    \vspace{2.6mm}
-                    $tail \longleftarrow \texttt{/index}$\;
-                    \For{$n \in \langle \texttt{/i/k},~\texttt{/i/k/v},\dots,\texttt{/i/k/v/m}\rangle$}{
-                        \If{$n$ does not exist}{
-                            create node $n$\;
-                        }
-                        $tail \longleftarrow n$\;
-                    }
-                    $tail[k] \longleftarrow v$
-                \end{footnotesize}
-            \end{algorithm}
-        \end{multicols}
-    \vspace{-8mm}
-    \caption{
-        Adding a node in WAPI. \texttt{/i} is an abbreviation for \texttt{/index}.
-        Property $\lambda$ denotes the label of a node.
-    }
-    \label{fig:add_wapi}
-\end{figure}
-
-\newpage
-
-\subsection{Querying}
-
-Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as follows.
-
-\begin{definition}
-    (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e 
-    $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$
-\end{definition}
-
-\Cref{algo:query_wapi} describes how we answer a CAS query using the WAPI.
-Given property $k$, value $v$ and node $m$, we start descending down to node \texttt{/index/k/v/m}.
-Next, we iterate through all its descendants $n$.
-We return a set consisting of \textit{content} nodes $*n$ corresponding to every \textit{index} node $n$ with property $k$ set to $v$.
-The path of content node $*n$ is obtained by removing the first three nodes on the path of index node $n$.
-For example, if $n = \texttt{/index/x/1/a/b}$ is an index node, the corresponding content node is $*n = \texttt{/a/b}$.
-If \texttt{/index/k/v/m} does not exist, then $desc(\texttt{/index/k/v/m}) = \emptyset$.
-
-\begin{example}
-    Consider $Q(x, 1, \texttt{/a})$, which queries for every descendant of \texttt{/a} with \texttt{x} set to $1$.
-    Assuming we execute the query on the tree depicted in \Cref{fig:cas_query}, 
-    WAPI descends to node \texttt{/index/x/1/a} and traverses all descendants.
-    Its only descendant is $n = \texttt{/index/x/1/a/b}$ and since $n[x] = 1$ the content node $*n = \texttt{/a/b}$ is returned.
-    That is, $Q(x, 1, \texttt{/a}) = \{~\texttt{/a/b}~\}$
-\end{example}
-
-\vspace{2.5cm}
-
-\begin{figure}[h]
-    \begin{multicols}{2}
-        \begin{center}
-            \begin{footnotesize}
-                \framebox{
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$
-                                    [$\lambda:\texttt{1}$
-                                        [$\lambda:a$
-                                        [$\lambda:b$ \\ $\texttt{x}:1$]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [$\lambda:a$,name=a
-                                [,phantom]
-                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-            \end{footnotesize}
-        \end{center}    
-        \columnbreak
-        \begin{algorithm}[H]
-            \DontPrintSemicolon
-            \begin{scriptsize}
-                \label{algo:query_wapi}
-                \caption{QueryWAPI}
-                \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-                \KwResult{A set of nodes satisfying $Q(k,v,m)$}
-                $r \longleftarrow \emptyset$\;
-                \For{$n \in desc(\texttt{/index/k/v/m})$}{
-                    \If{$n[k] = v$}{
-                        $r \longleftarrow r \cup \{ *n \}$\;
-                    }
-                }
-                \Return{r}\;
-            \end{scriptsize}
-        \end{algorithm}
-        \begin{scriptsize}
-            Where $desc(\texttt{/index/k/v/m})$ is the set of descendants of node \texttt{/index/k/v/m}, $n[k]$ is property $k$ of node $n$ and $*n$ is the content node corresponding to $n$.
-        \end{scriptsize}
-    \end{multicols}
-    \caption{CAS Query example.}
-    \label{fig:cas_query}
-\end{figure}
-
-\newpage
-
-\subsection{Deletion}
-
-If a property-value pair is deleted from a content node, the corresponding index entry is deleted from WAPI.
-Volatile nodes influence the logic of the deletion process.
-A workload aware property index detects which nodes are volatile and does not remove them.
-The process of classifying a node as volatile, will be explained in more details in \Cref{sec:volatility}.
-For the moment we assume that a function $isVolatile(n)$ is given that classifies $n$ either as volatile or as non-volatile.
-
-\Cref{algo:remove_triple_wapi} describes the process of removing node $n = \texttt{/index/k/v/m}$ from WAPI after property $k$ was changed or removed from content node $m$.
-We first descend down to node $n = \texttt{/index/k/v/m}$, which we intend to remove.
-We remove property $k$ from $n$ by setting $k$'s value to \textsc{NIL}.
-If $n$ is (a) a leaf node, and (b) does not have property $k$ set to $v$ and (c) is not volatile, we remove it.
-If $n$ was removed, we repeat the process on its parent node $par(n)$.
-The process repeats on all ancestors and ends if we propagate up to \texttt{/index} or reach a node that violates at least one of the above three conditions.
-
-\begin{example}
-    \Cref{fig:remove_wapi} depicts the following scenario.
-    Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.
-    Given snapshot $G^i$, transaction $T_j$ removes property $x=1$ from \texttt{/a/b} and commits snapshot $G^j$.
-    Since \texttt{/index/x/1/a/b} is volatile, it was not removed from the WAPI, only its property $x=1$ is removed.
-    Given snapshot $G^j$, transaction $T_k$ removes property \texttt{x} from \texttt{/a/c} and commits snapshot $G^k$.
-    Since \texttt{/index/x/1/a/c} was not volatile, was a leaf-node, and property $x=1$ was just removed, the index node was removed from the WAPI.
-    Since its parent node has another child node, the parent is not removed and the deletion process stops.
-\end{example}
-
-\begin{figure}[h]
-    \begin{large}
-        $$ G^i \xrightarrow{\quad T_j \quad} G^j \xrightarrow{\quad T_k \quad} G^k $$
-    \end{large}
-    \begin{scriptsize}
-        \begin{multicols}{3}
-            \begin{center}
-                \framebox(130,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$
-                                    [$\lambda:\texttt{1}$
-                                        [$\lambda:a$
-                                            [$\lambda:b$ \\ $\texttt{x}:1$, red]
-                                            [,phantom]
-                                            [,phantom]
-                                            [$\lambda:c$ \\ $\texttt{x}:1$]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [,phantom]
-                            [,phantom]
-                            [$\lambda:a$
-                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$]
-                                [,phantom]
-                                [$\lambda:c$ \\ $\texttt{x}:\texttt{1}$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-
-                Snapshot $G^i$
-            \end{center}
-            \columnbreak
-            \begin{center}
-                \framebox(130,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$
-                                    [$\lambda:\texttt{1}$
-                                        [$\lambda:a$
-                                            [$\lambda:b$, red]
-                                            [,phantom]
-                                            [,phantom]
-                                            [$\lambda:c$ \\ $\texttt{x}:1$]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [,phantom]
-                            [,phantom]
-                            [$\lambda:a$
-                                [$\lambda:b$]
-                                [,phantom]
-                                [$\lambda:c$ \\ $\texttt{x}:\texttt{1}$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-
-                Snapshot $G^j$
-            \end{center}
-            \columnbreak
-            \begin{center}
-                \framebox(130,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$
-                                    [$\lambda:\texttt{1}$
-                                        [$\lambda:a$
-                                            [$\lambda:b$, red]
-                                                [,phantom]
-                                                [,phantom]
-                                                [,phantom]
-                                                [,phantom]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [,phantom]
-                            [,phantom]
-                            [$\lambda:a$
-                                [$\lambda:b$]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-
-                Snapshot $G^k$
-            \end{center}
-        \end{multicols}
-    \end{scriptsize}
-    \caption{Removing a node from the WAPI. Assume \texttt{/index/x/1/a/b} (colored red) is volatile in all three snapshots $G^i, G^j, G^k$.}
-    \label{fig:remove_wapi}
-\end{figure}
-
-\begin{algorithm}[H]
-    \label{algo:remove_triple_wapi}
-    \caption{RemoveTripleWAPI}
-    \DontPrintSemicolon
-    \begin{footnotesize}
-        \KwData{Triple $(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
-        $n \longleftarrow \texttt{/index/k/v/m}$\;
-        $n[k] \longleftarrow \textsc{nil}$\;
-        \While{$n \neq \texttt{/index} \land chd(n) = \emptyset \land n[k] \neq v \land \lnot \ isVolatile(n)$}{
-            $u \longleftarrow n$\;
-            $n \longleftarrow par(n)$\;
-            remove node $u$\;
-        }
-    \end{footnotesize}
-\end{algorithm}
-\begin{scriptsize}
-    Where $chd(n)$ is the set of children of node $n$ and $par(n)$ is the parent of $n$.
-\end{scriptsize}
-
-\section{Volatility}
-\label{sec:volatility}
-
-Volatility is the measure which is used by the WAPI in order to distinguish when to remove a node or not from the index.
-
-Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
-workload to check whether a node $n$ is volatile. The workload on Oak instance
-$O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-\rangle$ of snapshots, called a history. Let $t_n$ be the current time and $t(G^b)$
-be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the set of
-nodes which are members of snapshot $G^a$.  $pre(G^b)$ is the predecessor of
-snapshot $G^b$ in $H_i$.
-
-Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called volatility threshold.
-The volatility count of $n$ is defined as the number of times $n$ was added or removed from snapshots in a sliding window of length $L$ over history $H_i$.
-Let $n^i$ denote version $i$ of node $n$ that belongs to the node set $N(G^i)$ of snapshot $G^i$.
-Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have the same absolute path from the root node.
-
-\begin{definition}
-    (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of times node $n$ was added or removed from snapshots contained in a sliding window with length $L$ over history $H_i$.
-    \begin{equation}
-        \begin{split}
-            vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
-            \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
-            \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-        \end{split}
-    \end{equation}
-    \label{def:vol_count}
-\end{definition}
-
-\begin{definition}
-    (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see \Cref{def:vol_count}) is greater or equal than the volatility threshold $\tau$, i.e 
-    $$ isVolatile(n) \iff vol(n) \geq \tau $$
-\end{definition}
-
-\begin{example}
-    Consider the snapshots depicted in \Cref{fig:vol_example}.
-    Assume $H_h = \langle G^i,G^j,G^k,G^l \rangle$.
-    $O_h$ executes transactions $T_j, T_k, T_l$. Snapshot $G^i$ was committed at time $t(G^i) = t$.
-    Given snapshot $G^i$, transaction $T_j$ removes property $x$ from \texttt{/a/b} and commits snapshot $G^j$ at time $t(G^j) = t + 1$.
-    Next, transaction $T_k$ adds the property $x=1$ to \texttt{/a/b} given snapshot $G^j$ and commits snapshot $G^k$ at time $t(G^k) = t + 2$.
-    Finally transaction $T_l$ removes property \texttt{x} from \texttt{/a/b} given $G^k$ and commits $G^l$ at time $t(G^l) = t + 3$.
-
-    If $\tau = 2$ (volatility threshold), $L = 4$ (sliding window length) and $n = \texttt{\footnotesize /index/x/1/a/b}$, then:
-    \begin{itemize}
-        \item at time $t_n = t$ \quad \ \ we have that: \quad $vol(n) = 0 \implies isVolatile(n) = \bot$
-        \item at time $t_n = t + 1 $ we have that: \quad $ vol(n) = 1  \implies isVolatile(n) = \bot$
-        \item at time $t_n = t + 2 $ we have that: \quad $ vol(n) = 2  \implies isVolatile(n) = \top$
-        \item at time $t_n = t + 3 $ we have that: \quad $ vol(n) = 2  \implies isVolatile(n) = \top$
-    \end{itemize}
-    
-    Since index node $n$ is not volatile at $t_n = t$, transaction $T_j$ removes it from the index.
-    But at $t_n = t + 2$, $n$ is volatile (colored red) and transaction $T_l$ does not remove it, instead it only removes property $x=1$ from $n$.
-\end{example}
-
-\vspace{2cm}
-
-\begin{figure}[h]
-    \begin{large}
-        $$ G^i \xrightarrow{\quad T_j \quad} G^j \xrightarrow{\quad T_k \quad} G^k \xrightarrow{\quad T_l \quad} G^l$$
-    \end{large}
-    \begin{scriptsize}
-        \begin{multicols}{4}
-            \begin{center}
-                \framebox(100,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$
-                                    [$\lambda:\texttt{1}$
-                                        [$\lambda:a$
-                                        [$\lambda:b$ \\ $\texttt{x}:1$]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [$\lambda:a$,name=a
-                                [,phantom]
-                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-
-                Snapshot $G^i$
-
-                $t(G^i) = t$
-            \end{center}
-            \columnbreak
-            \begin{center}
-                \framebox(100,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$]
-                            [,phantom]
-                            [$\lambda:a$,name=a
-                                [,phantom]
-                                [$\lambda:b$,name=b]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-
-                    \vspace{27mm}
-                }
-
-                Snapshot $G^j$
-
-                $t(G^j) = t + 1$
-            \end{center}
-            \columnbreak
-            \begin{center}
-                \framebox(100,130){
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$, red
-                                    [$\lambda:\texttt{1}$, red
-                                        [$\lambda:a$, red
-                                        [$\lambda:b$ \\ $\texttt{x}:1$, red]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [$\lambda:a$,name=a
-                                [,phantom]
-                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-                }
-
-                Snapshot $G^k$
-
-                $t(G^k) = t + 2$
-            \end{center}
-            \columnbreak
-            \begin{center}
-                \framebox(100,130){
-                    \
-                    
-                    \vspace{-24mm}
-                    \begin{forest} qtree,
-                        [
-                            [$\lambda:\texttt{index}$
-                                [$\lambda:\texttt{x}$, red
-                                    [$\lambda:\texttt{1}$, red
-                                        [$\lambda:a$, red
-                                            [$\lambda:b$, red]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                            [,phantom]
-                            [$\lambda:a$,name=a
-                                [,phantom]
-                                [$\lambda:b$,name=b]
-                                [,phantom]
-                                [$\lambda:c$]
-                            ]
-                        ]
-                    \end{forest}
-
-                    \vspace{27mm}
-                }
-
-                Snapshot $G^l$
-
-                $t(G^l) = t + 3$
-            \end{center}
-        \end{multicols}
-    \end{scriptsize}
-    \caption{Node \texttt{/index/x/1/a/b} becomes volatile after a deletion by $T_j$ and insertion by $T_k$. Therefore the nodes cannot be deleted by transaction $T_l$.}
-    \label{fig:vol_example}
-\end{figure}
-
-\newpage
-\section{Implementation}
-\label{sec:implementation}
-
-\subsection{Checking Node Volatility}
-
-In order to classify a node $n$ as volatile, we have to compute $n$'s volatility count using the corresponding JSON document on MongoDB.
-The document contains all \textit{revisions} (i.e, versions) of $n$ throughout history $H_i$ of an Oak instance $O_i$.
-\Cref{fig:json_simple} depicts such a document.
-We omit non relevant properties.
-Property \texttt{"\_deleted"} contains key value pairs which encode when the node was added or removed from snapshots.
-A key is a revision that is composed of three parts connected by a dash (-): (1) a timestamp, (2) a counter that is used to differentiate between value changes at the same instance of time, and (3) the identifier $i$ of the Oak instance $O_i$ committing the change.
-A value is a boolean variable which is \texttt{true} ($\top$) iff $n$ was added at the point of time indicated by the revision key, and \texttt{false} ($\bot$) otherwise.
-\begin{example}
-    Consider revision (\texttt{r15cac0dbb00-0-2}, \texttt{false}) in \Cref{fig:json_simple}.
-    Character \texttt{r} is a standard prefix and can be neglected.
-    The \texttt{15cac0dbb00} following \texttt{r}, is a timestamp (number of milliseconds since the Epoch) in hexadecimal encoding which represents the time at which the change was committed, Thursday June 15 2017 2:00:00 PM in this example.
-    The \texttt{0} following the timestamp, is a counter which is used for tie-breaking between transactions committed at the same instance of time.
-    Since all revisions in this example are committed at different time points, all counters are $0$.
-    The \texttt{2} following the counter, tells that the change was committed by Oak instance $O_2$ with an ID of \texttt{2}.
-    Value \texttt{false} indicates \texttt{/index/x/1/a/b} was added at that point of time.
-\end{example}
-
-\begin{figure}[h]
-    \begin{scriptsize}
-        \begin{centerverbatim}{   
-    "_id": "5:/index/x/1/a/b", 
-    "_deleted": {             
-        "r15cac0dbb00-0-2": false,
-        "r15cabff1500-0-2": true,
-        "r15ca9f191c0-0-1": false,
-        /* ... */
-    },
-    /* ... */
-}\end{centerverbatim}
-    \end{scriptsize}
-    \caption{JSON document of an index node.}
-    \label{fig:json_simple}
-\end{figure}
-
-Having seen what a node document looks like, we can now describe how we classify a node as volatile.
-\Cref{fig:is_volatile} shows the native Java-implementation of $isVolatile(n)$ in Oak.
-$isVolatile(n)$ is given a node's corresponding JSON document.
-We iterate through the revisions of property \texttt{"\_deleted"} in most-recent first fashion.
-Notice that the \texttt{keySet} referred to in the Java code is based on Java's ordered sets and is maintained in descending order according to the revision.
-If a revision is outside the sliding window we stop iterating because remaining revisions cannot be more recent.
-We increment the volatility count for every visible revision.
-A revision is visible if it is contained in the Oak instance's history.
-If the volatility count reaches at least $\tau$ we break the loop.
-When exiting the loop, we finally check if the volatility count is at least $\tau$ and return the result.
-The Java-implementation of the helper functions \texttt{isVisible} and \texttt{isInSlidingWindow} is provided in the Appendix.
-
-
-\begin{figure}
-    \begin{framed}
-        \begin{scriptsize}
-\begin{verbatim}
-            \begin{minted}{java}
-/**
-    * Determines if node is volatile.
-    * @param nodeDocument: document of node.
-    * @returns true iff node is volatile.
-    */            
-    boolean isVolatile(NodeDocument nodeDocument) {
-
-    int vol = 0;
-    
-    for (Revision r : nodeDocument.getLocalDeleted().keySet()) {
-        if (!isInSlidingWindow(r)){
-            break;
-        }
-        if (!isVisible(r)){
-            continue;
-        }
-        if (vol++ >= getVolatilityThreshold()) {
-            break;
-        }
-    }
-    return vol >= getVolatilityThreshold();
-}
-\end{minted}
-\end{verbatim}
-        \end{scriptsize}
-
-    \end{framed}
-    \caption{Java implementation for detecting volatile index nodes.}
-    \label{fig:is_volatile}
-\end{figure}
-
-
-\subsection{Document Splitting}
-
-Jackrabbit Oak periodically checks a node's corresponding document for its size and if necessary splits it up and moves old data to a new split document.
-Performance suffers if looking at split documents is required while computing the volatility count, since MongoDB has to be accessed in order to lookup the split document.
-We modify Oak's document splitting implementation as mentioned in~\cite{KW17} in order to prevent split document lookups.
-Essentially, all necessary information is kept in a document to compute the volatility count.
-A race condition could occur if multiple Oak instances split the same document at the same time.
-In order to avoid such a race condition, each Oak instance only moves changes committed by itself.
-
-\Cref{fig:split_document} depicts the Java implementation of the document splitting process.
-We iterate through the revisions of the \texttt{"\_deleted"} property of the given document in most-recent first fashion.
-A revision gets moved to the split document iff: (1) it is not the most recent revision committed by the local Oak instance, (2) it is not among the $\tau$ first visible revisions contained in the sliding window, and (3) the revision was committed by the local Oak instance.
-
-\begin{example}
-    \label{ex:split_doc}
-    Consider \Cref{fig:split_doc_mongo}.
-    We see how a node's corresponding document is split on Oak instance $O_1$, assuming $\tau = 3$, $t_{\texttt{last\_sync}} = $ {\footnotesize 2017.06.15 13:59}, $L = 24$ hours, $t_n = $ {\footnotesize 2017.06.15 14:01}.
-    \Cref{fig:split_doc_debug} shows a table with intermediate values during computation.
-    ``$t(r)$'' is the point in time revision $r$ was committed. Only the day, hours and minutes are shown for brevity.
-    ``$c(r)$'' is the ID of the cluster node that committed revision $r$.
-    ``Vis.'' is true iff the revision is visible to the local cluster node.
-    ``$\in$Win.'' is true iff the revision is in the sliding window.
-    ``Vol.'' represents the volatility count at that step of the iteration. 
-    ``Split'' is true iff the revision is moved to the split document.
-
-    We will briefly walk through the iterations during the document split depicted in \Cref{fig:split_doc_mongo}.
-    Revision $r^1$ is not visible to the local Oak instance $O_1$ because it was committed on $O_2$ after the last synchronization, i.e. $t_{\texttt{last\_sync}} < t(r^1)$.
-    Therefore, $r^1$ does not increment the volatility count and is not moved to the split document.
-    The three next revisions, $r^2,r^3,r^4$, increment the volatility count because they are in the sliding window but are not moved to the split document because $vol \leq \tau$.
-    $r^5$ is still in the sliding window and therefore increments the volatility count.
-    Since there are already $\tau$ revisions in the document and $r^5$ was committed on $O_1$, we move $r^5$ to the split document.
-    Finally, any following revisions committed by the local Oak instance (i.e, $r^7, r^8, r^9$) are moved to the split document since there are already $\tau$ revisions in the document, enough to decide the node's volatility.
-\end{example}
-
-
-\begin{figure}
-    \begin{framed}
-        \begin{scriptsize}
-\begin{verbatim}
-            \begin{minted}{java}
-/**
-* Splits the "_deleted" property on the given document.
-* @param NodeDocument the node document.
-*/
-void splitDeleted(NodeDocument nodeDocument) {
-
-    int vol = 0;
-    boolean first = true;
-
-    for (Revision r : nodeDocument.getLocalDeleted().keySet()) {
-        if (first && r.getClusterId() == getClusterId()) {
-            first = false;
-            if (isInSlidingWindow(r)) {
-                ++vol;
-            }
-            continue;
-        }
-        if (isInSlidingWindow(r) && isVisible(r) && vol++ < getVolatilityThreshold()) {
-            continue;
-        }
-        if (r.getClusterId() != getClusterId()) {
-            continue;
-        }
-        moveToSplitDocument(r);
-
-    }
-}
-            \end{minted}
-\end{verbatim}
-        \end{scriptsize}
-    \end{framed}
-    \caption{Java implementation for splitting the node document.}
-    \label{fig:split_document}
-\end{figure}
-
-
-\begin{figure}
-    \begin{subfigure}[b]{0.5\textwidth}
-        \begin{scriptsize}
-            \begin{centerverbatim}
-{   
-    "_id": "5:/index/x/1/a/b", 
-    "_deleted": {                 /* DD HH:MM */
-      "r15cac0dbb00-0-2": false,  /* 15 14:00 */
-      "r15cabff1500-0-2": true,   /* 15 13:44 */
-      "r15ca9f191c0-0-1": false,  /* 15 04:10 */
-      "r15ca76fc8e0-0-1": true,   /* 14 16:29 */
-      "r15ca73b9980-0-1": false,  /* 14 15:32 */
-      "r15ca5e9c520-0-2": true,   /* 14 09:23 */
-      "r15ca5a8c480-0-1": false,  /* 14 08:12 */
-      "r15ca5a6efc0-0-1": true,   /* 14 08:10 */
-      "r15ca58e37a0-0-1": false   /* 14 07:43 */
-    },
-    /* ... */
-}
-            \end{centerverbatim}
-        \end{scriptsize}
-        \caption{Before splitting.}
-    \end{subfigure}
-    \begin{subfigure}[b]{0.5\textwidth}
-        \begin{scriptsize}
-            \begin{centerverbatim}
-{   
-    "_id": "5:/index/x/1/a/b", 
-    "_deleted": {                 /* DD HH:MM */
-      "r15cac0dbb00-0-2": false,  /* 15 14:00 */
-      "r15cabff1500-0-2": true,   /* 15 13:44 */
-      "r15ca9f191c0-0-1": false,  /* 15 04:10 */
-      "r15ca76fc8e0-0-1": true,   /* 14 16:29 */
-      "r15ca5e9c520-0-2": true    /* 14 09:23 */
-    },
-    /* ... */
-},
-{   
-    "_id": "6:p/index/x/1/a/b/r15ca58e37a0-0-1", 
-    "_deleted": {                 /* DD HH:MM */
-      "r15ca73b9980-0-1": false,  /* 14 15:32 */
-      "r15ca5a8c480-0-1": false,  /* 14 08:12 */
-      "r15ca5a6efc0-0-1": true,   /* 14 08:10 */
-      "r15ca58e37a0-0-1": false   /* 14 07:43 */
-    },
-    /* ... */
-}
-            \end{centerverbatim}
-        \end{scriptsize}
-        \caption{After splitting.}
-    \end{subfigure}
-    \caption{Document splitting. We use the same parameters as in \Cref{ex:split_doc}.}
-    \label{fig:split_doc_mongo}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \begin{footnotesize}
-            \begin{tabular}{|c|c|c|c|c|c|c|} 
-                \hline
-                $r$     & $t(r)$ &    $c(r)$ &        Vis. &      $\in$Win. &         Vol. &      Split \\
-                \hline
-                $r^1$ & 15 14:00 &  2 &             $\bot$ &         $\top$ &                 0 &                 $\bot$ \\ 
-                \hline
-                $r^2$ & 15 13:44 &  2 &             $\top$ &         $\top$ &                 1 &                 $\bot$ \\
-                \hline
-                $r^3$ & 15 04:10 &  1 &             $\top$ &         $\top$ &                 2 &                 $\bot$ \\
-                \hline
-                $r^4$ & 14 16:29 &  1 &             $\top$ &         $\top$ &                 3 &                 $\bot$ \\
-                \hline
-                $r^5$ & 14 15:32 &  1 &             $\top$ &         $\top$ &                 4 &                 $\top$ \\
-                \hline
-                $r^6$ & 14 09:23 &  2 &             $\top$ &         $\bot$ &                 4 &                 $\bot$ \\
-                \hline
-                $r^7$ & 14 08:12 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                \hline
-                $r^8$ & 14 08:10 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                \hline
-                $r^9$ & 14 07:43 &  1 &             $\top$ &         $\bot$ &                 4 &                 $\top$ \\
-                \hline
-            \end{tabular}
-        \end{footnotesize}
-    \end{center}
-    \caption{
-        Intermediate values of computation while splitting document \texttt{/index/x/1/a/b} as shown in \Cref{fig:split_doc_mongo}.
-        We use the same parameters as in \Cref{ex:split_doc}.
-    }
-    \label{fig:split_doc_debug}
-\end{figure}
+% parameters
 
 \newpage
 
 \bibliographystyle{abbrv}
 \bibliography{thesis}
-
-\newpage
-
-\section{Appendix}
-
-\subsection{Helper Functions}
-
-\Cref{fig:helper^functions} presents the Java implementation of two helper functions.
-\texttt{isVisible(r)} determines if revision $r$ is visible to the local Oak instance $O_i$.
-\texttt{isInSlidingWindow(r)} determines if revision $r$ is in the sliding window.
-
-
-\begin{figure}[h]
-    \begin{framed}
-	\begin{scriptsize}
-\begin{verbatim}
-	    \begin{minted}{java}
-/**
- * Checks if r is visible to the local cluster node
- * @param r the revision
- * @returns true iff r is visible to the local cluster node
- */
-boolean isVisible(Revision r) {
-    return r.getClusterId() == getClusterId()
-	    || (r.compareRevisionTime(documentNodeStore
-		    .getHeadRevision()
-		    .getRevision(getClusterId())) < 0);
-}
-
-/**
- * Checks if r is in the sliding window
- * @param r the revision
- * @returns true iff r is in the sliding window
- */
-boolean isInSlidingWindow(Revision r) {
-    return System.currentTimeMillis() - getSlidingWindowLength() < r.getTimestamp();
-}
-	    \end{minted}
-\end{verbatim}
-	\end{scriptsize}
-    \end{framed}
-    \caption{Java implementation for helper functions.}
-    \label{fig:helper^functions}
-\end{figure}
-
 
 \end{document}

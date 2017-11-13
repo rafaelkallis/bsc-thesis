@@ -577,7 +577,27 @@ Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that n
         \begin{multicols}{4}
             \begin{center}
                 \framebox(100,130){
-                    \begin{forest} qtree,
+                    \begin{f\begin{forest} qtree,
+                        [
+                            [$\lambda:\texttt{index}$
+                                [$\lambda:\texttt{x}$
+                                    [$\lambda:\texttt{1}$
+                                        [$\lambda:a$
+                                        [$\lambda:b$ \\ $\texttt{x}:1$]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            [,phantom]
+                            [$\lambda:a$,name=a
+                                [,phantom]
+                                [$\lambda:b$ \\ $\texttt{x}:\texttt{1}$,name=b]
+                                [,phantom]
+                                [$\lambda:c$]
+                            ]
+                        ]
+                    \end{forest}
+orest} qtree,
                         [
                             [$\lambda:\texttt{index}$
                                 [$\lambda:\texttt{x}$
