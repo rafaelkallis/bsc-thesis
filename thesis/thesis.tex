@@ -28,7 +28,8 @@
 \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
 \graphicspath{
   {images/},
-  {images/unproductive_nodes/1/}
+  {images/1_unprod_nodes/},
+  {images/2_unprod_nodes_tau/}
 }
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
@@ -94,8 +95,11 @@
 
 % \chapter*{Zusammenfassung}
 
+\newpage
+
 % \tableofcontents
-% \listoffigures \listoftables
+\listoffigures
+% \listoftables
 
 \newpage
 
@@ -422,8 +426,10 @@ volatile and they become unproductive.
  
     $t(G^6) = t+6$ }
 \end{subfigure}
-\caption{ Unproductive Nodes. \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are
-  unproductive in snapshot $G^3$. They are not volatile and don't match either.
+\caption{Unproductive Nodes}
+\caption*{
+  Nodes \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are unproductive in snapshot
+  $G^3$. They are not volatile and don't match either.
 }
 \label{fig:unproductive_nodes}
 \end{figure}
@@ -570,6 +576,132 @@ we also observe the volatile and unproductive node density to converge below
 $0.2$ and above $0.8$ respectively.
 
 \subsection{Volatility threshold ($\tau$)}
+
+Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
+it becomes volatile \cite{KW17}. In this section, we study the impact of
+volatility threshold $\tau$ on unproductive nodes and query execution runtime.
+
+We hypothesize that an increase in $\tau$ yields a decrease to the query
+execution runtime.
+An increase in $\tau$ yields a decrease to the number of traversed unproductive
+nodes during query execution.
+An increase in $\tau$ yields a decrease to the unproductive node density during
+query execution.
+A node is less likely to become volatile with higher values
+of $\tau$ and thus less likely to become volatile. 
+Less unproductive nodes cause lower query  runtimes since less nodes traversals
+are required during query execution.
+
+\begin{framed}
+  \begin{itemize}
+  \item[$Q_3$] An increase in $\tau$ yields a decrease to the query execution runtime. 
+  \item[$Q_4$] An increase in $\tau$ yields a decrease to the number of
+    traversed unproductive nodes during query execution.
+  \item[$Q_5$] An increase in $\tau$ yields a decrease to the unproductive node
+    density during query execution 
+    runtime.
+  \end{itemize}
+\end{framed}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime}
+    \caption{}
+    \label{fig:query_runtime_taus_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime}
+    \caption{}
+    \label{fig:query_runtime_taus_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{traversed_unprod_nodes}
+    \caption{}
+    \label{fig:trav_unprod_nodes_taus_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{traversed_unprod_nodes}
+    \caption{}
+    \label{fig:trav_unprod_nodes_taus_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{unprod_node_density}
+    \caption{}
+    \label{fig:unprod_node_density_taus_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{unprod_node_density}
+    \caption{}
+    \label{fig:unprod_node_density_taus_aem}
+  \end{subfigure}
+  \caption{Impact of Volatility Threshold $\tau$}
+  \label{fig:vol_thresh_1}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_query_runtime}
+    \caption{}
+    \label{fig:tau_query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_query_runtime}
+    \caption{}
+    \label{fig:tau_query_runtime_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_unprod_nodes}
+    \caption{}
+    \label{fig:tau_unprod_nodes_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_unprod_nodes}
+    \caption{}
+    \label{fig:tau_unprod_nodes_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_unprod_node_density}
+    \caption{}
+    \label{fig:tau_unprod_node_density_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{tau_unprod_node_density}
+    \caption{}
+    \label{fig:tau_unprod_node_density_aem}
+  \end{subfigure}
+  \caption{Impact of Volatility Threshold $\tau$}
+  \label{fig:vol_thresh_2}
+\end{figure}
 
 \subsection{Sliding window length ($L$)}
 

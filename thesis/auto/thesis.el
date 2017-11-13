@@ -49,7 +49,21 @@
     "fig:trav_node_density_synthetic_millis"
     "fig:trav_node_density_aem_millis"
     "fig:trav_node_density_synthetic_updates"
-    "fig:trav_node_density_aem_updates")
+    "fig:trav_node_density_aem_updates"
+    "fig:query_runtime_taus_synthetic"
+    "fig:query_runtime_taus_aem"
+    "fig:trav_unprod_nodes_taus_synthetic"
+    "fig:trav_unprod_nodes_taus_aem"
+    "fig:unprod_node_density_taus_synthetic"
+    "fig:unprod_node_density_taus_aem"
+    "fig:vol_thresh_1"
+    "fig:tau_query_runtime_synthetic"
+    "fig:tau_query_runtime_aem"
+    "fig:tau_unprod_nodes_synthetic"
+    "fig:tau_unprod_nodes_aem"
+    "fig:tau_unprod_node_density_synthetic"
+    "fig:tau_unprod_node_density_aem"
+    "fig:vol_thresh_2")
    (LaTeX-add-environments
     "centerverbatim")
    (LaTeX-add-bibliographies)
