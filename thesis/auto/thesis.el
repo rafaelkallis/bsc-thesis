@@ -56,14 +56,26 @@
     "fig:trav_unprod_nodes_taus_aem"
     "fig:unprod_node_density_taus_synthetic"
     "fig:unprod_node_density_taus_aem"
-    "fig:vol_thresh_1"
     "fig:tau_query_runtime_synthetic"
     "fig:tau_query_runtime_aem"
     "fig:tau_unprod_nodes_synthetic"
     "fig:tau_unprod_nodes_aem"
     "fig:tau_unprod_node_density_synthetic"
     "fig:tau_unprod_node_density_aem"
-    "fig:vol_thresh_2")
+    "fig:volatility_threshold"
+    "fig:query_runtime_Ls_synthetic"
+    "fig:query_runtime_Ls_aem"
+    "fig:trav_unprod_nodes_Ls_synthetic"
+    "fig:trav_unprod_nodes_Ls_aem"
+    "fig:unprod_node_density_Ls_synthetic"
+    "fig:unprod_node_density_Ls_aem"
+    "fig:L_query_runtime_synthetic"
+    "fig:L_query_runtime_aem"
+    "fig:L_unprod_nodes_synthetic"
+    "fig:L_unprod_nodes_aem"
+    "fig:L_unprod_node_density_synthetic"
+    "fig:L_unprod_node_density_aem"
+    "fig:sliding_window_length")
    (LaTeX-add-environments
     "centerverbatim")
    (LaTeX-add-bibliographies)

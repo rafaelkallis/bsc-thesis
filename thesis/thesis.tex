@@ -30,6 +30,7 @@
   {images/},
   {images/1_unprod_nodes/},
   {images/2_unprod_nodes_tau/}
+  {images/3_unprod_nodes_L/}
 }
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
@@ -87,6 +88,8 @@
 % \def\bbbn{{\rm I\!N}}
 % \def\bbbz{{\rm I\!Z}}
 
+\definecolor{shadecolor}{rgb}{0.97,0.97,0.97}
+    
 \begin{document}
 
 \maketitle
@@ -263,13 +266,13 @@ follows.
   (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of
   times node $n$ was added or removed from snapshots contained in a sliding
   window with length $L$ over history $H_i$.
-  \begin{equation}
-    \begin{split}
+  \begin{align*}
+    % \begin{split}
       vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
       \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
       \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-    \end{split}
-  \end{equation}
+    % \end{split}
+  \end{align*}
   \label{def:vol_count}
 \end{definition}
 
@@ -440,13 +443,13 @@ descendants contains an indexed property and therefore cannot contribute a query
 match. We formalize the statements above into the following scientific
 questions:
 
-\begin{framed}
+\begin{shaded}
   \begin{itemize}
-  \item[$Q_1$] Query execution runtime increases over time.
-  \item[$Q_2$] Unproductive nodes account for the increase in query execution
+  \item[$Q_1$:] Query execution runtime increases over time.
+  \item[$Q_2$:] Unproductive nodes account for the increase in query execution
     runtime.
   \end{itemize}
-\end{framed}
+\end{shaded}
 
 We recorded the query execution runtime throughout the experiment and present
 the data below.
@@ -575,7 +578,7 @@ therefore must likely account for the increase in query runtime. Interestingly,
 we also observe the volatile and unproductive node density to converge below
 $0.2$ and above $0.8$ respectively.
 
-\subsection{Volatility threshold ($\tau$)}
+\subsection{Volatility Threshold ($\tau$)}
 
 Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
 it becomes volatile \cite{KW17}. In this section, we study the impact of
@@ -592,16 +595,16 @@ of $\tau$ and thus less likely to become volatile.
 Less unproductive nodes cause lower query  runtimes since less nodes traversals
 are required during query execution.
 
-\begin{framed}
+\begin{shaded}
   \begin{itemize}
-  \item[$Q_3$] An increase in $\tau$ yields a decrease to the query execution runtime. 
-  \item[$Q_4$] An increase in $\tau$ yields a decrease to the number of
+  \item[$Q_3$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
+  \item[$Q_4$:] An increase in $\tau$ yields a decrease to the number of
     traversed unproductive nodes during query execution.
-  \item[$Q_5$] An increase in $\tau$ yields a decrease to the unproductive node
+  \item[$Q_5$:] An increase in $\tau$ yields a decrease to the unproductive node
     density during query execution 
     runtime.
   \end{itemize}
-\end{framed}
+\end{shaded}
 
 \begin{figure}[h]
   \centering
@@ -615,45 +618,44 @@ are required during query execution.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime}
+    \includegraphics[width=8cm]{query_runtime_taus}
     \caption{}
     \label{fig:query_runtime_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime}
+    \includegraphics[width=8cm]{query_runtime_taus}
     \caption{}
     \label{fig:query_runtime_taus_aem}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
     \caption{}
     \label{fig:trav_unprod_nodes_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
     \caption{}
     \label{fig:trav_unprod_nodes_taus_aem}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{unprod_node_density}
+    \includegraphics[width=8cm]{unprod_node_density_taus}
     \caption{}
     \label{fig:unprod_node_density_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{unprod_node_density}
+    \includegraphics[width=8cm]{unprod_node_density_taus}
     \caption{}
     \label{fig:unprod_node_density_taus_aem}
   \end{subfigure}
   \caption{Impact of Volatility Threshold $\tau$}
-  \label{fig:vol_thresh_1}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h]\ContinuedFloat
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -699,11 +701,111 @@ are required during query execution.
     \caption{}
     \label{fig:tau_unprod_node_density_aem}
   \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$}
-  \label{fig:vol_thresh_2}
+  \caption{Impact of Volatility Threshold $\tau$ (cont.)}
+  \label{fig:volatility_threshold}
 \end{figure}
 
-\subsection{Sliding window length ($L$)}
+\subsection{Sliding window Length ($L$)}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_Ls}
+    \caption{}
+    \label{fig:query_runtime_Ls_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_Ls}
+    \caption{}
+    \label{fig:query_runtime_Ls_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \caption{}
+    \label{fig:trav_unprod_nodes_Ls_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \caption{}
+    \label{fig:trav_unprod_nodes_Ls_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{unprod_node_density_Ls}
+    \caption{}
+    \label{fig:unprod_node_density_Ls_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{unprod_node_density_Ls}
+    \caption{}
+    \label{fig:unprod_node_density_Ls_aem}
+  \end{subfigure}
+  \caption{Impact of Sliding Window Length $L$}
+\end{figure}
+
+\begin{figure}[h]\ContinuedFloat
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    AEM
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_query_runtime}
+    \caption{}
+    \label{fig:L_query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_query_runtime}
+    \caption{}
+    \label{fig:L_query_runtime_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_unprod_nodes}
+    \caption{}
+    \label{fig:L_unprod_nodes_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_unprod_nodes}
+    \caption{}
+    \label{fig:L_unprod_nodes_aem}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_unprod_node_density}
+    \caption{}
+    \label{fig:L_unprod_node_density_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_unprod_node_density}
+    \caption{}
+    \label{fig:L_unprod_node_density_aem}
+  \end{subfigure}
+  \caption{Impact of Sliding Window length $L$ (cont.)}
+  \label{fig:sliding_window_length}
+\end{figure}
+
 
 % \tau / unproductive nodes
 
