@@ -199,7 +199,7 @@ data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as
 shown in \Cref{fig:architecture} under \textit{Application Tier}.
 % One such application is Adobe's enterprise content management system (CMS),
 % the Adobe Experience Manager
-w/One such application is Adobe's enterprise content management system (CMS),
+One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
@@ -444,20 +444,22 @@ query runtime. Informally, we call \textit{Query Execution Runtime} the time
 needed for a query to finish processing. We hypothesize that unproductive nodes
 slow down queries. During query execution, traversing an unproductive node is
 useless, because neither the node itself nor any of its descendants contains
-an indexed property and therefore cannot contribute a query match. We formalize
-the statements above into the following scientific questions:
+an indexed property and therefore cannot contribute a query match.
+
+We formalize the statements above into the following hypotheses:
 
 \begin{shaded}
   \begin{itemize}
-  \item[$Q_1$:] Query execution runtime increases over time.
-  \item[$Q_2$:] Unproductive nodes account for the increase in query execution
+  \item[$H_1$:] Query execution runtime increases over time.
+  \item[$H_2$:] Unproductive nodes account for the increase in query execution
     runtime.
   \end{itemize}
 \end{shaded}
 
-In order to answer the question above, a series of experiments was conducted on Oak.
-We recorded the query execution runtime throughout the experiment and present
-the data below.
+In order to find supporting evindence for the hypotheses above, a series of
+experiments was conducted on Oak. We recorded the query execution runtime
+throughout the experiment and present the data below.
+
 \Cref{fig:query_runtime_synthetic_millis,fig:query_runtime_aem_millis} show the
 recorded query runtime over time as observed from the synthetic and AEM dataset respectively. 
 \Cref{fig:query_runtime_synthetic_updates,fig:query_runtime_aem_updates} show the
@@ -623,13 +625,41 @@ query execution.
 
 \begin{shaded}
   \begin{itemize}
-  \item[$Q_3$:] An increase in $\tau$ yields a decrease to the number of
+  \item[$H_3$:] An increase in $\tau$ yields a decrease to the number of
     traversed unproductive nodes during query execution.
-  \item[$Q_4$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
-  \item[$Q_5$:] An increase in $\tau$ yields a decrease to the unproductive node
+  \item[$H_4$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
+  \item[$H_5$:] An increase in $\tau$ yields a decrease to the unproductive node
     density during query execution runtime.
   \end{itemize}
 \end{shaded}
+
+The same experiment was conducted under a varying volatility threshold. The
+results seem to verify our hypotheses.
+\Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_aem} show
+various thresholds $\tau \in \{1,5,10\}$ affecting query execution runtime
+over update operations. We observe that a lower threshold $\tau$ results in a
+steeper slope.
+\Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_aem} compare query
+execution runtime over a range of thresholds. The values picked correspond to
+the query execution runtime after $10^4$ update operations.
+We observe a decrease in query execution runtime while increasing threshold $\tau$.
+\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_aem}
+depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
+nodes traversed during query execution over update operations. We observe lower
+thresholds $\tau$ yielding in a steeper slope.
+\Cref{fig:tau_unprod_nodes_synthetic,fig:tau_unprod_nodes_aem} compare the
+number of traversed unproductive nodes during query execution over a range of
+thresholds. As mentioned earlier, the values were recorded after $10^4$ update
+operations. We observe a decrease in unproductive nodes while increaseing
+threshold $\tau.$
+\Cref{fig:unprod_node_density_taus_synthetic,fig:unprod_node_density_taus_aem}
+\Cref{fig:tau_unprod_node_density_synthetic,fig:tau_unprod_node_density_aem}
+
+In conclusion, all observations verify hypotheses $H_4, H_5$ and $H_6$.
+Increasing volatility threshold $\tau$ decreases the number of unproductive
+nodes traversed, query runtime and unproductive node density. In the following
+section, we will take a look at sliding window length $L$, another factor
+affecting unproductive nodes.
 
 \begin{figure}[h]
   \centering
@@ -753,14 +783,13 @@ query exection. \textbf{Why?}
 
 \begin{shaded}
   \begin{itemize}
-  \item[$Q_6$:] An increase in $L$ yields an inrease to the query execution runtime. 
-  \item[$Q_7$:] An increase in $L$ yields an increase to the number of
+  \item[$H_6$:] An increase in $L$ yields an inrease to the query execution runtime. 
+  \item[$H_7$:] An increase in $L$ yields an increase to the number of
     traversed unproductive nodes during query execution.
-  \item[$Q_8$:] An increase in $L$ yields an increase to the unproductive node
+  \item[$H_8$:] An increase in $L$ yields an increase to the unproductive node
     density during query execution runtime.
   \end{itemize}
 \end{shaded}
-
 
 \begin{figure}[h]
   \centering
