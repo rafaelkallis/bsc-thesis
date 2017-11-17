@@ -35,7 +35,10 @@
    (LaTeX-add-labels
     "fig:architecture"
     "sec:wapi"
+    "def:matching_node"
+    "fig:hierarchical_db"
     "def:vol_count"
+    "def:volatile_node"
     "fig:unproductive_nodes"
     "fig:query_runtime_synthetic_millis"
     "fig:query_runtime_aem_millis"
