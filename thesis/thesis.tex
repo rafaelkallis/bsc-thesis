@@ -798,19 +798,12 @@ An increase in $\tau$ yields a decrease to the query execution runtime. Less
 unproductive nodes should decrease the number of nodes traversed
 during query execution and therefore decrease query execution runtime.
 
-An increase in $\tau$ yields a decrease to the unproductive node density during
-query execution.
-
-\textbf{Why?}
-
 \begin{shaded}
   \begin{itemize}
   \item[$H_3$:] An increase in $\tau$ yields a decrease to the number of
     traversed unproductive nodes during query execution.
   \item[$H_4$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
-  \item[$H_5$:] An increase in $\tau$ yields a decrease to the unproductive node
-    density during query execution runtime.
-  \end{itemize}
+    \end{itemize}
 \end{shaded}
 
 The same experiment was conducted under a varying volatility threshold. The
@@ -932,16 +925,11 @@ An increase in $L$ yields an increase to the query execution runtime. More
 unproductive nodes should increase the number of nodes traversed
 during query execution and therefore increase query execution time.
 
-An increase in $L$ yields an increase to the unproductive node density during
-query exection. \textbf{Why}
-
 \begin{shaded}
   \begin{itemize}
   \item[$H_6$:] An increase in $L$ yields an inrease to the query execution runtime. 
   \item[$H_7$:] An increase in $L$ yields an increase to the number of
     traversed unproductive nodes during query execution.
-  \item[$H_8$:] An increase in $L$ yields an increase to the unproductive node
-    density during query execution runtime.
   \end{itemize}
 \end{shaded}
 
@@ -979,10 +967,10 @@ query exection. \textbf{Why}
     \caption{}
     \label{fig:L_query_runtime_aem}
   \end{subfigure}
-  \caption{Impact of Sliding Window Length $L$}
+  \caption{Impact of Sliding Window Length $L$ on Query Execution Runtime}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1016,7 +1004,7 @@ query exection. \textbf{Why}
     \caption{}
     \label{fig:L_unprod_nodes_aem}
   \end{subfigure}
-  \caption{Impact of Sliding Window Length $L$ (cont.)}
+  \caption{Impact of Sliding Window Length $L$ on Unproductive Nodes}
   \label{fig:sliding_window_length}
 \end{figure}
 
