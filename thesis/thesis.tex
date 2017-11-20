@@ -657,8 +657,8 @@ significantly slow down queries under specific workloads. During query
 execution, traversing an unproductive node is
 useless, because neither the node itself nor any of its descendants contains
 an indexed property and therefore cannot contribute a query match.
-An index under a \textit{Job Queue} like (see \textbf{forward reference}),
-changing workload is dominated with unproductive nodes.
+An index under a \textit{job-queue} like,
+changing workload (see \textbf{forward reference}) is dominated by unproductive nodes.
 
 We formalize the statements above into the following hypotheses:
 
@@ -694,19 +694,7 @@ on the synthetic dataset.
     \centering
     AEM
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{millis_query_runtime}
-    \caption{}
-    \label{fig:query_runtime_synthetic_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{millis_query_runtime}
-    \caption{}
-    \label{fig:query_runtime_aem_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
+    \begin{subfigure}{0.49\linewidth}
     \centering
     \includegraphics[width=8cm]{updates_query_runtime}
     \caption{}
@@ -746,18 +734,6 @@ we observe the traversed nodes being dominated by unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_traversed_index_nodes}
-    \caption{}
-    \label{fig:trav_nodes_synthetic_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{millis_traversed_index_nodes} 
-    \caption{}
-    \label{fig:trav_nodes_aem_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
     \includegraphics[width=8cm]{updates_traversed_index_nodes}
     \caption{}
     \label{fig:trav_nodes_synthetic_updates}
@@ -771,8 +747,8 @@ we observe the traversed nodes being dominated by unproductive nodes.
   \caption{Index Structure during Query Execution}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat{}
-  \centering
+\begin{figure}[h]
+ \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
     Synthetic
@@ -780,18 +756,6 @@ we observe the traversed nodes being dominated by unproductive nodes.
   \begin{subfigure}{0.49\linewidth}
     \centering
     AEM
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{millis_index_node_density}
-    \caption{}
-    \label{fig:trav_node_density_synthetic_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{millis_index_node_density} 
-    \caption{}
-    \label{fig:trav_node_density_aem_millis}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -805,7 +769,7 @@ we observe the traversed nodes being dominated by unproductive nodes.
     \caption{}
     \label{fig:trav_node_density_aem_updates}
   \end{subfigure}
- \caption{Index Structure during Query Execution (cont.)}
+ \caption{Node Ratio during Query Execution}
 \end{figure}
 
 \Crefrange{fig:trav_node_density_synthetic_millis}{fig:trav_node_density_aem_updates}
@@ -901,32 +865,20 @@ affecting unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
+    \includegraphics[width=8cm]{tau_query_runtime}
     \caption{}
-    \label{fig:trav_unprod_nodes_taus_synthetic}
+    \label{fig:tau_query_runtime_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
+    \includegraphics[width=8cm]{tau_query_runtime}
     \caption{}
-    \label{fig:trav_unprod_nodes_taus_aem}
+    \label{fig:tau_query_runtime_aem}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_taus}
-    \caption{}
-    \label{fig:unprod_node_density_taus_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_taus}
-    \caption{}
-    \label{fig:unprod_node_density_taus_aem}
-  \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$}
+\caption{Impact of Volatility Threshold $\tau$ on Query Execution Runtime}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -938,15 +890,15 @@ affecting unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_query_runtime}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
     \caption{}
-    \label{fig:tau_query_runtime_synthetic}
+    \label{fig:trav_unprod_nodes_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_query_runtime}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
     \caption{}
-    \label{fig:tau_query_runtime_aem}
+    \label{fig:trav_unprod_nodes_taus_aem}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -960,21 +912,7 @@ affecting unproductive nodes.
     \caption{}
     \label{fig:tau_unprod_nodes_aem}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{tau_unprod_node_density}
-    \caption{}
-    \label{fig:tau_unprod_node_density_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{tau_unprod_node_density}
-    \caption{}
-    \label{fig:tau_unprod_node_density_aem}
-  \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$ (cont.)}
-  \caption*{\footnotesize The values on the $y$ axis are observations derived from the $10000$th
-    update operation. }
+  \caption{Impact of Volatility Threshold $\tau$ on Unproductive Nodes}
   \label{fig:volatility_threshold}
 \end{figure}
 
@@ -1031,27 +969,15 @@ query exection. \textbf{Why}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \includegraphics[width=8cm]{L_query_runtime}
     \caption{}
-    \label{fig:trav_unprod_nodes_Ls_synthetic}
+    \label{fig:L_query_runtime_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \includegraphics[width=8cm]{L_query_runtime}
     \caption{}
-    \label{fig:trav_unprod_nodes_Ls_aem}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_Ls}
-    \caption{}
-    \label{fig:unprod_node_density_Ls_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_Ls}
-    \caption{}
-    \label{fig:unprod_node_density_Ls_aem}
+    \label{fig:L_query_runtime_aem}
   \end{subfigure}
   \caption{Impact of Sliding Window Length $L$}
 \end{figure}
@@ -1068,15 +994,15 @@ query exection. \textbf{Why}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_query_runtime}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
     \caption{}
-    \label{fig:L_query_runtime_synthetic}
+    \label{fig:trav_unprod_nodes_Ls_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_query_runtime}
+    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
     \caption{}
-    \label{fig:L_query_runtime_aem}
+    \label{fig:trav_unprod_nodes_Ls_aem}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1090,21 +1016,7 @@ query exection. \textbf{Why}
     \caption{}
     \label{fig:L_unprod_nodes_aem}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_unprod_node_density}
-    \caption{}
-    \label{fig:L_unprod_node_density_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_unprod_node_density}
-    \caption{}
-    \label{fig:L_unprod_node_density_aem}
-  \end{subfigure}
   \caption{Impact of Sliding Window Length $L$ (cont.)}
-  \caption*{\footnotesize The values on the $y$ axis are observations derived from the $10000$th
-    update operation. }
   \label{fig:sliding_window_length}
 \end{figure}
 
