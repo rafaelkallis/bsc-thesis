@@ -34,11 +34,13 @@
     "soul")
    (LaTeX-add-labels
     "fig:architecture"
+    "sec:application_scenario"
     "sec:wapi"
-    "def:matching_node"
     "fig:hierarchical_db"
+    "def:matching_node"
     "def:vol_count"
     "def:volatile_node"
+    "ex:volatile_node"
     "fig:unproductive_nodes"
     "fig:query_runtime_synthetic"
     "fig:query_runtime_real"

@@ -182,30 +182,24 @@ and QTP as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak).
 
 \subsection{Apache Jackrabbit Oak (Oak)}
 
-% Oak\footnote{https://jackrabbit.apache.org/oak/} is a hierarchical distributed
-% database system which makes use of a hierarchical index.
 Oak is a hierarchical distributed database system which makes use of a
 hierarchical index. Multiple transactions can work concurrently by making use of
 Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic
 concurrency control technique~\cite{TM11}.
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture. Oak embodies the
-\textit{Database Tier}.
-% Whilst Oak is responsible for handling the database logic, it stores the
-% actual data on MongoDB labeled as \textit{Persistence Tier}.
+\textit{Database Tier}. Multiple Oak instances can operate concurrently.
 Whilst Oak is responsible for handling the database logic, it stores the actual
 data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as
 \textit{Persistence Tier}. On the other end, applications can make use of Oak as
 shown in \Cref{fig:architecture} under \textit{Application Tier}.
-% One such application is Adobe's enterprise content management system (CMS),
-% the Adobe Experience Manager
 One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
   \begin{center}
-    \begin{tikzpicture}[scale=0.7,thick]
+    \begin{tikzpicture}[scale=0.8,thick]
 	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}}; \node
       (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_b)
       at (0, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_c) at (2, 2)
@@ -225,42 +219,69 @@ Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
   \label{fig:architecture}
 \end{figure}
 
+\subsection{Application Scenario}
+\label{sec:application_scenario}
+
+Content management systems that make use of Oak have specific workloads.
+These workloads have distinct properties: they are \textit{skewed},
+\textit{update-heavy}, \textit{changing} \cite{KW17} and
+\textit{job-queue} like.
+
+Consider a social media feed as a running example. When
+browsing the feed, more recent posts are displayed first, therefore creating a
+skewed workload. Users submit new posts or interact with existing posts by
+writting comments for example, creating an update-heavy workload. As time
+passes, new posts are created. Users are more likely to interact with recent
+posts than older ones, making the workload change over time.
+
+When a user submits a new post, it is sent to the CMS for processing. A
+background thread is periodically checking for pending jobs. A pending job is
+signalled using node properties in Oak.
+The CMS adds a ``pub'' property with value ``now'' to the respective node  in
+order to signal the background thread that the specific node is a pending job that needs
+processing. Once the
+background thread detects the node and finishes processing, it removes the ``pub'' property and
+successfully publishes the post. Informally, we call such a workload
+job-queue like.
+
+From now on, we refer to a workload with the properties mentioned above, as
+a \textit{CMS workload}.
+
 \subsection{Workload Aware Property Index (WAPI)}
 \label{sec:wapi}
 
+Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}.
+We denote node $n$'s property $k$ as $n[k]$ and node $n$'s desendants as
+$desc(n)$.
+
+\begin{definition}[CAS Query]
+  Given content node $m$, property $k$ and value $v$, a CAS query
+  $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e
+  $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
+\end{definition}
+
+The WAPI is an hierarchical index and indexes the properties of nodes in order
+to answer CAS queries efficiently.
 The WAPI is hierarchically organized under node \texttt{/i} (denoted
 \textit{Index Subtree Root} in \Cref{fig:hierarchical_db}).
 The second index level consists of all properties $k$ we want
 to index. The third index level contains any values $v$ of property $k$.
 The remaining index levels replicate all nodes from the root node to any
-content node with $k$ set to $v$. We denote node $n$'s property $k$ as
-$n[k]$ and node $n$'s desendants as $desc(n)$. Given index node $n$, we denote
-$n$'s corresponding content node as $*n$.
+content node with $k$ set to $v$.
 
-\begin{definition}
-  (Matching Node) Node $n$, with path \texttt{/i/k/v/m}, is matching
-  iff $n$'s corresponding content node $*n$, with path \texttt{/m}, has property
-  $k$ set to $v$, i.e
-  $$ matching(n) \iff *n[k] = v $$
-  \label{def:matching_node}
-\end{definition}
+\begin{example}[CAS Query]
+  Consider \Cref{fig:hierarchical_db}. CAS-Query $Q(\text{pub},\text{now},\texttt{/a})$,
+  which queries for every descendant of \texttt{/a} with
+  ``pub'' set to ``now'', would evaluate to $Q(\text{pub},\text{now},\texttt{/a}) = \{\texttt{/a/b/d}\}$,
+  since \texttt{/a/b/d} is the only descendant of \texttt{/a} with ``pub'' set
+  to ``now''.
+\end{example}
 
-We also assign property $m = \top$ to a matching index node for the reader's convenience.
-
-% \begin{definition}
-%   (Matching Set): Node $n$ is a member the matching set 
-%   iff $n$, or any descendant of $n$, is matching, i.e
-%   $$ n \in \widehat{matching}\iff \exists m( m \in \{n\} \cup desc(n) \land matching(m)) $$
-% \end{definition}
-
-Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as
-follows.
-
-\begin{definition}
-  (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query
-  $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e
-  $$ Q(k,v,m) = \{ n | n \in desc(m) \land matching(n)\} $$
-\end{definition}
+When processing a CAS Query, Oak traverses the WAPI in order to answer the query
+efficiently. Any index node has a \textit{corresponding} content node.
+Given index node $n$, we denote $n$'s corresponding content node as $*n$.
+If index node $n$'s path is $path(n) = \texttt{/i/k/v/m}$, then $n$'s corresponding content
+node $*n$ must have path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$.
 
 \begin{figure}
   \centering
@@ -268,11 +289,11 @@ follows.
     \begin{forest}
       [
       [$\lambda:i$
-      [$\lambda:x$
-      [$\lambda:1$
+      [$\lambda:\text{pub}$
+      [$\lambda:\text{now}$
       [$\lambda:a$
       [$\lambda:b$
-      [$\lambda:d$ \\ $m:\top$, align=center, base=bottom, name=i_node] {
+      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=i_node] {
         \draw[<-,gray] (.north west)--++(-5em,1em)
         node[anchor=east]{\textit{Matching Node}};
       }
@@ -287,7 +308,7 @@ follows.
       }
       [$\lambda:a$
       [$\lambda:b$
-      [$\lambda:d$ \\ $x:1$, align=center, base=bottom, name=c_node]
+      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=c_node]
       ]
       [$\lambda:c$
       [$\lambda:e$]
@@ -304,27 +325,42 @@ follows.
   \label{fig:hierarchical_db}
 \end{figure}
 
-\begin{example}
+\begin{definition}[Matching Node]
+  Index node $n$, with path \texttt{/i/k/v/m}, is matching
+  iff $n$'s corresponding content node $*n$, with path \texttt{m}, has property
+  \texttt{k} set to \texttt{v}, i.e
+  $$ matching(n) \iff *n[k] = v $$
+  \label{def:matching_node}
+\end{definition}
+
+\begin{example}[Matching Node]
   Consider \Cref{fig:hierarchical_db}. The subtree rooted at \texttt{/a} is
   the content subtree. The subtree rooted at \texttt{/i} is the index
-  substree. Node \texttt{/i/x/1/a/b/d} is matching, since its corresponding
-  content node, \texttt{/a/b/d}, has property $x$ set to $1$. CAS-Query
-  $Q(x,1,\texttt{/a})$, which queries for every descendant of \texttt{/a} with
-  $x$ set to $1$, would evaluate to $Q(x,1,\texttt{/a}) = \{\texttt{/a/b/d}\}$,
-  since \texttt{/a/b/d} is the only descendant of \texttt{/a} with $x$ set to $1$. 
+  substree. Node \texttt{/i/pub/now/a/b/d} is matching, since its corresponding
+  content node, \texttt{/a/b/d}, has property ``pub'' set to ``now''.
 \end{example}
 
-The WAPI is an hierarchical index and indexes the properties of nodes in order
-to answer CAS-queries efficiently. Additionally, it takes into account if an
-index node is volatile before performing structural index modifications. If a
-node is considered volatile, we do not remove it from the index.
+As mentioned in \Cref{sec:application_scenario}, the CMS workload has certain
+properties. From the workload we can infer that the index subtree has a small number of
+matching nodes relative to the content subtree. The index is
+\textbf{(mainly ?)} used to signal pending jobs to the background thread using
+the ``pub'' property. Assuming jobs are processed by
+the background thead faster and removed from the index than they are created,
+the number of matching nodes should be close to $0$.  
+
+The CMS workload is also skewed and update-heavy, therefore causing repeated structural index
+updates over a small subset of nodes to the index.
+The WAPI takes into account if an index node is frequently added and removed,
+i.e \textit{volatile} (see \Cref{def:volatile_node}), before performing structural
+index modifications. If a node is considered volatile, we do not remove it from the index.
 
 Volatility is the measure which is used by the WAPI in order to distinguish
 when to remove a node or not from the index.
 Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
 workload to check whether a node $n$ is volatile. The workload on Oak instance
 $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-\rangle$ of snapshots, called a history. Let $t_n$ be the current time and
+\rangle$ of snapshots, called a history. A snapshot represents an immutable
+commited tree of the datbase. Let $t_n$ be the current time and
 $t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
 set of nodes which are members of snapshot $G^a$. We use a superscript $a$
 to emphasize that a node $n^a$ belongs to tree $G^a$. $pre(G^b)$ is the
@@ -339,43 +375,46 @@ Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that
 nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have
 the same absolute path from the root node.
 
-\begin{definition}
-  (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of
+\begin{definition}[Volatility Count]
+  The volatility count $vol(n)$ of index node $n$ on Oak instance $O_i$, is the number of
   times node $n$ was added or removed from snapshots contained in a sliding
   window of length $L$ over history $H_i$.
   \begin{align*}
-    % \begin{split}
     vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
     \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
     \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-    % \end{split}
   \end{align*}
   \label{def:vol_count}
 \end{definition}
 
-\begin{definition}
-  (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see
+\begin{definition}[Volatile Node]
+  Index node $n$ is volatile iff $n$'s volatility count (see
   \Cref{def:vol_count}) is greater or equal than the volatility threshold
   $\tau$, i.e
   $$ volatile(n) \iff vol(n) \geq \tau $$
   \label{def:volatile_node}
 \end{definition}
 
-% \begin{definition}
-%   (Volatile Set): Node $n$ is a member the volatile set
-%   iff $n$, or any descendant of $n$, is volatile, i.e
-%   $$ n \in \widehat{volatile}\iff \exists m( m \in \{n\} \cup desc(n) \land volatile(m)) $$
-% \end{definition}
-
-% Note that the matching and volatile sets are not mutually exclusive.
+\begin{example}[Volatile Node]
+  Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
+  threshold $\tau = 1$, sliding window length $L = 1$ and history $H_h
+  = \langle G^0,G^1,G^2,G^3 \rangle$. Oak instance $O_h$ executes transactions
+  $T_1, \dots , T_3$. Snapshot $G^0$ was committed at time $t(G^0) =
+  t$. Given snapshot $G^0$, transaction $T_1$ adds property ``pub'' = ``now'' to
+  \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
+  transaction $T_2$ removes property ``pub'' from \texttt{/a/b/d} given snapshot
+  $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
+  not pruned during $T_2$ since they are volatile.
+  \label{ex:volatile_node}
+\end{example}
 
 \section{Unproductive Nodes}
 
 When time passes and the database workload changes, volatile nodes cease to be
 volatile and they become unproductive.
 
-\begin{definition}
-  (Unproductive Node): Node $n$ is unproductive iff $n$, and any descendant of
+\begin{definition}[Unproductive Node]
+  Index node $n$ is unproductive iff $n$, and any descendant of
   $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
   \Cref{def:volatile_node}), i.e
   $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
@@ -383,91 +422,70 @@ volatile and they become unproductive.
 \end{definition}
 
 \begin{example}
-  Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
-  threshold $\tau = 1$, sliding window length $L = 1$ and history $H_h
-  = \langle G^0,G^1,G^2,G^3,G^4,G^5,G^6 \rangle$. Oak instance $O_h$ executes transactions
-  $T_1, \dots , T_6$. Snapshot $G^0$ was committed at time $t(G^0) =
-  t$. Given snapshot $G^0$, transaction $T_1$ adds property $x=1$ to
-  \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
-  transaction $T_2$ removes property $x$ from \texttt{/a/b/d} given snapshot
-  $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
-  not pruned during $T^2$ since they are volatile. Transaction $T_3$ adds
-  property $x=1$ to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
-  $t(G^3) = t+3$. % Notice how 
-  \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are
-  the only unproductive index nodes and \texttt{/i/x/1/a/c/e} is the only
-  volatile index node in $G^3$. % Transaction
-  % $T^4$ again adds property $x=1$ to \texttt{/a/b/d} given snapshot $G^3$ and
-  % commits snapshot $G^4$ at time $t(G^4) = t+4$. In $G^4$, nodes
-  % \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not unproductive anymore
-  % since \texttt{/i/x/1/a/b/d}'s content node is matching. Transaction $T^5$
-  % again removes property $x$ from \texttt{/a/b/d} given snapshot $G^4$ and
-  % commits snapshot $G^5$ at time $t(G^5) = t+5$. Since nodes
-  % \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not volatile, they are
-  % pruned from the property index during $T^5$. Finally transaction $T^6$ removes
-  % property $x=1$ from \texttt{/a/c/e} given snapshot $G^5$ and commits snapshot
-  % $G^6$ at time $t(G^6) = t+6$. Index nodes \texttt{/i/x/1/a/c/e} and
-  % \texttt{/i/x/1/a/c} are pruned from the property index during $T^6$ because
-  % they are not volatile.
+  In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
+  property ``pub'' = ``now'' to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
+  $t(G^3) = t+3$. \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} are
+  the only unproductive index nodes. \texttt{/i/pub/now/a/c/e} and
+  \texttt{/i/pub/now/a/c} are the only volatile nodes in $G^3$.
 \end{example}
-
 \begin{figure}[h]
   \centering
   \begin{large}
   $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
-  \xrightarrow{\quad T_3 \quad} G^3%  \xrightarrow{\quad T_4 \quad} G^4
-  % \xrightarrow{\quad T_5 \quad} G^5 \xrightarrow{\quad T_6 \quad} G^6
-  $$
+  \xrightarrow{\quad T_3 \quad} G^3  $$
 \end{large}
 
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
       \begin{forest}
         [
-        [$\lambda:i$
+        [$\lambda$:$i$
         [,phantom]
         ]
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$]
+        [,phantom]
+        [,phantom]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
         ] 
-        [$\lambda:c$
-        [$\lambda:e$]
+        [,phantom]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
         ]
         ]
         ]
       \end{forest}
 
-      \vspace{28mm}
+      \vspace{22mm}
     \end{framed}
   } \footnotesize{ Snapshot $G^0$
  
     $t(G^0) = t$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
       \begin{forest}
         [
-        [$\lambda:i$
-        [$\lambda:x$
-        [$\lambda:1$
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$ \\ $m:\top$, align=center, base=bottom]
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
         ]
         [,phantom]
         ]
         ]
         ]
         ]
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$ \\ $x:1$, align=center, base=bottom]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
         ]
-        [$\lambda:c$
-        [$\lambda:e$]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
         ]
         ]
         ]
@@ -478,64 +496,67 @@ volatile and they become unproductive.
     $t(G^1) = t+1$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
       \begin{forest}
         [
-        [$\lambda:i$
-        [$\lambda:x$
-        [$\lambda:1$
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$]
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
         ]
+        [,phantom]
         [,phantom]
         ]
         ]
         ]
         ]
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
         ]
-        [$\lambda:c$
-        [$\lambda:e$]
+        [,phantom]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
         ]
         ]
         ]
       \end{forest}
 
-      \vspace{4.2mm}
+      \vspace{3mm}
     \end{framed}
   } \footnotesize{ Snapshot $G^2$
  
     $t(G^2) = t+2$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
       \begin{forest}
         [
-        [$\lambda:i$
-        [$\lambda:x$
-        [$\lambda:1$
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$]
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
         ]
-        [$\lambda:c$
-        [$\lambda:e$ \\ $m:\top$, align=center, base=bottom]
-        ]
-        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
         ]
         ]
         ]
-        [$\lambda:a$
-        [$\lambda:b$
-        [$\lambda:d$]
         ]
-        [$\lambda:c$
-        [$\lambda:e$ \\ $x:1$, align=center, base=bottom]
+        ]
+        [,phantom]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
         ]
         ]
         ]
@@ -546,128 +567,34 @@ volatile and they become unproductive.
     $t(G^3) = t+3$ }
 \end{subfigure}
 
-% \vspace{5mm}
-
-% \begin{subfigure}{0.24\textwidth}
-%   \centering \scriptsize{
-%     \begin{framed}
-%       \begin{forest}
-%         [
-%         [$\lambda:i$
-%         [$\lambda:x$
-%         [$\lambda:1$
-%         [$\lambda:a$
-%         [$\lambda:b$
-%         [$\lambda:d$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         [$\lambda:c$
-%         [$\lambda:e$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         ]
-%         ]
-%         ]
-%         ]
-%         [$\lambda:a$
-%         [$\lambda:b$
-%         [$\lambda:d$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         [$\lambda:c$
-%         [$\lambda:e$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         ]
-%         ]
-%       \end{forest}
-%     \end{framed}
-%   } \footnotesize{ Snapshot $G^4$
- 
-%     $t(G^4) = t+4$ }
-% \end{subfigure}
-% \begin{subfigure}{0.24\textwidth}
-%   \centering \scriptsize{
-%     \begin{framed}
-%       \begin{forest}
-%         [
-%         [$\lambda:i$
-%         [$\lambda:x$
-%         [$\lambda:1$
-%         [$\lambda:a$
-%         [$\lambda:c$
-%         [$\lambda:e$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         ]
-%         ]
-%         ]
-%         ]
-%         [$\lambda:a$
-%         [$\lambda:b$
-%         [$\lambda:d$]
-%         ]
-%         [$\lambda:c$
-%         [$\lambda:e$ \\ $x:1$, align=center, base=bottom]
-%         ]
-%         ]
-%         ]
-%       \end{forest}
-%     \end{framed}
-%   } \footnotesize{ Snapshot $G^5$
- 
-%     $t(G^5) = t+5$ }
-% \end{subfigure}
-% \begin{subfigure}{0.24\textwidth}
-%   \centering \scriptsize{
-%     \begin{framed}
-%       \begin{forest}
-%         [
-%         [$\lambda:i$
-%         [,phantom]
-%         ]
-%         [$\lambda:a$
-%         [$\lambda:b$
-%         [$\lambda:d$]
-%         ]
-%         [$\lambda:c$
-%         [$\lambda:e$]
-%         ]
-%         ]
-%         ]
-%       \end{forest}
-
-%       \vspace{28mm}
-%     \end{framed}
-%   } \footnotesize{ Snapshot $G^6$
- 
-%     $t(G^6) = t+6$ }
-% \end{subfigure}
-
 \vspace{3mm}
 \caption*{
-  Given $\tau = 1$, $L = 1$, nodes \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b}
+  Given $\tau = 1$, $L = 1$, nodes \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b}
   are unproductive in snapshot $G^3$. They are not volatile and don't match either.
 }
-\caption{Unproductive Nodes Example}
+\caption{Volatile nodes becoming unproductive}
 \label{fig:unproductive_nodes}
 \end{figure}
 
 \subsection{Impact on Query Execution Runtime}
 
-In this section we will study and quantify the impact of unproductive nodes on
-query runtime. Informally, we call \textit{Query Execution Runtime} the time
+In this section we study and quantify the impact of unproductive nodes on
+query runtime. Informally, we call \textit{Query Runtime} the time
 needed for a query to finish processing. We hypothesize that unproductive nodes
-significantly slow down queries under specific workloads. During query
+significantly slow down queries under a CMS workload. During query
 execution, traversing an unproductive node is
-useless, because neither the node itself nor any of its descendants contains
-an indexed property and therefore cannot contribute a query match.
-An index under a \textit{job-queue} like,
-changing workload (see \textbf{forward reference}) is dominated by unproductive nodes.
+useless, because neither the node itself nor any of its descendants are matching
+and therefore cannot contribute a query match.
+An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
+by unproductive nodes.
 
 We formalize the statements above into the following hypotheses:
 
 \begin{shaded}
   \begin{itemize}
-  \item[$H_1$:] Average query execution runtime increases under a job-queue
-    like, changing workload with the WAPI.
-  \item[$H_2$:] Unproductive nodes significantly affect average query execution
-    runtime under a job-queue like, changing worload with the WAPI.
+  \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
+  \item[$H_2$:] Unproductive nodes significantly affect WAPI's average
+    query runtime under a CMS workload. 
   \end{itemize}
 \end{shaded}
 
@@ -704,7 +631,7 @@ on the synthetic dataset.
     \caption{}
     \label{fig:query_runtime_real}
   \end{subfigure}
-  \caption{Query Execution Runtime}
+  \caption{Query Runtime over time}
   \label{fig:query_runtime}
 \end{figure}
 
