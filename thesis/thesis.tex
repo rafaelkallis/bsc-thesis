@@ -25,7 +25,7 @@
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
-\forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
+% \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
 \graphicspath{
   {images/},
   {images/1_unprod_nodes/},
@@ -182,30 +182,24 @@ and QTP as proposed by \cite{KW17} in Apache Jackrabbit Oak (Oak).
 
 \subsection{Apache Jackrabbit Oak (Oak)}
 
-% Oak\footnote{https://jackrabbit.apache.org/oak/} is a hierarchical distributed
-% database system which makes use of a hierarchical index.
 Oak is a hierarchical distributed database system which makes use of a
 hierarchical index. Multiple transactions can work concurrently by making use of
 Multiversion Concurrency Control (MVCC)~\cite{GW02}, a commonly used optimistic
 concurrency control technique~\cite{TM11}.
 
 \Cref{fig:architecture} depicts Oak's multi-tier architecture. Oak embodies the
-\textit{Database Tier}.
-% Whilst Oak is responsible for handling the database logic, it stores the
-% actual data on MongoDB labeled as \textit{Persistence Tier}.
+\textit{Database Tier}. Multiple Oak instances can operate concurrently.
 Whilst Oak is responsible for handling the database logic, it stores the actual
 data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as
 \textit{Persistence Tier}. On the other end, applications can make use of Oak as
 shown in \Cref{fig:architecture} under \textit{Application Tier}.
-% One such application is Adobe's enterprise content management system (CMS),
-% the Adobe Experience Manager
 One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
 \begin{figure}[h]
   \begin{center}
-    \begin{tikzpicture}[scale=0.7,thick]
+    \begin{tikzpicture}[scale=0.8,thick]
 	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}}; \node
       (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_b)
       at (0, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_c) at (2, 2)
@@ -225,130 +219,276 @@ Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
   \label{fig:architecture}
 \end{figure}
 
+\subsection{Application Scenario}
+\label{sec:application_scenario}
+
+Content management systems that make use of Oak have specific workloads.
+These workloads have distinct properties: they are \textit{skewed},
+\textit{update-heavy}, \textit{changing} \cite{KW17} and
+\textit{job-queue} like.
+
+Consider a social media feed as a running example. When
+browsing the feed, more recent posts are displayed first, therefore creating a
+skewed workload. Users submit new posts or interact with existing posts by
+writting comments for example, creating an update-heavy workload. As time
+passes, new posts are created. Users are more likely to interact with recent
+posts than older ones, making the workload change over time.
+
+When a user submits a new post, it is sent to the CMS for processing. A
+background thread is periodically checking for pending jobs. A pending job is
+signalled using node properties in Oak.
+The CMS adds a ``pub'' property with value ``now'' to the respective node  in
+order to signal the background thread that the specific node is a pending job that needs
+processing. Once the
+background thread detects the node and finishes processing, it removes the ``pub'' property and
+successfully publishes the post. Informally, we call such a workload
+job-queue like.
+
+From now on, we refer to a workload with the properties mentioned above, as
+a \textit{CMS workload}.
+
 \subsection{Workload Aware Property Index (WAPI)}
 \label{sec:wapi}
 
-Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}, defined as
-follows.
+Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}.
+We denote node $n$'s property $k$ as $n[k]$ and node $n$'s desendants as
+$desc(n)$.
 
-\begin{definition}
-  (CAS-Query): Given node $m$, property $k$ and value $v$, a CAS query
+\begin{definition}[CAS Query]
+  Given content node $m$, property $k$ and value $v$, a CAS query
   $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e
-    $$ Q(k,v,m) = \{~n~|~n[k] = v \land n \in desc(m)~\}$$
-  \end{definition}
+  $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
+\end{definition}
 
-  The WAPI is a hierarchical index and indexes the properties of nodes in order
-  to answer CAS-queries efficiently. Additionally, it takes into account if an
-  index node is volatile before performing structural index modifications. If a
-  node is considered volatile, we do not remove it from the index.
+The WAPI is an hierarchical index and indexes the properties of nodes in order
+to answer CAS queries efficiently.
+The WAPI is hierarchically organized under node \texttt{/i} (denoted
+\textit{Index Subtree Root} in \Cref{fig:hierarchical_db}).
+The second index level consists of all properties $k$ we want
+to index. The third index level contains any values $v$ of property $k$.
+The remaining index levels replicate all nodes from the root node to any
+content node with $k$ set to $v$.
 
-  Volatility is the measure which is used by the WAPI in order to distinguish
-  when to remove a node or not from the index.
+\begin{example}[CAS Query]
+  Consider \Cref{fig:hierarchical_db}. CAS-Query $Q(\text{pub},\text{now},\texttt{/a})$,
+  which queries for every descendant of \texttt{/a} with
+  ``pub'' set to ``now'', would evaluate to $Q(\text{pub},\text{now},\texttt{/a}) = \{\texttt{/a/b/d}\}$,
+  since \texttt{/a/b/d} is the only descendant of \texttt{/a} with ``pub'' set
+  to ``now''.
+\end{example}
 
-  Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
-  workload to check whether a node $n$ is volatile. The workload on Oak instance
-  $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-  \rangle$ of snapshots, called a history. Let $t_n$ be the current time and
-  $t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
-  set of nodes which are members of snapshot $G^a$. $pre(G^b)$ is the
-  predecessor of snapshot $G^b$ in $H_i$.
+When processing a CAS Query, Oak traverses the WAPI in order to answer the query
+efficiently. Any index node has a \textit{corresponding} content node.
+Given index node $n$, we denote $n$'s corresponding content node as $*n$.
+If index node $n$'s path is $path(n) = \texttt{/i/k/v/m}$, then $n$'s corresponding content
+node $*n$ must have path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$.
 
-  Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called
-  volatility threshold. The volatility count of $n$ is defined as the number of
-  times $n$ was added or removed from snapshots in a sliding window of length
-  $L$ over history $H_i$. Let $n^i$ denote version $i$ of node $n$ that belongs
-  to the node set $N(G^i)$ of snapshot $G^i$. Given two snapshots $G^a$ and
-  $G^b$ we write $n^a$ and $n^b$ to emphasize that nodes $n^a$ and $n^b$ are two
-  versions of the same node $n$, i.e, they have the same absolute path from the
-  root node.
+\begin{figure}
+  \centering
+  \scriptsize{
+    \begin{forest}
+      [
+      [$\lambda:i$
+      [$\lambda:\text{pub}$
+      [$\lambda:\text{now}$
+      [$\lambda:a$
+      [$\lambda:b$
+      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=i_node] {
+        \draw[<-,gray] (.north west)--++(-5em,1em)
+        node[anchor=east]{\textit{Matching Node}};
+      }
+      ]
+      [,phantom]
+      ]
+      ]
+      ]
+      ] {
+        \draw[<-,gray] (.south west)--++(-5em, -1em)
+        node[anchor=east]{\textit{Index Subtree Root}};
+      }
+      [$\lambda:a$
+      [$\lambda:b$
+      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=c_node]
+      ]
+      [$\lambda:c$
+      [$\lambda:e$]
+      ]
+      ] {
+        \draw[<-,gray] (.south east)--++(5em, -1em)
+        node[anchor=west]{\textit{Content Subtree Root}};
+      }
+      ]
+      \draw[->,dotted] (i_node) to[out=east, in=south] node[gray,midway,right]{\textit{corresponding content node}} (c_node);
+    \end{forest}
+  }
+  \caption{An instance of an hierarchical database}
+  \label{fig:hierarchical_db}
+\end{figure}
 
-\begin{definition}
-  (Volatility Count): The volatility count $vol(n)$ of node $n$ is the number of
+\begin{definition}[Matching Node]
+  Index node $n$, with path \texttt{/i/k/v/m}, is matching
+  iff $n$'s corresponding content node $*n$, with path \texttt{m}, has property
+  \texttt{k} set to \texttt{v}, i.e
+  $$ matching(n) \iff *n[k] = v $$
+  \label{def:matching_node}
+\end{definition}
+
+\begin{example}[Matching Node]
+  Consider \Cref{fig:hierarchical_db}. The subtree rooted at \texttt{/a} is
+  the content subtree. The subtree rooted at \texttt{/i} is the index
+  substree. Node \texttt{/i/pub/now/a/b/d} is matching, since its corresponding
+  content node, \texttt{/a/b/d}, has property ``pub'' set to ``now''.
+\end{example}
+
+As mentioned in \Cref{sec:application_scenario}, the CMS workload has certain
+properties. From the workload we can infer that the index subtree has a small number of
+matching nodes relative to the content subtree. The index is
+\textbf{(mainly ?)} used to signal pending jobs to the background thread using
+the ``pub'' property. Assuming jobs are processed by
+the background thead faster and removed from the index than they are created,
+the number of matching nodes should be close to $0$.  
+
+The CMS workload is also skewed and update-heavy, therefore causing repeated structural index
+updates over a small subset of nodes to the index.
+The WAPI takes into account if an index node is frequently added and removed,
+i.e \textit{volatile} (see \Cref{def:volatile_node}), before performing structural
+index modifications. If a node is considered volatile, we do not remove it from the index.
+
+Volatility is the measure which is used by the WAPI in order to distinguish
+when to remove a node or not from the index.
+Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
+workload to check whether a node $n$ is volatile. The workload on Oak instance
+$O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
+\rangle$ of snapshots, called a history. A snapshot represents an immutable
+commited tree of the datbase. Let $t_n$ be the current time and
+$t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
+set of nodes which are members of snapshot $G^a$. We use a superscript $a$
+to emphasize that a node $n^a$ belongs to tree $G^a$. $pre(G^b)$ is the
+predecessor of snapshot $G^b$ in $H_i$.
+
+Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called
+volatility threshold. The volatility count of $n$ is defined as the number of
+times $n$ was added or removed from snapshots in a sliding window of length
+$L$ over history $H_i$.
+
+Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that
+nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have
+the same absolute path from the root node.
+
+\begin{definition}[Volatility Count]
+  The volatility count $vol(n)$ of index node $n$ on Oak instance $O_i$, is the number of
   times node $n$ was added or removed from snapshots contained in a sliding
-  window with length $L$ over history $H_i$.
+  window of length $L$ over history $H_i$.
   \begin{align*}
-    % \begin{split}
-      vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
-      \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
-      \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-    % \end{split}
+    vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_{n-L+1}, t_n] \land \exists G^a[ \\
+    \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
+    \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
   \end{align*}
   \label{def:vol_count}
 \end{definition}
 
-\begin{definition}
-  (Volatile Node): Node $n$ is volatile iff $n$'s volatility count (see
+\begin{definition}[Volatile Node]
+  Index node $n$ is volatile iff $n$'s volatility count (see
   \Cref{def:vol_count}) is greater or equal than the volatility threshold
   $\tau$, i.e
   $$ volatile(n) \iff vol(n) \geq \tau $$
+  \label{def:volatile_node}
 \end{definition}
+
+\begin{example}[Volatile Node]
+  Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
+  threshold $\tau = 1$, sliding window length $L = 1$ and history $H_h
+  = \langle G^0,G^1,G^2,G^3 \rangle$. Oak instance $O_h$ executes transactions
+  $T_1, \dots , T_3$. Snapshot $G^0$ was committed at time $t(G^0) =
+  t$. Given snapshot $G^0$, transaction $T_1$ adds property ``pub'' = ``now'' to
+  \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
+  transaction $T_2$ removes property ``pub'' from \texttt{/a/b/d} given snapshot
+  $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
+  not pruned during $T_2$ since they are volatile.
+  \label{ex:volatile_node}
+\end{example}
 
 \section{Unproductive Nodes}
 
 When time passes and the database workload changes, volatile nodes cease to be
 volatile and they become unproductive.
-\begin{definition}
-  (Unproductive Node): Node $n$ is unproductive iff $n$, and any descendant of
-  $n$, is neither matching nor volatile, i.e
+
+\begin{definition}[Unproductive Node]
+  Index node $n$ is unproductive iff $n$, and any descendant of
+  $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
+  \Cref{def:volatile_node}), i.e
   $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
-  (volatile(m) \lor *m[k] \neq v)) $$
+  (matching(m) \lor volatile(m)))$$
 \end{definition}
 
 \begin{example}
-  Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume $H_h
-  = \langle G^0,G^1,G^2,G^3,G^4,G^5,G^6 \rangle$. $O_h$ executes transactions
-  $T_1, T_2, T_3, T_4, T_5, T_6$. Snapshot $G^0$ was committed at time $t(G^0) =
-  t$. Given snapshot $G^0$, transaction $T_1$ adds property $x=1$
-  \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
-  transaction $T_2$ removes property $x$ from \texttt{/a/b/d} given snapshot
-  $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
-  not pruned during $T^2$ since they are volatile. Transaction $T_3$ adds
-  property $x=1$ to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
-  $t(G^3) = t+3$. Notice how \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are
-  the only unproductive index nodes and \texttt{/i/x/1/a/c/e} as well as
-  \texttt{/i/x/1/a/c/e} are the only volatile index nodes in $G^3$. Transaction
-  $T^4$ again adds property $x=1$ to \texttt{/a/b/d} given snapshot $G^3$ and
-  commits snapshot $G^4$ at time $t(G^4) = t+4$. In $G^4$, nodes
-  \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not unproductive anymore
-  since \texttt{/i/x/1/a/b/d}'s content node is matching. Transaction $T^5$
-  again removes property $x$ from \texttt{/a/b/d} given snapshot $G^4$ and
-  commits snapshot $G^5$ at time $t(G^5) = t+5$. Since nodes
-  \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are not volatile, they are
-  pruned from the property index during $T^5$. Finally transaction $T^6$ removes
-  property $x=1$ from \texttt{/a/c/e} given snapshot $G^5$ and commits snapshot
-  $G^6$ at time $t(G^6) = t+6$. Index nodes \texttt{/i/x/1/a/c/e} and
-  \texttt{/i/x/1/a/c} are pruned from the property index during $T^6$ because
-  they are not volatile.
+  In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
+  property ``pub'' = ``now'' to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
+  $t(G^3) = t+3$. \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} are
+  the only unproductive index nodes. \texttt{/i/pub/now/a/c/e} and
+  \texttt{/i/pub/now/a/c} are the only volatile nodes in $G^3$.
 \end{example}
-
 \begin{figure}[h]
   \centering
   \begin{large}
   $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
-  \xrightarrow{\quad T_3 \quad} G^3 \xrightarrow{\quad T_4 \quad} G^4
-  \xrightarrow{\quad T_5 \quad} G^5 \xrightarrow{\quad T_6 \quad} G^6 $$
+  \xrightarrow{\quad T_3 \quad} G^3  $$
 \end{large}
+
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$] [,phantom] [,phantom] [,phantom]
-        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
-        [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [,phantom]
+        ]
+        [,phantom]
+        [,phantom]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ] 
+        [,phantom]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
       \end{forest}
 
-      \vspace{27mm}
+      \vspace{22mm}
     \end{framed}
   } \footnotesize{ Snapshot $G^0$
  
     $t(G^0) = t$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
-        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ] [,phantom] ] ] ] ]
-        [,phantom] [,phantom] [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$
-        [$\lambda:d$ \\ $x:1$] ] [,phantom] [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [,phantom]
+        ]
+        ]
+        ]
+        ]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
       \end{forest}
     \end{framed}
   } \footnotesize{ Snapshot $G^1$
@@ -356,28 +496,70 @@ volatile and they become unproductive.
     $t(G^1) = t+1$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
-        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom] ] ] ] ] [,phantom]
-        [,phantom] [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$]
-        ] [,phantom] [$\lambda:c$ [$\lambda:e$] ] ] ]
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ]
+        [,phantom]
+        [,phantom]
+        ]
+        ]
+        ]
+        ]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ]
+        [,phantom]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
       \end{forest}
 
-      \vspace{3.2mm}
+      \vspace{3mm}
     \end{framed}
   } \footnotesize{ Snapshot $G^2$
  
     $t(G^2) = t+2$ }
 \end{subfigure}
 \begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
+  \centering \tiny{
     \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
-        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom] [$\lambda:c$
-        [$\lambda:e$ \\ $x:1$] ] ] ] ] ] [,phantom] [,phantom] [,phantom]
-        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
-        [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ]
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
+        ]
+        ]
+        ]
+        ]
+        ]
+        [,phantom]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
+        ]
+        ]
+        ]
       \end{forest}
     \end{framed}
   } \footnotesize{ Snapshot $G^3$
@@ -385,85 +567,44 @@ volatile and they become unproductive.
     $t(G^3) = t+3$ }
 \end{subfigure}
 
-\vspace{5mm}
-
-\begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
-    \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
-        [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ] [,phantom]
-        [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ] ] ] [,phantom] [,phantom]
-        [,phantom] [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$ \\ $x:1$] ]
-        [,phantom] [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ] ] ]
-      \end{forest}
-    \end{framed}
-  } \footnotesize{ Snapshot $G^4$
- 
-    $t(G^4) = t+4$ }
-\end{subfigure}
-\begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
-    \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$ [$\lambda:x$ [$\lambda:1$
-        [$\lambda:a$ [,phantom] [,phantom] [$\lambda:c$ [$\lambda:e$ \\ $x:1$] ]
-        ] ] ] ] [,phantom] [,phantom] [,phantom] [,phantom] [$\lambda:a$
-        [$\lambda:b$ [$\lambda:d$] ] [,phantom] [$\lambda:c$ [$\lambda:e$ \\
-        $x:1$] ] ] ]
-      \end{forest}
-    \end{framed}
-  } \footnotesize{ Snapshot $G^5$
- 
-    $t(G^5) = t+5$ }
-\end{subfigure}
-\begin{subfigure}{0.24\textwidth}
-  \centering \scriptsize{
-    \begin{framed}
-      \begin{forest} qtree, [ [$\lambda:i$] [,phantom] [,phantom] [,phantom]
-        [,phantom] [$\lambda:a$ [$\lambda:b$ [$\lambda:d$] ] [,phantom]
-        [$\lambda:c$ [$\lambda:e$] ] ] ]
-      \end{forest}
-
-      \vspace{27mm}
-    \end{framed}
-  } \footnotesize{ Snapshot $G^6$
- 
-    $t(G^6) = t+6$ }
-\end{subfigure}
-\caption{Unproductive Nodes Example}
+\vspace{3mm}
 \caption*{
-  Nodes \texttt{/i/x/1/a/b/d} and \texttt{/i/x/1/a/b} are unproductive in snapshot
-  $G^3$. They are not volatile and don't match either.
+  Given $\tau = 1$, $L = 1$, nodes \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b}
+  are unproductive in snapshot $G^3$. They are not volatile and don't match either.
 }
+\caption{Volatile nodes becoming unproductive}
 \label{fig:unproductive_nodes}
 \end{figure}
 
 \subsection{Impact on Query Execution Runtime}
 
-In this section we will study and quantify the impact of unproductive nodes on
-query runtime. Informally, we call \textit{Query Execution Runtime} the time
+In this section we study and quantify the impact of unproductive nodes on
+query runtime. Informally, we call \textit{Query Runtime} the time
 needed for a query to finish processing. We hypothesize that unproductive nodes
-slow down queries. During query execution, traversing an unproductive node is
-useless, because neither the node itself nor any of its descendants contains
-an indexed property and therefore cannot contribute a query match.
+significantly slow down queries under a CMS workload. During query
+execution, traversing an unproductive node is
+useless, because neither the node itself nor any of its descendants are matching
+and therefore cannot contribute a query match.
+An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
+by unproductive nodes.
 
 We formalize the statements above into the following hypotheses:
 
 \begin{shaded}
   \begin{itemize}
-  \item[$H_1$:] Query execution runtime increases over time.
-  \item[$H_2$:] Unproductive nodes account for the increase in query execution
-    runtime.
+  \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
+  \item[$H_2$:] Unproductive nodes significantly affect WAPI's average
+    query runtime under a CMS workload. 
   \end{itemize}
 \end{shaded}
 
 In order to find supporting evindence for the hypotheses above, a series of
-experiments was conducted on Oak. We recorded the query execution runtime
-throughout the experiment and present the data below.
+experiments was conducted on Oak. The experimental evaluation and the used
+datasets will be described in a later section (\textbf{forward reference}). We
+recorded  the query execution runtime throughout the experiment and present the data below.
 
-\Cref{fig:query_runtime_synthetic_millis,fig:query_runtime_aem_millis} show the
-recorded query runtime over time as observed from the synthetic and AEM dataset respectively. 
-\Cref{fig:query_runtime_synthetic_updates,fig:query_runtime_aem_updates} show the
-recorded query runtime over update operations from the synthetic and AEM dataset respectively. 
+\Cref{fig:query_runtime_synthetic,fig:query_runtime_real} show 
+query runtime from the synthetic and real world dataset respectively. 
 We observe an increase of the runtime from $2 ms$ to $38 ms$
 after running the simulation for $5$ minutes ($2 \cdot 10^4$ update operations)
 on the synthetic dataset.
@@ -476,42 +617,30 @@ on the synthetic dataset.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_query_runtime}
+    \includegraphics[width=8cm]{query_runtime_synthetic}
     \caption{}
-    \label{fig:query_runtime_synthetic_millis}
+    \label{fig:query_runtime_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_query_runtime}
+    \includegraphics[width=8cm]{query_runtime_real}
     \caption{}
-    \label{fig:query_runtime_aem_millis}
+    \label{fig:query_runtime_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_query_runtime}
-    \caption{}
-    \label{fig:query_runtime_synthetic_updates}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_query_runtime}
-    \caption{}
-    \label{fig:query_runtime_aem_updates}
-  \end{subfigure}
-  \caption{Query Execution Runtime}
+  \caption{Query Runtime over time}
   \label{fig:query_runtime}
 \end{figure}
 
 Next, we present data regarding the type of nodes encountered during index traversal while
 executing a query.
-\Crefrange{fig:trav_nodes_synthetic_millis}{fig:trav_nodes_aem_updates} depict
+\Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real} depict
 the number of traversed volatile and unproductive index nodes encountered during query
-execution with respect to time and update operations from our datasets.
-Since the sliding window length $L$ is set to $30$ seconds, we record no
+execution from our datasets.
+Since the sliding window length $L$ is set to $30$ seconds, we encounter no
 unproductive nodes during the first $30$ seconds of the simulation. Once we
 reach the $30$ second mark, our queries encounter unproductive nodes. We observe
 two findings. First, we see a descend in volatile nodes. Second, we see a
@@ -526,88 +655,64 @@ we observe the traversed nodes being dominated by unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_traversed_index_nodes}
+    \includegraphics[width=8cm]{trav_nodes_synthetic}
     \caption{}
-    \label{fig:trav_nodes_synthetic_millis}
+    \label{fig:trav_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_traversed_index_nodes} 
+    \includegraphics[width=8cm]{trav_nodes_real}
     \caption{}
-    \label{fig:trav_nodes_aem_millis}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_traversed_index_nodes}
-    \caption{}
-    \label{fig:trav_nodes_synthetic_updates}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_traversed_index_nodes}
-    \caption{}
-    \label{fig:trav_nodes_aem_updates}
+    \label{fig:trav_nodes_real}
   \end{subfigure}
   \caption{Index Structure during Query Execution}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat{}
-  \centering
+\Crefrange{fig:trav_node_ratio_synthetic}{fig:trav_node_ratio_real}
+show the ratio of volatile and unproductive nodes over time and update
+operations from our datasets. These figures quantify how strongly unproductive
+nodes dominate the traversed nodes. The data shows that unproductive nodes
+account for over $80\%$ of the traversed nodes whilst less than $20\%$ are volatile. 
+Interestingly, we see the ratios converging towards a value above
+$0.8$ and below $0.2$ respectively.
+
+\begin{figure}[h]
+ \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
     Synthetic
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_index_node_density}
+    \includegraphics[width=8cm]{trav_node_ratio_synthetic}
     \caption{}
-    \label{fig:trav_node_density_synthetic_millis}
+    \label{fig:trav_node_ratio_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{millis_index_node_density} 
+    \includegraphics[width=8cm]{trav_node_ratio_real}
     \caption{}
-    \label{fig:trav_node_density_aem_millis}
+    \label{fig:trav_node_ratio_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_index_node_density}
-    \caption{}
-    \label{fig:trav_node_density_synthetic_updates}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{updates_index_node_density}
-    \caption{}
-    \label{fig:trav_node_density_aem_updates}
-  \end{subfigure}
- \caption{Index Structure during Query Execution (cont.)}
+ \caption{Node Ratio during Query Execution}
 \end{figure}
-
-\Crefrange{fig:trav_node_density_synthetic_millis}{fig:trav_node_density_aem_updates}
-show the density of volatile and unproductive nodes over time and update
-operations from our datasets. These figures quantify how strongly unproductive
-nodes dominate the traversed nodes. The data shows that unproductive nodes
-account for over $80\%$ of the traversed nodes whilst less than $20\%$ are volatile. 
-Interestingly, we see the density functions to converge towards a value above
-$0.8$ and below $0.2$ respectively.
 
 In the following sections we will study the effect of \textit{Volatility
   Threshold $\tau$} and \textit{Sliding Window Length $L$} on query execution runtime and
 unproductive nodes.
 
-\subsection{Volatility Threshold ($\tau$)}
+\subsection{Volatility Threshold $\tau$}
 
 Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
-it becomes volatile \cite{KW17}. In this section, we study the impact of
+it becomes volatile (see \Cref{def:volatile_node}). In this section, we study the impact of
 volatility threshold $\tau$ on unproductive nodes and query execution runtime.
 
 We hypothesize that an increase in $\tau$ yields a decrease to the number of traversed unproductive
@@ -618,42 +723,33 @@ An increase in $\tau$ yields a decrease to the query execution runtime. Less
 unproductive nodes should decrease the number of nodes traversed
 during query execution and therefore decrease query execution runtime.
 
-An increase in $\tau$ yields a decrease to the unproductive node density during
-query execution.
-
-\textbf{Why?}
-
 \begin{shaded}
   \begin{itemize}
   \item[$H_3$:] An increase in $\tau$ yields a decrease to the number of
     traversed unproductive nodes during query execution.
   \item[$H_4$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
-  \item[$H_5$:] An increase in $\tau$ yields a decrease to the unproductive node
-    density during query execution runtime.
-  \end{itemize}
+    \end{itemize}
 \end{shaded}
 
 The same experiment was conducted under a varying volatility threshold. The
 results seem to verify our hypotheses.
-\Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_aem} show
+\Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_real} show
 various thresholds $\tau \in \{1,5,10\}$ affecting query execution runtime
 over update operations. We observe that a lower threshold $\tau$ results in a
 steeper slope.
-\Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_aem} compare query
+\Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_real} compare query
 execution runtime over a range of thresholds. The values picked correspond to
 the query execution runtime after $10^4$ update operations.
 We observe a decrease in query execution runtime while increasing threshold $\tau$.
-\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_aem}
+\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
 depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
 nodes traversed during query execution over update operations. We observe lower
 thresholds $\tau$ yielding in a steeper slope.
-\Cref{fig:tau_unprod_nodes_synthetic,fig:tau_unprod_nodes_aem} compare the
+\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
 number of traversed unproductive nodes during query execution over a range of
 thresholds. As mentioned earlier, the values were recorded after $10^4$ update
 operations. We observe a decrease in unproductive nodes while increaseing
 threshold $\tau.$
-\Cref{fig:unprod_node_density_taus_synthetic,fig:unprod_node_density_taus_aem}
-\Cref{fig:tau_unprod_node_density_synthetic,fig:tau_unprod_node_density_aem}
 
 In conclusion, all observations verify hypotheses $H_4, H_5$ and $H_6$.
 Increasing volatility threshold $\tau$ decreases the number of unproductive
@@ -669,48 +765,36 @@ affecting unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_taus}
+    \includegraphics[width=8cm]{query_runtime_taus_synthetic}
     \caption{}
     \label{fig:query_runtime_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_taus}
+    \includegraphics[width=8cm]{query_runtime_taus_real}
     \caption{}
-    \label{fig:query_runtime_taus_aem}
+    \label{fig:query_runtime_taus_real}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
+    \includegraphics[width=8cm]{tau_query_runtime_synthetic}
     \caption{}
-    \label{fig:trav_unprod_nodes_taus_synthetic}
+    \label{fig:tau_query_runtime_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_taus}
+    \includegraphics[width=8cm]{tau_query_runtime_real}
     \caption{}
-    \label{fig:trav_unprod_nodes_taus_aem}
+    \label{fig:tau_query_runtime_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_taus}
-    \caption{}
-    \label{fig:unprod_node_density_taus_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_taus}
-    \caption{}
-    \label{fig:unprod_node_density_taus_aem}
-  \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$}
+\caption{Impact of Volatility Threshold $\tau$ on Query Execution Runtime}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -718,51 +802,36 @@ affecting unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_query_runtime}
+    \includegraphics[width=8cm]{trav_unprod_nodes_taus_synthetic}
     \caption{}
-    \label{fig:tau_query_runtime_synthetic}
+    \label{fig:trav_unprod_nodes_taus_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_query_runtime}
+    \includegraphics[width=8cm]{trav_unprod_nodes_taus_real}
     \caption{}
-    \label{fig:tau_query_runtime_aem}
+    \label{fig:trav_unprod_nodes_taus_real}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_unprod_nodes}
+    \includegraphics[width=8cm]{tau_trav_unprod_nodes_synthetic}
     \caption{}
-    \label{fig:tau_unprod_nodes_synthetic}
+    \label{fig:tau_trav_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_unprod_nodes}
+    \includegraphics[width=8cm]{tau_trav_unprod_nodes_real}
     \caption{}
-    \label{fig:tau_unprod_nodes_aem}
+    \label{fig:tau_trav_unprod_nodes_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{tau_unprod_node_density}
-    \caption{}
-    \label{fig:tau_unprod_node_density_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{tau_unprod_node_density}
-    \caption{}
-    \label{fig:tau_unprod_node_density_aem}
-  \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$ (cont.)}
-  \caption*{\footnotesize The values on the $y$ axis are observations derived from the $10000$th
-    update operation. }
-  \label{fig:volatility_threshold}
+  \caption{Impact of Volatility Threshold $\tau$ on Unproductive Nodes}
 \end{figure}
 
-\subsection{Sliding Window Length ($L$)}
+\subsection{Sliding Window Length $L$}
 
 Sliding window length $L$ determines the length of the recent workload that WAPI
 considers to compute an index node's volatility count. In this section, we study
@@ -778,16 +847,11 @@ An increase in $L$ yields an increase to the query execution runtime. More
 unproductive nodes should increase the number of nodes traversed
 during query execution and therefore increase query execution time.
 
-An increase in $L$ yields an increase to the unproductive node density during
-query exection. \textbf{Why?}
-
 \begin{shaded}
   \begin{itemize}
   \item[$H_6$:] An increase in $L$ yields an inrease to the query execution runtime. 
   \item[$H_7$:] An increase in $L$ yields an increase to the number of
     traversed unproductive nodes during query execution.
-  \item[$H_8$:] An increase in $L$ yields an increase to the unproductive node
-    density during query execution runtime.
   \end{itemize}
 \end{shaded}
 
@@ -799,48 +863,36 @@ query exection. \textbf{Why?}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_Ls}
+    \includegraphics[width=8cm]{query_runtime_Ls_synthetic}
     \caption{}
     \label{fig:query_runtime_Ls_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_Ls}
+    \includegraphics[width=8cm]{query_runtime_Ls_real}
     \caption{}
-    \label{fig:query_runtime_Ls_aem}
+    \label{fig:query_runtime_Ls_real}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \includegraphics[width=8cm]{L_query_runtime_synthetic}
     \caption{}
-    \label{fig:trav_unprod_nodes_Ls_synthetic}
+    \label{fig:L_query_runtime_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{traversed_unprod_nodes_Ls}
+    \includegraphics[width=8cm]{L_query_runtime_real}
     \caption{}
-    \label{fig:trav_unprod_nodes_Ls_aem}
+    \label{fig:L_query_runtime_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_Ls}
-    \caption{}
-    \label{fig:unprod_node_density_Ls_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{unprod_node_density_Ls}
-    \caption{}
-    \label{fig:unprod_node_density_Ls_aem}
-  \end{subfigure}
-  \caption{Impact of Sliding Window Length $L$}
+  \caption{Impact of Sliding Window Length $L$ on Query Execution Runtime}
 \end{figure}
 
-\begin{figure}[h]\ContinuedFloat
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -848,48 +900,33 @@ query exection. \textbf{Why?}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    AEM
+    Real World
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_query_runtime}
+    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_synthetic}
     \caption{}
-    \label{fig:L_query_runtime_synthetic}
+    \label{fig:trav_unprod_nodes_Ls_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_query_runtime}
+    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_real}
     \caption{}
-    \label{fig:L_query_runtime_aem}
+    \label{fig:trav_unprod_nodes_Ls_real}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_unprod_nodes}
+    \includegraphics[width=8cm]{L_trav_unprod_nodes_synthetic}
     \caption{}
-    \label{fig:L_unprod_nodes_synthetic}
+    \label{fig:L_trav_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_unprod_nodes}
+    \includegraphics[width=8cm]{L_trav_unprod_nodes_real}
     \caption{}
-    \label{fig:L_unprod_nodes_aem}
+    \label{fig:L_trav_unprod_nodes_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_unprod_node_density}
-    \caption{}
-    \label{fig:L_unprod_node_density_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_unprod_node_density}
-    \caption{}
-    \label{fig:L_unprod_node_density_aem}
-  \end{subfigure}
-  \caption{Impact of Sliding Window Length $L$ (cont.)}
-  \caption*{\footnotesize The values on the $y$ axis are observations derived from the $10000$th
-    update operation. }
-  \label{fig:sliding_window_length}
+  \caption{Impact of Sliding Window Length $L$ on Unproductive Nodes}
 \end{figure}
 
 \section{Periodic Garbage Collection (GC)}
