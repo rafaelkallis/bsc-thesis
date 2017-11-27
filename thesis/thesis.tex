@@ -22,6 +22,8 @@
 \usepackage{subcaption}
 \usepackage{cleveref}
 \usepackage{soul}
+\usepackage{float}
+\usepackage{wrapfig}
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
@@ -197,9 +199,9 @@ One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
-\begin{figure}[h]
+\begin{wrapfigure}{r}{0.5\textwidth}
   \begin{center}
-    \begin{tikzpicture}[scale=0.8,thick]
+    \begin{tikzpicture}[scale=0.7,thick]
 	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}}; \node
       (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_b)
       at (0, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_c) at (2, 2)
@@ -215,9 +217,9 @@ Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
     \end{tikzpicture}
   \end{center}
   % \vspace{-0.5cm}
-  \caption{Apache Jackrabbit Oak's system architecture}
+  \caption{Oak's system architecture}
   \label{fig:architecture}
-\end{figure}
+\end{wrapfigure}
 
 \subsection{Application Scenario}
 \label{sec:application_scenario}
@@ -428,17 +430,17 @@ volatile and they become unproductive.
   the only unproductive index nodes. \texttt{/i/pub/now/a/c/e} and
   \texttt{/i/pub/now/a/c} are the only volatile nodes in $G^3$.
 \end{example}
-\begin{figure}[h]
+\begin{figure}[H]
   \centering
   \begin{large}
-  $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
-  \xrightarrow{\quad T_3 \quad} G^3  $$
-\end{large}
+    $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
+    \xrightarrow{\quad T_3 \quad} G^3  $$
+  \end{large}
 
-\begin{subfigure}{0.24\textwidth}
-  \centering \tiny{
-    \begin{framed}
-      \begin{forest}
+  \begin{subfigure}{0.24\textwidth}
+    \centering \tiny{
+      \begin{framed}
+        \begin{forest}
         [
         [$\lambda$:$i$
         [,phantom]
@@ -576,39 +578,6 @@ volatile and they become unproductive.
 \label{fig:unproductive_nodes}
 \end{figure}
 
-\subsection{Impact on Query Execution Runtime}
-
-In this section we study and quantify the impact of unproductive nodes on
-query runtime. Informally, we call \textit{Query Runtime} the time
-needed for a query to finish processing. We hypothesize that unproductive nodes
-significantly slow down queries under a CMS workload. During query
-execution, traversing an unproductive node is
-useless, because neither the node itself nor any of its descendants are matching
-and therefore cannot contribute a query match.
-An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
-by unproductive nodes.
-
-We formalize the statements above into the following hypotheses:
-
-\begin{shaded}
-  \begin{itemize}
-  \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
-  \item[$H_2$:] Unproductive nodes significantly affect WAPI's average
-    query runtime under a CMS workload. 
-  \end{itemize}
-\end{shaded}
-
-In order to find supporting evindence for the hypotheses above, a series of
-experiments was conducted on Oak. The experimental evaluation and the used
-datasets will be described in a later section (\textbf{forward reference}). We
-recorded  the query execution runtime throughout the experiment and present the data below.
-
-\Cref{fig:query_runtime_synthetic,fig:query_runtime_real} show 
-query runtime from the synthetic and real world dataset respectively. 
-We observe an increase of the runtime from $2 ms$ to $38 ms$
-after running the simulation for $5$ minutes ($2 \cdot 10^4$ update operations)
-on the synthetic dataset.
-
 \begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
@@ -635,17 +604,47 @@ on the synthetic dataset.
   \label{fig:query_runtime}
 \end{figure}
 
-Next, we present data regarding the type of nodes encountered during index traversal while
-executing a query.
-\Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real} depict
-the number of traversed volatile and unproductive index nodes encountered during query
-execution from our datasets.
-Since the sliding window length $L$ is set to $30$ seconds, we encounter no
-unproductive nodes during the first $30$ seconds of the simulation. Once we
-reach the $30$ second mark, our queries encounter unproductive nodes. We observe
-two findings. First, we see a descend in volatile nodes. Second, we see a
-significant increase in unproductive nodes. Towards the end of the simulation,
-we observe the traversed nodes being dominated by unproductive nodes. 
+\subsection{Impact on Query Execution Runtime}
+
+In this section we study and quantify the impact of unproductive nodes on
+query runtime. Informally, we call \textit{Query Runtime} the time
+needed for a query to finish processing. We hypothesize that unproductive nodes
+significantly slow down queries under a CMS workload. During query
+execution, traversing an unproductive node is
+useless, because neither the node itself nor any of its descendants are matching
+and therefore cannot contribute a query match.
+An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
+by unproductive nodes.
+
+We formalize the statements above into the following hypotheses:
+
+\begin{shaded}
+  \begin{itemize}
+  \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
+  \item[$H_2$:] Unproductive nodes significantly affect WAPI's query runtime
+    under a CMS workload. 
+  \end{itemize}
+\end{shaded}
+
+In order to find supporting evidence for the hypotheses above, we conduct a series of
+experiments on Oak. The experimental evaluation and
+datasets will be described in a later section (\textbf{forward reference}). We
+record the query runtime throughout the experiment and present the data below.
+
+\subsubsection{Query Runtime}
+
+\Cref{fig:query_runtime_synthetic,fig:query_runtime_real} show 
+query runtime over time from the synthetic and real world dataset respectively. 
+Each point corresponds to the moving median over 10 time points.
+We observe an increase of the runtime from $2 ms$ to $50 ms$
+after running the simulation for $5$ minutes ($2.6 \cdot 10^4$ update operations)
+on the synthetic dataset and an increase from $2 ms$ to $35 ms$ ($2.5 \cdot
+10^4$ update operations) on the real world dataset.
+We also see the slope decrease over time. The identical phenomenon is observed
+in \Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real} respectively because
+query runtime depends on the number of nodes traversed during query execution,
+i.e the increase in query runtime is explained by the increase in total
+traversed nodes per query. 
 
 \begin{figure}[h]
   \centering
@@ -670,15 +669,67 @@ we observe the traversed nodes being dominated by unproductive nodes.
     \label{fig:trav_nodes_real}
   \end{subfigure}
   \caption{Index Structure during Query Execution}
+  \label{fig:trav_nodes}
 \end{figure}
 
-\Crefrange{fig:trav_node_ratio_synthetic}{fig:trav_node_ratio_real}
-show the ratio of volatile and unproductive nodes over time and update
-operations from our datasets. These figures quantify how strongly unproductive
-nodes dominate the traversed nodes. The data shows that unproductive nodes
-account for over $80\%$ of the traversed nodes whilst less than $20\%$ are volatile. 
-Interestingly, we see the ratios converging towards a value above
-$0.8$ and below $0.2$ respectively.
+\subsubsection{Index Structure}
+
+Next, we present data regarding the type of index nodes traversed during query
+execution.
+\Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real} depict
+the number of traversed volatile and unproductive index nodes during query
+execution for each dataset.
+
+The total number of traversed nodes is increasing over time but the rate of
+growth is decreasing. As time passes, more and more content nodes are randomly
+selected by the CMS workload and become volatile and, most likely, become
+unproductive and are not pruned from the index anymore.
+Therefore, the probability of picking a non-indexed content node
+decreases over time. Since it becomes less and less likely for a non-indexed content node
+to be randomly picked by the CMS workload, the rate of growth of total traversed
+index nodes decreases over time.
+
+The sliding window of length $L$ is set to $30$ seconds, therefore we encounter no
+unproductive nodes during the first $30$ seconds of the simulation. Once we
+reach the $30$ second mark, our queries encounter unproductive nodes.
+From that point, we observe a steep increase in traversed unproductive nodes.
+After $3$ minutes, we observe the traversed nodes being dominated by
+unproductive nodes. The rate of growth of traversed unproductive nodes seems to
+decrease over time, which can be explained by the same rationale that cause the
+decrease of the rate of growth of total index nodes.
+
+Additionally, we observe a
+cycloid shaped curve. In \Cref{fig:trav_nodes_synthetic}, each cusp ($30, 60,
+\dots, 300 s$) represents a point in which the workload changes during the
+experiment. When the workload changes, we initially see a steep increase in
+unproductive nodes. During that phase, more nodes cease to be volatile than
+become volatile. Nodes need to reach the threshold in order to become volatile
+and relatively few do, since the skew in he workload only picks a subset of
+nodes frequently. Before a new workload kicks in, we observe the opposite
+phenomenon. More nodes become volatile than cease to be volatile, because many nodes are
+on the verge of becoming volatile and therefore need to be picked fewer times to
+become volatile in comparison to the time shortly after the workload kicked in. 
+
+The cycloid pattern observed in \Cref{fig:trav_nodes_synthetic} is less obvious
+in \Cref{fig:trav_nodes_real}. Our synthetic dataset resembles a complete binary
+tree and therefore has no skew. In comparison, the real world dataset is highly
+skewed. The skewness warps the shape of the curve inside single workloads,
+but does not significantly affect the monotonicity \textbf{(?)} of our function.
+We also suggest that the real world dataset's skewness accounts for the lower
+rate of growth of index nodes in comparison to the synthetic dataset's rate of
+growth of index nodes.
+
+Furthermore, we see the number of volatile nodes descend after the $30$
+second mark. We suggest that it becomes less likely for nodes to become volatile,
+as time passes. When a workload randomly picks a node whose index node is
+unproductive, the index
+node becomes matching but was not added, thus the volatility count of the node
+does increment. In comparison, if the index node would not exist, the created
+index node's volatility count would have been incremented. We infer that it is less
+likely for an unproductive node to become volatile than a non-indexed one.
+Wellenzohn et al. and our experimental evaluation suggest that the number of
+unproductive nodes increases over time. Therefore it becomes less likely for any
+node to become volatile over time. This explains the decreasing number of volatile nodes.
 
 \begin{figure}[h]
  \centering
@@ -702,45 +753,62 @@ $0.8$ and below $0.2$ respectively.
     \caption{}
     \label{fig:trav_node_ratio_real}
   \end{subfigure}
- \caption{Node Ratio during Query Execution}
+  \caption{Node Ratio during Query Execution}
+  \label{fig:trav_node_ratio}
 \end{figure}
 
+\newpage
+
+\Crefrange{fig:trav_node_ratio_synthetic}{fig:trav_node_ratio_real}
+show the ratio of volatile and unproductive nodes over time and update
+operations from our datasets. These figures quantify how strongly unproductive
+nodes dominate the traversed nodes. The data shows that unproductive nodes
+account for over $80\%$ of the traversed nodes whilst less than $20\%$ are
+volatile on the synthetic dataset, $90\%$ and $10\%$ on the real world dataset
+respectively.
+
+Concluding, the data strongly supports our hypotheses. We see the query runtime
+increase as the number of index nodes increases. We also see unproductive nodes
+being mostly accountable for the increase in index nodes. 
 In the following sections we will study the effect of \textit{Volatility
-  Threshold $\tau$} and \textit{Sliding Window Length $L$} on query execution runtime and
+  Threshold $\tau$} and \textit{Sliding Window Length $L$} on query runtime and
 unproductive nodes.
 
 \subsection{Volatility Threshold $\tau$}
 
 Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
 it becomes volatile (see \Cref{def:volatile_node}). In this section, we study the impact of
-volatility threshold $\tau$ on unproductive nodes and query execution runtime.
+volatility threshold $\tau$ on unproductive nodes and query runtime.
 
-We hypothesize that an increase in $\tau$ yields a decrease to the number of traversed unproductive
-nodes during query execution. If $\tau$ increases, it is less likely for a node to become
-volatile. Having less volatile nodes should imply a decrease in unproductive nodes.
+We hypothesize that an increase in $\tau$ yields a decrease to the number of
+traversed unproductive nodes during query execution under a CMS workload. If
+$\tau$ increases, it is
+less likely for a node to become volatile. Having less volatile nodes should
+imply a decrease in unproductive nodes.
 
-An increase in $\tau$ yields a decrease to the query execution runtime. Less
-unproductive nodes should decrease the number of nodes traversed
-during query execution and therefore decrease query execution runtime.
+An increase in $\tau$ yields a decrease to WAPI's query runtime under a CMS
+workload. Having less unproductive nodes in the index decrease the number of nodes traversed
+during query execution and therefore decrease query runtime.
 
 \begin{shaded}
   \begin{itemize}
   \item[$H_3$:] An increase in $\tau$ yields a decrease to the number of
-    traversed unproductive nodes during query execution.
-  \item[$H_4$:] An increase in $\tau$ yields a decrease to the query execution runtime. 
-    \end{itemize}
+    traversed unproductive nodes during WAPI's query execution under a CMS workload.
+  \item[$H_4$:] An increase in $\tau$ yields a decrease to WAPI's query runtime
+    under a CMS workload. 
+  \end{itemize}
 \end{shaded}
 
-The same experiment was conducted under a varying volatility threshold. The
-results seem to verify our hypotheses.
+We conduct the same experiment under a varying volatility threshold. The
+results verify our hypotheses.
 \Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_real} show
-various thresholds $\tau \in \{1,5,10\}$ affecting query execution runtime
+various thresholds $\tau \in \{1,5,10\}$ affecting query runtime
 over update operations. We observe that a lower threshold $\tau$ results in a
 steeper slope.
 \Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_real} compare query
-execution runtime over a range of thresholds. The values picked correspond to
-the query execution runtime after $10^4$ update operations.
-We observe a decrease in query execution runtime while increasing threshold $\tau$.
+runtime over a range of thresholds. The values picked correspond to
+the query runtime after $10^4$ update operations.
+We observe a decrease in query runtime while increasing threshold $\tau$.
 \Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
 depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
 nodes traversed during query execution over update operations. We observe lower
@@ -791,7 +859,7 @@ affecting unproductive nodes.
     \caption{}
     \label{fig:tau_query_runtime_real}
   \end{subfigure}
-\caption{Impact of Volatility Threshold $\tau$ on Query Execution Runtime}
+\caption{Impact of Volatility Threshold $\tau$ on Query Runtime}
 \end{figure}
 
 \begin{figure}[h]
@@ -818,13 +886,13 @@ affecting unproductive nodes.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_trav_unprod_nodes_synthetic}
+    \includegraphics[width=8cm]{tau_unprod_nodes_synthetic}
     \caption{}
     \label{fig:tau_trav_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{tau_trav_unprod_nodes_real}
+    \includegraphics[width=8cm]{tau_unprod_nodes_real}
     \caption{}
     \label{fig:tau_trav_unprod_nodes_real}
   \end{subfigure}
@@ -836,20 +904,20 @@ affecting unproductive nodes.
 Sliding window length $L$ determines the length of the recent workload that WAPI
 considers to compute an index node's volatility count. In this section, we study
 the effect of sliding window length $L$ on unproductive nodes and query
-execution runtime.
+runtime.
 
-We hyptothesize that an increase in $L$ yields an increase to the number of
+We hypothesize that an increase in $L$ yields an increase to the number of
 traversed unproductive nodes during query execution. If $L$ increases, it is
 more likely for a node to become volatile. Having more volatile nodes should
 imply an increase in unproductive nodes.
 
-An increase in $L$ yields an increase to the query execution runtime. More
+An increase in $L$ yields an increase to the query runtime. More
 unproductive nodes should increase the number of nodes traversed
-during query execution and therefore increase query execution time.
+during query execution and therefore increase query runtime.
 
 \begin{shaded}
   \begin{itemize}
-  \item[$H_6$:] An increase in $L$ yields an inrease to the query execution runtime. 
+  \item[$H_6$:] An increase in $L$ yields an increase to the query runtime. 
   \item[$H_7$:] An increase in $L$ yields an increase to the number of
     traversed unproductive nodes during query execution.
   \end{itemize}

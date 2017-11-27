@@ -31,7 +31,9 @@
     "caption"
     "subcaption"
     "cleveref"
-    "soul")
+    "soul"
+    "float"
+    "wrapfig")
    (LaTeX-add-labels
     "fig:architecture"
     "sec:application_scenario"
@@ -47,8 +49,10 @@
     "fig:query_runtime"
     "fig:trav_nodes_synthetic"
     "fig:trav_nodes_real"
+    "fig:trav_nodes"
     "fig:trav_node_ratio_synthetic"
     "fig:trav_node_ratio_real"
+    "fig:trav_node_ratio"
     "fig:query_runtime_taus_synthetic"
     "fig:query_runtime_taus_real"
     "fig:tau_query_runtime_synthetic"
