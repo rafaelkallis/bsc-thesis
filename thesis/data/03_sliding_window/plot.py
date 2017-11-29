@@ -60,18 +60,18 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("trav_unprod_nodes_Ls_{}.pdf".format(dataset))
     clf()
 
-    Ls = sorted(list(data.keys()))
+    Ls = np.array(sorted(list(data.keys())))
 
-    xlabel("Sliding Window of Length L")
+    xlabel("Sliding Window of Length L [s]")
     ylabel("Avg. Query Runtime [ms]")
-    plot(Ls, [median(data[L]["query_runtime"][995:1005]) for L in Ls], linestyle="-", marker="o")
+    plot(Ls/1000, [median(data[L]["query_runtime"][995:1005]) for L in Ls], linestyle="-", marker="o")
     # ylim(ymax=190)
     savefig("L_query_runtime_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Sliding Window of Length L")
+    xlabel("Sliding Window of Length L [s]")
     ylabel("Traversed Unproductive Nodes [1k]")
-    plot(Ls, [median(data[L]["trav_unprod"][995:1005]/1000) for L in Ls], linestyle="-", marker="o")
+    plot(Ls/1000, [median(data[L]["trav_unprod"][995:1005]/1000) for L in Ls], linestyle="-", marker="o")
     # ylim(ymax=40)
     savefig("L_unprod_nodes_{}.pdf".format(dataset))
     clf()
