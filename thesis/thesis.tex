@@ -95,18 +95,17 @@
 \begin{document}
 
 \maketitle
-
+\thispagestyle{empty}
 % \chapter*{Acknowledgements}
 
 % \chapter*{Zusammenfassung}
+\newpage\null\thispagestyle{empty}\newpage
 
-\newpage
-
-% \tableofcontents
+\tableofcontents
 \listoffigures
 % \listoftables
 
-\newpage
+\newpage\null\thispagestyle{empty}\newpage
 
 % \begin{abstract}
 %   Frequently adding and removing data from hierarchical indexes causes them to
@@ -199,9 +198,10 @@ One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 
-\begin{wrapfigure}{r}{0.5\textwidth}
+% \begin{wrapfigure}{r}{0.5\textwidth}
+\begin{figure}[h]
   \begin{center}
-    \begin{tikzpicture}[scale=0.7,thick]
+    \begin{tikzpicture}[scale=0.8,thick]
 	    \node (mongo) at (0, 0) {\includegraphics[width = 0.7cm]{MONGO}}; \node
       (oak_a) at (-2, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_b)
       at (0, 2) {\includegraphics[width = 0.7cm]{OAK}}; \node (oak_c) at (2, 2)
@@ -219,7 +219,8 @@ Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
   % \vspace{-0.5cm}
   \caption{Oak's system architecture}
   \label{fig:architecture}
-\end{wrapfigure}
+  % \end{wrapfigure}
+\end{figure}
 
 \subsection{Application Scenario}
 \label{sec:application_scenario}
@@ -345,7 +346,7 @@ node $*n$ must have path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\
 As mentioned in \Cref{sec:application_scenario}, the CMS workload has certain
 properties. From the workload we can infer that the index subtree has a small number of
 matching nodes relative to the content subtree. The index is
-\textbf{(mainly ?)} used to signal pending jobs to the background thread using
+ used to signal pending jobs to the background thread using
 the ``pub'' property. Assuming jobs are processed by
 the background thead faster and removed from the index than they are created,
 the number of matching nodes should be close to $0$.  
@@ -410,28 +411,9 @@ the same absolute path from the root node.
   \label{ex:volatile_node}
 \end{example}
 
-\section{Unproductive Nodes}
-
-When time passes and the database workload changes, volatile nodes cease to be
-volatile and they become unproductive.
-
-\begin{definition}[Unproductive Node]
-  Index node $n$ is unproductive iff $n$, and any descendant of
-  $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
-  \Cref{def:volatile_node}), i.e
-  $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
-  (matching(m) \lor volatile(m)))$$
-\end{definition}
-
-\begin{example}
-  In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
-  property ``pub'' = ``now'' to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
-  $t(G^3) = t+3$. \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} are
-  the only unproductive index nodes. \texttt{/i/pub/now/a/c/e} and
-  \texttt{/i/pub/now/a/c} are the only volatile nodes in $G^3$.
-\end{example}
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
+
   \begin{large}
     $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
     \xrightarrow{\quad T_3 \quad} G^3  $$
@@ -578,31 +560,32 @@ volatile and they become unproductive.
 \label{fig:unproductive_nodes}
 \end{figure}
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Real World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_synthetic}
-    \caption{}
-    \label{fig:query_runtime_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_real}
-    \caption{}
-    \label{fig:query_runtime_real}
-  \end{subfigure}
-  \caption{Query Runtime over time}
-  \label{fig:query_runtime}
-\end{figure}
+\section{Unproductive Nodes}
+
+When time passes and the database workload changes, volatile nodes cease to be
+volatile and they become unproductive. Unproductive index nodes slow down
+queries as traversing an unproductive node is useless, because neither the node
+itself nor any of its descendants contain an indexed property and thus cannot
+yield a query match. Additionally, unproductive nodes occupy storage space that
+could otherwise be reclaimed. If the workload changes frequently, unproductive
+nodes quickly accumulate in the index and the query performance deteriorates
+over time \cite{KW17}.
+
+\begin{definition}[Unproductive Node]
+  Index node $n$ is unproductive iff $n$, and any descendant of
+  $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
+  \Cref{def:volatile_node}), i.e
+  $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
+  (matching(m) \lor volatile(m)))$$
+\end{definition}
+
+\begin{example}
+  In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
+  property ``pub'' = ``now'' to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
+  $t(G^3) = t+3$. \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} are
+  the only unproductive index nodes. \texttt{/i/pub/now/a/c/e} and
+  \texttt{/i/pub/now/a/c} are the only volatile nodes in $G^3$.
+\end{example}
 
 \subsection{Impact on Query Execution Runtime}
 
@@ -631,7 +614,31 @@ experiments on Oak. The experimental evaluation and
 datasets will be described in a later section (\textbf{forward reference}). We
 record the query runtime throughout the experiment and present the data below.
 
-\subsubsection{Query Runtime}
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_synthetic}
+    \caption{}
+    \label{fig:query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_real}
+    \caption{}
+    \label{fig:query_runtime_real}
+  \end{subfigure}
+  \caption{Query Runtime over time}
+  \label{fig:query_runtime}
+\end{figure}
 
 \Cref{fig:query_runtime_synthetic,fig:query_runtime_real} show 
 query runtime over time from the synthetic and real world dataset respectively. 
@@ -646,7 +653,7 @@ query runtime depends on the number of nodes traversed during query execution,
 i.e the increase in query runtime is explained by the increase in total
 traversed nodes per query. 
 
-\begin{figure}[h]
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -671,8 +678,6 @@ traversed nodes per query.
   \caption{Index Structure during Query Execution}
   \label{fig:trav_nodes}
 \end{figure}
-
-\subsubsection{Index Structure}
 
 Next, we present data regarding the type of index nodes traversed during query
 execution.
@@ -731,7 +736,7 @@ Wellenzohn et al. and our experimental evaluation suggest that the number of
 unproductive nodes increases over time. Therefore it becomes less likely for any
 node to become volatile over time. This explains the decreasing number of volatile nodes.
 
-\begin{figure}[h]
+\begin{figure}
  \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -756,8 +761,6 @@ node to become volatile over time. This explains the decreasing number of volati
   \caption{Node Ratio during Query Execution}
   \label{fig:trav_node_ratio}
 \end{figure}
-
-\newpage
 
 \Crefrange{fig:trav_node_ratio_synthetic}{fig:trav_node_ratio_real}
 show the ratio of volatile and unproductive nodes over time and update
@@ -792,10 +795,10 @@ during query execution and therefore decrease query runtime.
 
 \begin{shaded}
   \begin{itemize}
-  \item[$H_3$:] An increase in $\tau$ yields a decrease to the number of
-    traversed unproductive nodes during WAPI's query execution under a CMS workload.
-  \item[$H_4$:] An increase in $\tau$ yields a decrease to WAPI's query runtime
+  \item[$H_3$:] An increase in $\tau$ yields a decrease to WAPI's query runtime
     under a CMS workload. 
+  \item[$H_4$:] An increase in $\tau$ yields a decrease to the number of
+    traversed unproductive nodes during WAPI's query execution under a CMS workload.
   \end{itemize}
 \end{shaded}
 
@@ -815,27 +818,7 @@ updated and become unproductive. The increase in unproductive nodes in the index
 directly affects query runtime because Oak has to traverse these nodes during
 query execution.
 
-\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
-depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
-nodes traversed during query execution over update operations. We observe lower
-thresholds $\tau$ yielding in a steeper slope.
-\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
-number of traversed unproductive nodes during query execution over a range of
-thresholds. We observe a decrease in unproductive nodes while increasing
-threshold $\tau$. As suggested earlier, a lower volatility threshold
-increases the amount of volatile nodes in the index. Volatile nodes eventually
-cease to be volatile and become unproductive.
-
-Summarizing, all observations verify hypotheses $H_3$ and $H_4$.
-Increasing volatility threshold $\tau$ decreases the number of unproductive
-nodes traversed which decreases query runtime. Increasing the volatility
-threshold causes less nodes become volatile. Since we create less volatile
-nodes, we also reduce the number of unproductive nodes. Less unproductive
-nodes yield lower WAPI query runtimes. Another factor affecting the rate of
-growth of unproductive nodes is sliding window of length $L$. The following
-section addresses the effects of the sliding window.
-
-\begin{figure}[h]
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -872,7 +855,18 @@ section addresses the effects of the sliding window.
 \caption{Impact of Volatility Threshold $\tau$ on Query Runtime}
 \end{figure}
 
-\begin{figure}[h]
+\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
+depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
+nodes traversed during query execution over update operations. We observe lower
+thresholds $\tau$ yielding in a steeper slope.
+\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
+number of traversed unproductive nodes during query execution over a range of
+thresholds. We observe a decrease in unproductive nodes while increasing
+threshold $\tau$. As suggested earlier, a lower volatility threshold
+increases the amount of volatile nodes in the index. Volatile nodes eventually
+cease to be volatile and become unproductive.
+
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -909,31 +903,57 @@ section addresses the effects of the sliding window.
   \caption{Impact of Volatility Threshold $\tau$ on Unproductive Nodes}
 \end{figure}
 
-\subsection{Sliding Window Length $L$}
+Summarizing, all observations verify hypotheses $H_3$ and $H_4$.
+Increasing volatility threshold $\tau$ decreases the number of unproductive
+nodes traversed which decreases query runtime. Increasing the volatility
+threshold causes less nodes become volatile. Since we create less volatile
+nodes, we also reduce the number of unproductive nodes. Less unproductive
+nodes yield lower WAPI query runtimes. Another factor affecting the rate of
+growth of unproductive nodes is sliding window of length $L$. The following
+section addresses the effects of the sliding window.
 
-Sliding window length $L$ determines the length of the recent workload that WAPI
-considers to compute an index node's volatility count. In this section, we study
-the effect of sliding window length $L$ on unproductive nodes and query
-runtime.
+\subsection{Sliding Window of Length $L$}
+
+Sliding window of length $L$ determines the length of the recent workload that WAPI
+considers to compute an index node's volatility count. Greater values of $L$
+allow WAPI to consider more updates and therefore increase the chances of a node
+becoming volatile. In this section, we study
+the effect of the sliding window on unproductive nodes and query runtime.
 
 We hypothesize that an increase in $L$ yields an increase to the number of
 traversed unproductive nodes during query execution. If $L$ increases, it is
-more likely for a node to become volatile. Having more volatile nodes should
-imply an increase in unproductive nodes.
+more likely for a node to become volatile, since more updates are considered
+towards the volatility count.
+Having more volatile nodes should imply an increase in unproductive nodes.
 
-An increase in $L$ yields an increase to the query runtime. More
-unproductive nodes should increase the number of nodes traversed
+We also suggest that an increase in $L$ yields an increase to the query runtime.
+More unproductive nodes should increase the number of unproductive nodes traversed
 during query execution and therefore increase query runtime.
 
 \begin{shaded}
   \begin{itemize}
-  \item[$H_6$:] An increase in $L$ yields an increase to the query runtime. 
-  \item[$H_7$:] An increase in $L$ yields an increase to the number of
-    traversed unproductive nodes during query execution.
+  \item[$H_5$:] An increase in $L$ yields an increase to WAPI's query runtime
+    under a CMS workload. 
+  \item[$H_6$:] An increase in $L$ should increase the number of unproductive
+    nodes WAPI traverses during query execution under a CMS workload.
   \end{itemize}
 \end{shaded}
 
-\begin{figure}[h]
+We conduct our experiment with a varying sliding window length and present our
+observations below.
+
+\Cref{fig:query_runtime_Ls_synthetic,fig:query_runtime_Ls_real} show WAPI's average
+query runtime over update operations with sliding window of length $L \in \{10, 20,
+30\}$ seconds.
+\Cref{fig:L_query_runtime_synthetic,fig:L_query_runtime_real} depict query
+runtime with respect to the sliding window length. 
+We see queries being executed by a WAPI with a greater sliding
+window length to have greater runtimes on average. By increasing the sliding
+window, we increase the likelihood of a node becoming volatile. More volatile
+nodes result in an increase in unproductive nodes. Since the WAPI has to traverse
+more unproductive nodes during query execution, the query runtime increases.
+
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -967,10 +987,17 @@ during query execution and therefore increase query runtime.
     \caption{}
     \label{fig:L_query_runtime_real}
   \end{subfigure}
-  \caption{Impact of Sliding Window Length $L$ on Query Execution Runtime}
+  \caption{Impact of Sliding Window of length $L$ on Query Runtime}
 \end{figure}
 
-\begin{figure}[h]
+
+\Cref{fig:trav_unprod_nodes_Ls_synthetic,fig:trav_unprod_nodes_Ls_real} show the
+number of unproductive nodes the WAPI has traversed during query execution. As
+expected, we observe greater sliding window lengths to cause an increase to the
+rate of growth of unproductive nodes traversed by WAPI during query execution.
+More volatile nodes imply an increase in unproductive nodes in the index.
+
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -994,22 +1021,162 @@ during query execution and therefore increase query runtime.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_trav_unprod_nodes_synthetic}
+    \includegraphics[width=8cm]{L_unprod_nodes_synthetic}
     \caption{}
     \label{fig:L_trav_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{L_trav_unprod_nodes_real}
+    \includegraphics[width=8cm]{L_unprod_nodes_real}
     \caption{}
     \label{fig:L_trav_unprod_nodes_real}
   \end{subfigure}
   \caption{Impact of Sliding Window Length $L$ on Unproductive Nodes}
 \end{figure}
 
+Concluding, we see sliding window of length $L$ to be affecting query runtime.
+Increasing $L$ does increase the likelihood of an index node become volatile.
+More volatile nodes cause an increase in unproductive index nodes. Since the
+WAPI has to traverse more index nodes during query execution, its query runtime
+increases.
+
 \section{Periodic Garbage Collection (GC)}
 
+In the previous section, we saw how unproductive nodes slow down query
+execution. To prevent unproductive nodes from accumulating in the index, we
+clean the index periodically. Oak has a number of background processes that
+maintain the database. We add a background job that periodically executes
+garbage collection on Oak.
+
+\Cref{algo:periodic_gc_wapi} takes an index node $n$ as parameter and prunes all
+its unproductive descendants depth-first. The algorithm recursively traverses
+the subtree rooted in $n$. If $n$ is a leaf node, is not matching and is not
+volatile, it is pruned from the index. The depth-first tree traversal ensures
+that the algorithm prunes a child before its parent node. This guarantees that
+all unproductive nodes are pruned.
+
+\begin{algorithm}
+  \caption{CleanIndexWAPI}
+  \DontPrintSemicolon
+  \KwData{Index node $n$}
+  % \vspace{2.6mm}
+  \For{$c \in chd(n)$}{
+    CleanIndexWAPI($c$)\;
+  }
+  \If{$leaf(n) \land \neg matching(n) \land \neg volatile(n)$}{
+    delete node $n$\;
+  }
+  \label{algo:periodic_gc_wapi}
+\end{algorithm}
+
+\begin{figure}[h]
+  \centering
+
+  \begin{large}
+    $$ G^0 \xrightarrow{\quad T_1 \quad} G^1$$
+  \end{large}
+
+\begin{subfigure}{0.30\textwidth}
+  \centering \footnotesize{}{
+    \begin{framed}
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
+        ]
+        ]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^0$ }
+\end{subfigure}
+\begin{subfigure}{0.30\textwidth}
+  \centering \footnotesize{
+    \begin{framed}
+      \begin{forest}
+        [
+        [$\lambda$:$i$
+        [$\lambda$:pub
+        [$\lambda$:now
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [,phantom]
+        [,phantom]
+        ]
+        ]
+        ]
+        ]
+        [$\lambda$:$a$
+        [$\lambda$:$b$
+        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        ]
+        [$\lambda$:$c$
+        [$\lambda$:$e$]
+        ]
+        ]
+        ]
+      \end{forest}
+    \end{framed}
+  } \footnotesize{ Snapshot $G^1$ }
+\end{subfigure}
+
+\vspace{3mm}
+\caption*{
+  Assume nodes \texttt{/i/pub/now/a/c/e} and \texttt{i/pub/now/a/c} are
+  unproductive in snapshot $G^0$. Transaction $T_1$ is executed by the periodic
+  garbage collector.
+}
+\caption{Garbage collection applied on Oak}
+\label{fig:periodic_gc}
+\end{figure}
+
+
 \section{Query Time Pruning (QTP)}
+
+\begin{algorithm}
+  \caption{QueryQTP}
+  \DontPrintSemicolon
+  \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
+  \KwResult{A set of nodes satisfying $Q(k,v,m)$}
+  $r \longleftarrow \emptyset$\;
+  \For{$c \in chd(m)$}{
+    $r \longleftarrow r \cup \text{QueryQTP}(k,v,c)$
+    % \If{$n[k] = v$}{
+      % $r \longleftarrow r \cup \{ *n \}$\;
+    % }
+  }
+  $n \longleftarrow \texttt{/i/k/v/m}$\;
+  \If{index node $n$ exists}{
+    \uIf{$matching(n)$}{
+      $r \longleftarrow r \cup \{m\}$\;
+    }
+    \ElseIf{$leaf(n) \land \neg volatile(n)$}{
+      delete node $n$\;
+    }
+  }
+  \Return{r}\;
+  \label{algo:query_qtp_wapi}
+\end{algorithm}
 
 \section{Experimental Evaluation}
 

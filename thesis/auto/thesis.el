@@ -68,7 +68,10 @@
     "fig:trav_unprod_nodes_Ls_synthetic"
     "fig:trav_unprod_nodes_Ls_real"
     "fig:L_trav_unprod_nodes_synthetic"
-    "fig:L_trav_unprod_nodes_real")
+    "fig:L_trav_unprod_nodes_real"
+    "algo:periodic_gc_wapi"
+    "fig:periodic_gc"
+    "algo:query_qtp_wapi")
    (LaTeX-add-environments
     "centerverbatim")
    (LaTeX-add-bibliographies)
