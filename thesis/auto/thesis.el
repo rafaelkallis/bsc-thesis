@@ -71,7 +71,15 @@
     "fig:L_trav_unprod_nodes_real"
     "algo:periodic_gc_wapi"
     "fig:periodic_gc"
-    "algo:query_qtp_wapi")
+    "algo:query_qtp_wapi"
+    "fig:java_qtp"
+    "fig:java_node"
+    "fig:java_bottom_up"
+    "fig:java_map"
+    "fig:java_filter"
+    "fig:java_get_node"
+    "fig:java_split"
+    "fig:java_truncate")
    (LaTeX-add-environments
     "centerverbatim")
    (LaTeX-add-bibliographies)

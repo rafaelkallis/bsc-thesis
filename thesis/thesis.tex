@@ -1060,14 +1060,32 @@ all unproductive nodes are pruned.
   \DontPrintSemicolon
   \KwData{Index node $n$}
   % \vspace{2.6mm}
-  \For{$c \in chd(n)$}{
-    CleanIndexWAPI($c$)\;
-  }
-  \If{$leaf(n) \land \neg matching(n) \land \neg volatile(n)$}{
-    delete node $n$\;
+  \For{node $d \in desc(n)$ in bottom-up fashion}{
+    \If{$chd(d) = \emptyset \land \neg matching(d) \land \neg volatile(d)$}{
+      delete node $d$\;
+    }
   }
   \label{algo:periodic_gc_wapi}
 \end{algorithm}
+
+\begin{figure}
+\begin{verbatim}
+/**
+ * Removes any unproductive descendant of index node n.
+ */
+void cleanIndexWAPI(NodeState n) {
+    for (Node node : filter(
+            (Node n) -> n.getState().getChildNodeCount(1) == 0 &&
+                        !n.getState().getBoolean("match") &&
+                        !n.getState().isVolatile()
+            ),
+            bottomUp(n)
+    ) {
+        node.getState().builder().remove();
+    }
+}
+\end{verbatim}
+\end{figure}
 
 \begin{figure}[h]
   \centering
@@ -1077,7 +1095,7 @@ all unproductive nodes are pruned.
   \end{large}
 
 \begin{subfigure}{0.30\textwidth}
-  \centering \footnotesize{}{
+  \centering \scriptsize{
     \begin{framed}
       \begin{forest}
         [
@@ -1109,7 +1127,7 @@ all unproductive nodes are pruned.
   } \footnotesize{ Snapshot $G^0$ }
 \end{subfigure}
 \begin{subfigure}{0.30\textwidth}
-  \centering \footnotesize{
+  \centering \scriptsize{
     \begin{framed}
       \begin{forest}
         [
@@ -1159,24 +1177,78 @@ all unproductive nodes are pruned.
   \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a node.}
   \KwResult{A set of nodes satisfying $Q(k,v,m)$}
   $r \longleftarrow \emptyset$\;
-  \For{$c \in chd(m)$}{
-    $r \longleftarrow r \cup \text{QueryQTP}(k,v,c)$
-    % \If{$n[k] = v$}{
-      % $r \longleftarrow r \cup \{ *n \}$\;
-    % }
-  }
   $n \longleftarrow \texttt{/i/k/v/m}$\;
-  \If{index node $n$ exists}{
-    \uIf{$matching(n)$}{
-      $r \longleftarrow r \cup \{m\}$\;
+  \For{node $d \in desc(n)$ in bottom-up fashion}{
+    \uIf{$matching(d)$}{
+      $r \longleftarrow r \cup \{ *d \}$\;
     }
-    \ElseIf{$leaf(n) \land \neg volatile(n)$}{
-      delete node $n$\;
+    \ElseIf{$chd(d) = \emptyset \land \neg volatile(d)$}{
+      delete node $d$
     }
   }
   \Return{r}\;
   \label{algo:query_qtp_wapi}
 \end{algorithm}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Answers a CAS Query and prunes traversed unproductive index nodes.
+ *
+ * @param k: Property
+ * @param v: Value
+ * @param m: path of content node in which we execute the query
+ * @param store: Oak's database interface
+ * @returns an iterable with content paths satisfying the CAS query
+ */
+Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
+    String indexRootPath = join(
+        OAK_INDEX_PREFIX,
+        k,
+        OAK_INDEX_INTERNAL,
+        v
+    ); 
+    String targetNodePath = join(indexRootPath, m);
+    NodeState targetNode = getNode(targetNodePath, store);
+    return map(
+        (Node node)-> truncate(indexRootPath, node.getPath()),
+        filter(
+            (Node node) -> {
+                boolean matching = node.getState().getBoolean("match");
+                if (node.getState().getChildNodeCount(1) == 0 &&
+                    !matching &&
+                    !node.getState().isVolatile()
+                ) {
+                    node.getState().builder().remove();
+                }
+                return matching;
+            },
+            bottomUp(targetNode, targetNodePath)
+        );
+    );
+}
+\end{verbatim}
+    %   postOrder(
+    %     targetNode,
+    %     targetNodePath,
+    %     (NodeState n, String path) -> {
+    %         boolean matching = n.getBoolean("matching");
+    %         if (n.getChildNodeCount(1) == 0 &&
+    %             !matching &&
+    %             !n.isVolatile()
+    %         ) {
+    %             n.builder().remove();
+    %         } else if (matching) {
+    %             result.add(truncate(indexRootPath, path));
+    %         }
+    %     }
+    % );
+    % return result;
+
+  \caption{Java implementation of QTP}
+  \label{fig:java_qtp}
+\end{figure}
 
 \section{Experimental Evaluation}
 
@@ -1190,6 +1262,241 @@ all unproductive nodes are pruned.
 % changing Workload
 
 % parameters
+
+\section{Appendix}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Node class containing information about a node's state,
+ * path and depth. 
+ */
+class Node {
+    private NodeState state;
+    private String path;
+    private Integer depth;
+    Node(NodeState state, String path) {
+        this.state = state;
+        this.path = path;
+    }
+    NodeState getState() {
+        return state;
+    }
+    String getPath() {
+        return path;
+    }
+    Integer getDepth() {
+        if (depth == null) {
+            depth = path.length() - path.replace("/","").length();
+        }
+        return depth;
+    }
+}
+\end{verbatim}
+  \caption{\texttt{Node} class implementation}
+  \label{fig:java_node}
+\end{figure}
+
+% \begin{figure}
+%   \centering
+% \begin{verbatim}
+% /**
+%  * Applies given function to all descendants of node n in post-order fashion
+%  *
+%  * @param n: Node to apply traversal on
+%  * @param path: Path of node
+%  * @param func: function to be applied on nodes
+%  */
+% void postOrder(NodeState n, String path, BiConsumer<NodeState, String> func) {
+%     for (String lambda : n.getChildNodeNames()) {
+%         NodeState child = n.getChildNode(lambda);
+%         postOrder(child, join(path, lambda), func);
+%     }
+%     func.accept(n, path);
+% }
+% \end{verbatim}
+%   \caption{\texttt{postOrder()} implementation}
+%   \label{fig:java_post_order}
+% \end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Returns an iterable which lazily traverses a subtree rooted at n
+ * in a bottomUp fashion.
+ *
+ * @param n: Node to apply traversal on
+ * @returns: iterable for tree traversal
+ */
+Iterable<Node> bottomUp(Node n) {
+    return () -> {
+        Deque<Node> s1 = new LinkedList();
+        Deque<Node> s2 = new LinkedList();
+        s1.push(n);
+        return new Iterator<Node>() {
+            @Override
+            public boolean hasNext() {
+                return s1.size() > 0 || s2.size() > 0;
+            }
+            @Override
+            public Node next() {
+                while (s1.size() > 0 && (s2.size() == 0 || 
+                          s1.peek().getDepth() > s2.peek().getDepth())
+                ) {
+                    Node n = s1.pop();
+                    s2.push(n);
+                    for (ChildNodeEntry child : n.getChildNodeEntries()) {
+                        s1.push(new Node(
+                            child.getNodeState(),
+                            join(n.path(), child.getName())
+                        ));
+                    }
+                }
+                return s2.pop();
+            }          
+        }
+    }
+}
+
+Iterable<Node> bottomUp(NodeState n) { return bottomUp(new Node(n, "/")); }
+\end{verbatim}
+  \caption{\texttt{bottomUp()} implementation}
+  \label{fig:java_bottom_up}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Higher order function that applies func to each element of iterable.
+ *
+ * @param func: The function to apply on each element of iterable
+ * @param iterable: The iterable func is applied on
+ * @returns: An iterable with the resulting elements of the application
+ */
+Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
+    return () -> {
+        Iterator<T> iterator = iterable.iterator();
+        return new Iterator<R>() {
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            
+            }
+            @Override
+            public R next() {
+                return func.apply(iterator.next());
+            }
+        }
+    }
+}
+\end{verbatim}
+  \caption{\texttt{map()} implementation}
+  \label{fig:java_map}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Higher order function that removes all elements from an iterable
+ * not satisfying the predicate.
+ *
+ * @param predicate: The predicate that tests elements
+ * @param iterable: The iterable whose members are tested against
+ * @returns: An iterable with members satisfying the predicate
+ */
+Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
+    return () -> {
+        Iterator<T> iterator = iterable.iterator();
+        return new Iterator<T>() {
+            private T cur = null;
+            @Override
+            public boolean hasNext() {
+                nextIfNeeded();
+                return cur != null; 
+            }
+            @Override
+            public T next() {
+                nextIfNeeded();
+                T tmp = cur;
+                cur = null;
+                return tmp;
+            }
+            @Override
+            private void nextIfNeeded() {
+                while (cur == null && iterator.hasNext()) {
+                    T candidate = iterator.next();
+                    if (predicate.test(candidate)) {
+                        cur = candidate;
+                    }
+                }
+            }
+        }
+    }
+}
+\end{verbatim}
+  \caption{\texttt{filter()} implementation}
+  \label{fig:java_filter}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Fetches a node given its path
+ *
+ * @param path: the node's path
+ * @param store: Oak's database interface
+ * @returns the node with the given path
+ */
+NodeState getNode(String path, NodeStore store) {
+    NodeState n = store.getRoot();
+    for (String lambda : split(path)) {
+        n = n.getChildNode(lambda);
+    }
+}
+\end{verbatim}
+  \caption{\texttt{getNode()} implementation}
+  \label{fig:java_get_node}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Splits a path
+ */
+String[] split(String path) {
+    if (path.startsWith("/")) {
+        path = path.substring(1);
+    }
+    if (path.endsWith("/")) {
+        path = path.substring(0, path.length - 1);
+    }
+    return path.split("/");
+}
+\end{verbatim}
+  \caption{\texttt{split()} implementation}
+  \label{fig:java_split}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{verbatim}
+/**
+ * Truncates a given prefix from a string
+ */
+String truncate(String prefix, String original) {
+    if (!original.startsWith(prefix)) { throw new RuntimeError(); }
+    return original.substring(prefix.length);
+} 
+\end{verbatim}
+  \caption{\texttt{truncate()} implementation}
+  \label{fig:java_truncate}
+\end{figure}
 
 \newpage
 
