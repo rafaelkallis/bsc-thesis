@@ -15,7 +15,7 @@
 \usepackage{multicol}
 \usepackage{varwidth}
 \usepackage{verbatim}
-%\usepackage{minted}
+\usepackage{minted}
 \usepackage{framed}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{caption}
@@ -233,9 +233,9 @@ These workloads have distinct properties: they are \textit{skewed},
 Consider a social media feed as a running example. When
 browsing the feed, more recent posts are displayed first, therefore creating a
 skewed workload. Users submit new posts or interact with existing posts by
-writting comments for example, creating an update-heavy workload. As time
+writing comments for example, thus creating an update-heavy workload. As time
 passes, new posts are created. Users are more likely to interact with recent
-posts than older ones, making the workload change over time.
+posts than older ones, hence the workload changes over time.
 
 When a user submits a new post, it is sent to the CMS for processing. A
 background thread is periodically checking for pending jobs. A pending job is
@@ -247,14 +247,14 @@ background thread detects the node and finishes processing, it removes the ``pub
 successfully publishes the post. Informally, we call such a workload
 job-queue like.
 
-From now on, we refer to a workload with the properties mentioned above, as
+From now on, we shall refer to a workload with the properties mentioned above as
 a \textit{CMS workload}.
 
 \subsection{Workload Aware Property Index (WAPI)}
 \label{sec:wapi}
 
 Oak mostly executes content-and-structure (CAS) queries~\cite{CM15}.
-We denote node $n$'s property $k$ as $n[k]$ and node $n$'s desendants as
+We denote node $n$'s property $k$ as $n[k]$ and node $n$'s descendants as
 $desc(n)$.
 
 \begin{definition}[CAS Query]
@@ -263,7 +263,7 @@ $desc(n)$.
   $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
 \end{definition}
 
-The WAPI is an hierarchical index and indexes the properties of nodes in order
+The WAPI is an hierarchical index which indexes the properties of nodes in order
 to answer CAS queries efficiently.
 The WAPI is hierarchically organized under node \texttt{/i} (denoted
 \textit{Index Subtree Root} in \Cref{fig:hierarchical_db}).
@@ -348,7 +348,7 @@ properties. From the workload we can infer that the index subtree has a small nu
 matching nodes relative to the content subtree. The index is
  used to signal pending jobs to the background thread using
 the ``pub'' property. Assuming jobs are processed by
-the background thead faster and removed from the index than they are created,
+the background thread and removed from the index faster than they are created,
 the number of matching nodes should be close to $0$.  
 
 The CMS workload is also skewed and update-heavy, therefore causing repeated structural index
@@ -358,12 +358,12 @@ i.e \textit{volatile} (see \Cref{def:volatile_node}), before performing structur
 index modifications. If a node is considered volatile, we do not remove it from the index.
 
 Volatility is the measure which is used by the WAPI in order to distinguish
-when to remove a node or not from the index.
+whether to remove a node or not from the index.
 Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
 workload to check whether a node $n$ is volatile. The workload on Oak instance
 $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
 \rangle$ of snapshots, called a history. A snapshot represents an immutable
-commited tree of the datbase. Let $t_n$ be the current time and
+committed tree of the database. Let $t_n$ be the current time and
 $t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
 set of nodes which are members of snapshot $G^a$. We use a superscript $a$
 to emphasize that a node $n^a$ belongs to tree $G^a$. $pre(G^b)$ is the
@@ -1203,19 +1203,25 @@ void cleanIndexWAPI(NodeState n) {
  * @returns an iterable with content paths satisfying the CAS query
  */
 Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
-    String indexRootPath = join(
-        OAK_INDEX_PREFIX,
-        k,
-        OAK_INDEX_INTERNAL,
-        v
-    ); 
+
+    /* e.g: /oak:index/pub/:index/now */
+    String indexRootPath = join(OAK_INDEX_PREFIX, k, OAK_INDEX_INTERNAL, v); 
+
+    /* e.g: /oak:index/pub/:index/now/a */
     String targetNodePath = join(indexRootPath, m);
+
     NodeState targetNode = getNode(targetNodePath, store);
+
+    /* map matching index nodes' path to corresponding content nodes' path */
     return map(
         (Node node)-> truncate(indexRootPath, node.getPath()),
+
+        /* filter non-matching index nodes */
         filter(
             (Node node) -> {
                 boolean matching = node.getState().getBoolean("match");
+
+                /* prune if no children, is not matching and is not volatile */
                 if (node.getState().getChildNodeCount(1) == 0 &&
                     !matching &&
                     !node.getState().isVolatile()
@@ -1224,6 +1230,8 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
                 }
                 return matching;
             },
+
+            /* bottom-up tree traversing iterable */
             bottomUp(targetNode, targetNodePath)
         );
     );
@@ -1486,7 +1494,6 @@ String[] split(String path) {
 \begin{figure}
   \centering
 \begin{verbatim}
-/**
  * Truncates a given prefix from a string
  */
 String truncate(String prefix, String original) {
