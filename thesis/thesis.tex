@@ -225,13 +225,13 @@ Manager\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}.
 \subsection{Application Scenario}
 \label{sec:application_scenario}
 
-Content management systems that make use of Oak have specific workloads.
+Content management systems (CMSs) that make use of Oak have specific workloads.
 These workloads have distinct properties: they are \textit{skewed},
-\textit{update-heavy}, \textit{changing} \cite{KW17} and
-\textit{job-queue} like.
+\textit{update-heavy} and \textit{changing} \cite{KW17}. CMSs frequently use a
+job-queuing system that has the noted characteristics.
 
-Consider a social media feed as a running example. When
-browsing the feed, more recent posts are displayed first, therefore creating a
+Consider a social media feed as a running example. Some posts are more popular
+and have more interactions than others, therefore implying a
 skewed workload. Users submit new posts or interact with existing posts by
 writing comments for example, thus creating an update-heavy workload. As time
 passes, new posts are created. Users are more likely to interact with recent
@@ -240,12 +240,12 @@ posts than older ones, hence the workload changes over time.
 When a user submits a new post, it is sent to the CMS for processing. A
 background thread is periodically checking for pending jobs. A pending job is
 signalled using node properties in Oak.
-The CMS adds a ``pub'' property with value ``now'' to the respective node  in
+The CMS adds a property to the respective node  in
 order to signal the background thread that the specific node is a pending job that needs
 processing. Once the
-background thread detects the node and finishes processing, it removes the ``pub'' property and
-successfully publishes the post. Informally, we call such a workload
-job-queue like.
+background thread detects the node and finishes processing, it removes the
+previously set property and
+successfully publishes the post.
 
 From now on, we shall refer to a workload with the properties mentioned above as
 a \textit{CMS workload}.
@@ -263,6 +263,14 @@ $desc(n)$.
   $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
 \end{definition}
 
+\begin{example}[CAS Query]
+  Consider \Cref{fig:hierarchical_db}. CAS-Query $Q(\text{pub},\text{now},\texttt{/a})$,
+  which queries for every descendant of \texttt{/a} with
+  ``pub'' set to ``now'', would evaluate to $Q(\text{pub},\text{now},\texttt{/a}) = \{\texttt{/a/b/d}\}$,
+  since \texttt{/a/b/d} is the only descendant of \texttt{/a} with ``pub'' set
+  to ``now''.
+\end{example}
+
 The WAPI is an hierarchical index which indexes the properties of nodes in order
 to answer CAS queries efficiently.
 The WAPI is hierarchically organized under node \texttt{/i} (denoted
@@ -271,14 +279,6 @@ The second index level consists of all properties $k$ we want
 to index. The third index level contains any values $v$ of property $k$.
 The remaining index levels replicate all nodes from the root node to any
 content node with $k$ set to $v$.
-
-\begin{example}[CAS Query]
-  Consider \Cref{fig:hierarchical_db}. CAS-Query $Q(\text{pub},\text{now},\texttt{/a})$,
-  which queries for every descendant of \texttt{/a} with
-  ``pub'' set to ``now'', would evaluate to $Q(\text{pub},\text{now},\texttt{/a}) = \{\texttt{/a/b/d}\}$,
-  since \texttt{/a/b/d} is the only descendant of \texttt{/a} with ``pub'' set
-  to ``now''.
-\end{example}
 
 When processing a CAS Query, Oak traverses the WAPI in order to answer the query
 efficiently. Any index node has a \textit{corresponding} content node.
@@ -718,20 +718,16 @@ become volatile in comparison to the time shortly after the workload kicked in.
 The cycloid pattern observed in \Cref{fig:trav_nodes_synthetic} is less obvious
 in \Cref{fig:trav_nodes_real}. Our synthetic dataset resembles a complete binary
 tree and therefore has no skew. In comparison, the real world dataset is highly
-skewed. The skewness warps the shape of the curve inside single workloads,
-but does not significantly affect the monotonicity \textbf{(?)} of our function.
-We also suggest that the real world dataset's skewness accounts for the lower
-rate of growth of index nodes in comparison to the synthetic dataset's rate of
-growth of index nodes.
+unbalanced.
 
 Furthermore, we see the number of volatile nodes descend after the $30$
-second mark. We suggest that it becomes less likely for nodes to become volatile,
+second mark. We believe it becomes less likely for nodes to become volatile,
 as time passes. When a workload randomly picks a node whose index node is
 unproductive, the index
 node becomes matching but was not added, thus the volatility count of the node
-does increment. In comparison, if the index node would not exist, the created
+does not increment. In comparison, if the index node would not exist, the created
 index node's volatility count would have been incremented. We infer that it is less
-likely for an unproductive node to become volatile than a non-indexed one.
+likely for an unproductive node to become volatile again than a non-indexed one.
 Wellenzohn et al. and our experimental evaluation suggest that the number of
 unproductive nodes increases over time. Therefore it becomes less likely for any
 node to become volatile over time. This explains the decreasing number of volatile nodes.
@@ -1049,9 +1045,10 @@ maintain the database. We add a background job that periodically executes
 garbage collection on Oak.
 
 \Cref{algo:periodic_gc_wapi} takes an index node $n$ as parameter and prunes all
-its unproductive descendants depth-first. The algorithm recursively traverses
-the subtree rooted in $n$. If $n$ is a leaf node, is not matching and is not
-volatile, it is pruned from the index. The depth-first tree traversal ensures
+its unproductive descendants bottom-up. The algorithm traverses
+the subtree rooted in $n$. If a descendant $d \in desc(n)$ has no children, is
+not matching and not
+volatile, it is pruned from the index. The bottom-up tree traversal ensures
 that the algorithm prunes a child before its parent node. This guarantees that
 all unproductive nodes are pruned.
 
@@ -1069,22 +1066,30 @@ all unproductive nodes are pruned.
 \end{algorithm}
 
 \begin{figure}
-\begin{verbatim}
+% \begin{verbatim}
+\begin{minted}{java}
 /**
  * Removes any unproductive descendant of index node n.
+ *
+ * @param n: index node whose descendants are being cleaned
  */
-void cleanIndexWAPI(NodeState n) {
-    for (Node node : filter(
-            (Node n) -> n.getState().getChildNodeCount(1) == 0 &&
-                        !n.getState().getBoolean("match") &&
-                        !n.getState().isVolatile()
+void cleanIndexWAPI(Node n) {
+
+    /* filter nodes which have children, are matching or volatile */
+    for (Node unproductiveNode : filter(
+            (Node n) -> n.state.getChildNodeCount(1) == 0 &&
+                        !n.state.getBoolean("match") &&
+                        !n.state.isVolatile()
             ),
+
+            /* bottom-up tree traversing iterable */
             bottomUp(n)
     ) {
-        node.getState().builder().remove();
+        unproductiveNode.state.builder().remove();
     }
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
 \end{figure}
 
 \begin{figure}[h]
@@ -1192,7 +1197,8 @@ void cleanIndexWAPI(NodeState n) {
 
 \begin{figure}
   \centering
-\begin{verbatim}
+% \begin{verbatim}
+\begin{minted}{java}
 /**
  * Answers a CAS Query and prunes traversed unproductive index nodes.
  *
@@ -1205,38 +1211,38 @@ void cleanIndexWAPI(NodeState n) {
 Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
 
     /* e.g: /oak:index/pub/:index/now */
-    String indexRootPath = join(OAK_INDEX_PREFIX, k, OAK_INDEX_INTERNAL, v); 
+    String indexRootPath = concat(OAK_INDEX_PREFIX, k, OAK_INDEX_INTERNAL, v); 
 
     /* e.g: /oak:index/pub/:index/now/a */
-    String targetNodePath = join(indexRootPath, m);
+    String targetNodePath = concat(indexRootPath, m);
 
-    NodeState targetNode = getNode(targetNodePath, store);
+    NodeState targetNodeState = getNode(targetNodePath, store);
 
-    /* map matching index nodes' path to corresponding content nodes' path */
-    return map(
-        (Node node)-> truncate(indexRootPath, node.getPath()),
+    /* map index nodes' path to corresponding content nodes' path */
+    return map((Node node) -> relativize(indexRootPath, node.path),
 
         /* filter non-matching index nodes */
-        filter(
-            (Node node) -> {
-                boolean matching = node.getState().getBoolean("match");
+        filter((Node node) -> {
+                NodeState s = node.state;
+                boolean matching = s.getBoolean("match");
 
-                /* prune if no children, is not matching and is not volatile */
-                if (node.getState().getChildNodeCount(1) == 0 &&
+                /* prune if no children, not matching and not volatile */
+                if (s.getChildNodeCount(1) == 0 &&
                     !matching &&
-                    !node.getState().isVolatile()
+                    !s.isVolatile()
                 ) {
-                    node.getState().builder().remove();
+                    s.builder().remove();
                 }
                 return matching;
             },
 
-            /* bottom-up tree traversing iterable */
-            bottomUp(targetNode, targetNodePath)
-        );
+            /* bottom-up tree traversal of descendants of target node */
+            bottomUp(new Node(targetNodeState, targetNodePath))
+        )
     );
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
     %   postOrder(
     %     targetNode,
     %     targetNodePath,
@@ -1253,7 +1259,6 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
     %     }
     % );
     % return result;
-
   \caption{Java implementation of QTP}
   \label{fig:java_qtp}
 \end{figure}
@@ -1275,33 +1280,22 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
 
 \begin{figure}
   \centering
-\begin{verbatim}
+  % \begin{verbatim}
+\begin{minted}{java}
 /**
- * Node class containing information about a node's state,
- * path and depth. 
+ * Class containing immutable information about a node's 
+ * state and path. 
  */
 class Node {
-    private NodeState state;
-    private String path;
-    private Integer depth;
+    final NodeState state;
+    final String path;
     Node(NodeState state, String path) {
         this.state = state;
         this.path = path;
     }
-    NodeState getState() {
-        return state;
-    }
-    String getPath() {
-        return path;
-    }
-    Integer getDepth() {
-        if (depth == null) {
-            depth = path.length() - path.replace("/","").length();
-        }
-        return depth;
-    }
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
   \caption{\texttt{Node} class implementation}
   \label{fig:java_node}
 \end{figure}
@@ -1330,19 +1324,21 @@ class Node {
 
 \begin{figure}
   \centering
-\begin{verbatim}
+  % \begin{verbatim}
+\begin{minted}{java}
 /**
- * Returns an iterable which lazily traverses a subtree rooted at n
+ * Returns an iterable which lazily traverses a subtree rooted at root
  * in a bottomUp fashion.
  *
- * @param n: Node to apply traversal on
- * @returns: iterable for tree traversal
+ * @param root: Root node of subtree we apply traversal on
+ * @returns: iterable for bottom-up tree traversal
  */
-Iterable<Node> bottomUp(Node n) {
+Iterable<Node> bottomUp(Node root) {
     return () -> {
+        /* Stacks */
         Deque<Node> s1 = new LinkedList();
         Deque<Node> s2 = new LinkedList();
-        s1.push(n);
+        s1.push(root);
         return new Iterator<Node>() {
             @Override
             public boolean hasNext() {
@@ -1350,15 +1346,17 @@ Iterable<Node> bottomUp(Node n) {
             }
             @Override
             public Node next() {
-                while (s1.size() > 0 && (s2.size() == 0 || 
-                          s1.peek().getDepth() > s2.peek().getDepth())
+                while (s1.size() > 0 && (s2.size() == 0 ||
+                          isAncestor(s2.peek().path, s1.peek().path))
                 ) {
                     Node n = s1.pop();
                     s2.push(n);
-                    for (ChildNodeEntry child : n.getChildNodeEntries()) {
+                    for (ChildNodeEntry child : n.state
+                                                 .getChildNodeEntries()
+                    ) {
                         s1.push(new Node(
                             child.getNodeState(),
-                            join(n.path(), child.getName())
+                            concat(n.path, child.getName())
                         ));
                     }
                 }
@@ -1367,16 +1365,16 @@ Iterable<Node> bottomUp(Node n) {
         }
     }
 }
-
-Iterable<Node> bottomUp(NodeState n) { return bottomUp(new Node(n, "/")); }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
   \caption{\texttt{bottomUp()} implementation}
   \label{fig:java_bottom_up}
 \end{figure}
 
 \begin{figure}
   \centering
-\begin{verbatim}
+% \begin{verbatim}
+\begin{minted}{java}
 /**
  * Higher order function that applies func to each element of iterable.
  *
@@ -1391,7 +1389,6 @@ Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
             @Override
             public boolean hasNext() {
                 return iterator.hasNext();
-            
             }
             @Override
             public R next() {
@@ -1400,14 +1397,16 @@ Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
         }
     }
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
   \caption{\texttt{map()} implementation}
   \label{fig:java_map}
 \end{figure}
 
 \begin{figure}
   \centering
-\begin{verbatim}
+  % \begin{verbatim}
+\begin{minted}{java}
 /**
  * Higher order function that removes all elements from an iterable
  * not satisfying the predicate.
@@ -1445,14 +1444,16 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
         }
     }
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
   \caption{\texttt{filter()} implementation}
   \label{fig:java_filter}
 \end{figure}
 
 \begin{figure}
   \centering
-\begin{verbatim}
+% \begin{verbatim}
+\begin{minted}{java}
 /**
  * Fetches a node given its path
  *
@@ -1462,47 +1463,14 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
  */
 NodeState getNode(String path, NodeStore store) {
     NodeState n = store.getRoot();
-    for (String lambda : split(path)) {
+    for (String lambda : elements(path)) {
         n = n.getChildNode(lambda);
     }
 }
-\end{verbatim}
+\end{minted}
+% \end{verbatim}
   \caption{\texttt{getNode()} implementation}
   \label{fig:java_get_node}
-\end{figure}
-
-\begin{figure}
-  \centering
-\begin{verbatim}
-/**
- * Splits a path
- */
-String[] split(String path) {
-    if (path.startsWith("/")) {
-        path = path.substring(1);
-    }
-    if (path.endsWith("/")) {
-        path = path.substring(0, path.length - 1);
-    }
-    return path.split("/");
-}
-\end{verbatim}
-  \caption{\texttt{split()} implementation}
-  \label{fig:java_split}
-\end{figure}
-
-\begin{figure}
-  \centering
-\begin{verbatim}
- * Truncates a given prefix from a string
- */
-String truncate(String prefix, String original) {
-    if (!original.startsWith(prefix)) { throw new RuntimeError(); }
-    return original.substring(prefix.length);
-} 
-\end{verbatim}
-  \caption{\texttt{truncate()} implementation}
-  \label{fig:java_truncate}
 \end{figure}
 
 \newpage
