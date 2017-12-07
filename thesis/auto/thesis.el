@@ -75,11 +75,9 @@
     "fig:periodic_gc"
     "algo:query_qtp_wapi"
     "fig:java_qtp"
-    "fig:java_node"
     "fig:java_bottom_up"
     "fig:java_map"
-    "fig:java_filter"
-    "fig:java_get_node")
+    "fig:java_filter")
    (LaTeX-add-environments
     "centerverbatim")
    (LaTeX-add-bibliographies)

@@ -1046,7 +1046,7 @@ garbage collection on Oak.
 
 \Cref{algo:periodic_gc_wapi} takes an index node $n$ as parameter and prunes all
 its unproductive descendants bottom-up. The algorithm traverses
-the subtree rooted in $n$. If a descendant $d \in desc(n)$ has no children, is
+the subtree rooted at $n$. If a descendant $d \in desc(n)$ has no children, is
 not matching and not
 volatile, it is pruned from the index. The bottom-up tree traversal ensures
 that the algorithm prunes a child before its parent node. This guarantees that
@@ -1065,6 +1065,12 @@ all unproductive nodes are pruned.
   \label{algo:periodic_gc_wapi}
 \end{algorithm}
 
+\subsection{Periodicity}
+
+\subsection{Impact of workload skewness and update to query ratio}
+
+\subsection{Implementation}
+
 \begin{figure}
 % \begin{verbatim}
 \begin{minted}{java}
@@ -1073,19 +1079,19 @@ all unproductive nodes are pruned.
  *
  * @param n: index node whose descendants are being cleaned
  */
-void cleanIndexWAPI(Node n) {
+void cleanIndexWAPI(DocumentNodeState n) {
 
     /* filter nodes which have children, are matching or volatile */
-    for (Node unproductiveNode : filter(
-            (Node n) -> n.state.getChildNodeCount(1) == 0 &&
-                        !n.state.getBoolean("match") &&
-                        !n.state.isVolatile()
+    for (DocumentNodeState unproductiveNode : filter(
+            (DocumentNodeState d) -> d.hasNoChildren() &&
+                        !d.getBoolean("match") &&
+                        !d.isVolatile()
             ),
 
             /* bottom-up tree traversing iterable */
             bottomUp(n)
     ) {
-        unproductiveNode.state.builder().remove();
+        unproductiveNode.builder().remove();
     }
 }
 \end{minted}
@@ -1195,6 +1201,12 @@ void cleanIndexWAPI(Node n) {
   \label{algo:query_qtp_wapi}
 \end{algorithm}
 
+\subsection{Cost}
+
+\subsection{Impact of workload skewness and update to query ratio}
+
+\subsection{Implementation}
+
 \begin{figure}
   \centering
 % \begin{verbatim}
@@ -1216,29 +1228,27 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
     /* e.g: /oak:index/pub/:index/now/a */
     String targetNodePath = concat(indexRootPath, m);
 
-    NodeState targetNodeState = getNode(targetNodePath, store);
+    DocumentNodeState n = getNode(targetNodePath, store);
 
     /* map index nodes' path to corresponding content nodes' path */
-    return map((Node node) -> relativize(indexRootPath, node.path),
+    return map((DocumentNodeState n) -> relativize(indexRootPath, n.getPath()),
 
         /* filter non-matching index nodes */
-        filter((Node node) -> {
-                NodeState s = node.state;
-                boolean matching = s.getBoolean("match");
+        filter((DocumentNodeState d) -> {
+                boolean matching = d.getBoolean("match");
 
                 /* prune if no children, not matching and not volatile */
-                if (s.getChildNodeCount(1) == 0 &&
+                if (d.hasNoChildren() &&
                     !matching &&
-                    !s.isVolatile()
+                    !d.isVolatile()
                 ) {
-                    s.builder().remove();
+                    d.builder().remove();
                 }
                 return matching;
             },
 
-            /* bottom-up tree traversal of descendants of target node */
-            bottomUp(new Node(targetNodeState, targetNodePath))
-        )
+            /* bottom-up tree traversal of descendants of n */
+            bottomUp(n)
     );
 }
 \end{minted}
@@ -1265,6 +1275,7 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
 
 \section{Experimental Evaluation}
 
+
 % In order to empirically evaluate and compare GC and QTP under a changing
 % workload, a experiment harness has to be setup.
 
@@ -1277,28 +1288,6 @@ Iterable<String> QueryQTP(String k, String v, String m, NodeStore store) {
 % parameters
 
 \section{Appendix}
-
-\begin{figure}
-  \centering
-  % \begin{verbatim}
-\begin{minted}{java}
-/**
- * Class containing immutable information about a node's 
- * state and path. 
- */
-class Node {
-    final NodeState state;
-    final String path;
-    Node(NodeState state, String path) {
-        this.state = state;
-        this.path = path;
-    }
-}
-\end{minted}
-% \end{verbatim}
-  \caption{\texttt{Node} class implementation}
-  \label{fig:java_node}
-\end{figure}
 
 % \begin{figure}
 %   \centering
@@ -1333,37 +1322,36 @@ class Node {
  * @param root: Root node of subtree we apply traversal on
  * @returns: iterable for bottom-up tree traversal
  */
-Iterable<Node> bottomUp(Node root) {
+Iterable<DocumentNodeState> bottomUp(DocumentNodeState root) {
     return () -> {
         /* Stacks */
-        Deque<Node> s1 = new LinkedList();
-        Deque<Node> s2 = new LinkedList();
+        Deque<DocumentNodeState> s1 = new LinkedList();
+        Deque<DocumentNodeState> s2 = new LinkedList();
         s1.push(root);
-        return new Iterator<Node>() {
+        return new Iterator<DocumentNodeState>() {
             @Override
             public boolean hasNext() {
                 return s1.size() > 0 || s2.size() > 0;
             }
             @Override
-            public Node next() {
-                while (s1.size() > 0 && (s2.size() == 0 ||
-                          isAncestor(s2.peek().path, s1.peek().path))
-                ) {
-                    Node n = s1.pop();
+            public DocumentNodeState next() {
+                while (s1.size() > 0 && (
+                    s2.size() == 0 ||
+                        isAncestor(
+                            s2.peek().getPath(),
+                            s1.peek().getPath()
+                        )
+                )) {
+                    DocumentNodeState n = s1.pop();
                     s2.push(n);
-                    for (ChildNodeEntry child : n.state
-                                                 .getChildNodeEntries()
-                    ) {
-                        s1.push(new Node(
-                            child.getNodeState(),
-                            concat(n.path, child.getName())
-                        ));
+                    for (ChildNodeEntry child : n.getChildNodeEntries()) {
+                        s1.push((DocumentNodeState) child.getNodeState());
                     }
                 }
                 return s2.pop();
             }          
-        }
-    }
+        };
+    };
 }
 \end{minted}
 % \end{verbatim}
@@ -1394,8 +1382,8 @@ Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
             public R next() {
                 return func.apply(iterator.next());
             }
-        }
-    }
+        };
+    };
 }
 \end{minted}
 % \end{verbatim}
@@ -1441,36 +1429,13 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
                     }
                 }
             }
-        }
-    }
+        };
+    };
 }
 \end{minted}
 % \end{verbatim}
   \caption{\texttt{filter()} implementation}
   \label{fig:java_filter}
-\end{figure}
-
-\begin{figure}
-  \centering
-% \begin{verbatim}
-\begin{minted}{java}
-/**
- * Fetches a node given its path
- *
- * @param path: the node's path
- * @param store: Oak's database interface
- * @returns the node with the given path
- */
-NodeState getNode(String path, NodeStore store) {
-    NodeState n = store.getRoot();
-    for (String lambda : elements(path)) {
-        n = n.getChildNode(lambda);
-    }
-}
-\end{minted}
-% \end{verbatim}
-  \caption{\texttt{getNode()} implementation}
-  \label{fig:java_get_node}
 \end{figure}
 
 \newpage
