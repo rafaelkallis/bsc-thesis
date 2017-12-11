@@ -5,8 +5,8 @@
                      '(("scrartcl" "abstracton" "12pt")))
    (TeX-add-to-alist 'LaTeX-provided-package-options
                      '(("inputenc" "utf8") ("algorithm2e" "ruled" "vlined")))
-   (add-to-list 'LaTeX-verbatim-environments-local "lstlisting")
    (add-to-list 'LaTeX-verbatim-environments-local "minted")
+   (add-to-list 'LaTeX-verbatim-environments-local "lstlisting")
    (add-to-list 'LaTeX-verbatim-macros-with-braces-local "lstinline")
    (add-to-list 'LaTeX-verbatim-macros-with-delims-local "lstinline")
    (TeX-run-style-hooks
@@ -40,6 +40,7 @@
     "fig:architecture"
     "sec:application_scenario"
     "sec:wapi"
+    "ex:cas_query"
     "fig:hierarchical_db"
     "def:matching_node"
     "def:vol_count"
@@ -55,6 +56,13 @@
     "fig:trav_node_ratio_synthetic"
     "fig:trav_node_ratio_real"
     "fig:trav_node_ratio"
+    "algo:periodic_gc_wapi"
+    "fig:periodic_gc"
+    "fig:java_periodic_gc"
+    "algo:query_qtp_wapi"
+    "fig:qtp"
+    "fig:java_qtp"
+    "sec:experimental-evaluation"
     "fig:query_runtime_taus_synthetic"
     "fig:query_runtime_taus_real"
     "fig:tau_query_runtime_synthetic"
@@ -71,15 +79,9 @@
     "fig:trav_unprod_nodes_Ls_real"
     "fig:L_trav_unprod_nodes_synthetic"
     "fig:L_trav_unprod_nodes_real"
-    "algo:periodic_gc_wapi"
-    "fig:periodic_gc"
-    "algo:query_qtp_wapi"
-    "fig:java_qtp"
-    "fig:java_bottom_up"
+    "fig:java_dfs"
     "fig:java_map"
     "fig:java_filter")
-   (LaTeX-add-environments
-    "centerverbatim")
    (LaTeX-add-bibliographies)
    (LaTeX-add-amsthm-newtheorems
     "definition"
