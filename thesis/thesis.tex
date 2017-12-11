@@ -1178,6 +1178,17 @@ Iterable<String> QueryQTP(String k, String v, String m, DocumentNodeStore store)
 
 \subsection{Goals}
 
+Using the experiment, we wish to learn more about how different parameters
+affects the performance of periodic garbage collection and query time pruning.
+We initially see how different values of the volatility threshold $\tau$
+and sliding window of length $L$ impact unproductive nodes in the index. Next,
+we investigate the effects periodicity of garbage collection has in its
+algorithms performance. Since the effectiveness of QTP depends on the query
+workload, we will investigate how different query workloads affect the overall
+performance of QTP. We also conduct an experiment in order to examine how
+workload skew impacts the performance of GC and QTP. Finally, we run simulations
+in order to see how the update to query ration affects the performance of GC and QTP.
+
 \subsection{Setup}
 
 \subsection{Datasets}
