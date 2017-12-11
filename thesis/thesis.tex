@@ -96,35 +96,49 @@
 \thispagestyle{empty}
 % \chapter*{Acknowledgements}
 
-% \chapter*{Zusammenfassung}
 % \newpage\null\thispagestyle{empty}\newpage
 
 \newpage
+\thispagestyle{empty}
+\vspace*{7cm}
+
+\section*{Abstract}
+
+Unproductive nodes in hierarchical indexes waste space and slow down queries.
+We propose periodic garbage collection and query time pruning in order to
+clean the index. We implement our techniques in Apache Jackrabbit Oak and
+provide extensive experimental evaluation to stress test the algorithms and
+show that the database throughput increases considerably if we apply garbage
+collection to the index.
+
+\newpage
+\thispagestyle{empty}
+\vspace*{7cm}
+
+\section*{Zusammenfassung}
+
+Unproduktive Knoten in hierarchischen Indizes verschwenden Speicherplatz und
+verlangsamen die Abfragen. Wir schlagen periodische Indexreinigung und
+Abfragezeitbereinigung vor, um den Index zu bereinigen. Wir implementieren
+unsere Techniken in Apache Jackrabbit Oak und bieten eine umfangreiche
+experimentelle Auswertung, um die Algorithmen zu Stress-testen und zu zeigen, dass der
+Datenbankdurchsatz erheblich zunimmt, wenn wir den Index reinigen.
+
+\newpage
+\thispagestyle{empty}
 
 \tableofcontents
+
+\newpage
+\thispagestyle{empty}
+
 \listoffigures
+
+\newpage
 % \listoftables
 
 % \newpage\null\thispagestyle{empty}\newpage
 
-% \begin{abstract}
-%   Frequently adding and removing data from hierarchical indexes causes them to
-%   repeatedly grow and shrink. A single insertion or deletion can trigger a
-%   sequence of structural index modifications (node insertions/deletions) in a
-%   hierarchical index. Skewed and update-heavy workloads trigger repeated
-%   structural index updates over a small subset of nodes to the index.
-
-%   Informally, a frequently added or removed node is called \textit{volatile}.
-%   Volatile nodes deteriorate index update performance due to two reasons.
-%   First, frequent structural index modifications are expensive since they
-%   cause many disk accesses. Second, frequent structural index modifications
-%   also increase the likelihood of conflicting index updates by concurrent
-%   transactions. Conflicting index updates further deteriorate update
-%   performance since concurrency control protocols need to resolve the
-%   conflict.
-
-
-% \end{abstract}
 
 \section{Introduction}
 
