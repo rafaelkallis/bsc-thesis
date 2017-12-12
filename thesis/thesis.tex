@@ -576,6 +576,8 @@ the same absolute path from the root node.
 \label{fig:unproductive_nodes}
 \end{figure}
 
+\newpage
+
 \section{Unproductive Nodes}
 
 \subsection{Introduction}
@@ -862,7 +864,7 @@ all unproductive nodes are pruned.
   see the index after garbage collection in snapshot $G^1$.
 \end{example}
 
-\begin{figure}
+\begin{figure}[h]
   \centering
 
   \begin{large}
@@ -950,7 +952,7 @@ which correspond to a depth-first tree traversal of the subtree rooted at node
 filtered from the sequence since they are productive. All other nodes are pruned
 from the index.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{minted}{java}
 /**
  * Removes any unproductive descendant of index node n.
@@ -976,6 +978,8 @@ void cleanIndexWAPI(DocumentNodeState n) {
   \caption{Java implementation of periodic garbage collection}
   \label{fig:java_periodic_gc}
 \end{figure}
+
+\newpage
 
 \subsection{Query Time Pruning (QTP)}
 
@@ -1027,7 +1031,18 @@ traversing the subtree rooted at $n$, we return the result set $r$.
   snapshot $G^1$ is committed by $T_1$ after finishing query execution.
 \end{example}
 
-\begin{figure}
+
+\Cref{fig:java_qtp} shows the java implementation of QTP in Oak. The algorithm
+takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
+\texttt{NodeStore} and returns a lazy sequence of content node paths satisfying
+the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. We first find index node
+$n$. By Calling \texttt{DFS(n)} we get a sequence of nodes representing a
+depth-first search in the subtree rooted at $n$. We filter any node that is not
+matching from the sequence. If a node has no children, is not matching and is
+not volatile, we prune it from the index. next, we take the filtered sequence of
+matching index nodes and map them to their corresponding content nodes' path.
+
+\begin{figure}[h]
   \centering
  \begin{large}
     $$ G^0 \xrightarrow{\quad T_1 \quad} G^1$$
@@ -1115,17 +1130,7 @@ traversing the subtree rooted at $n$, we return the result set $r$.
   \label{fig:qtp}
 \end{figure}
 
-\Cref{fig:java_qtp} shows the java implementation of QTP in Oak. The algorithm
-takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
-\texttt{NodeStore} and returns a lazy sequence of content node paths satisfying
-the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. We first find index node
-$n$. By Calling \texttt{DFS(n)} we get a sequence of nodes representing a
-depth-first search in the subtree rooted at $n$. We filter any node that is not
-matching from the sequence. If a node has no children, is not matching and is
-not volatile, we prune it from the index. next, we take the filtered sequence of
-matching index nodes and map them to their corresponding content nodes' path.
-
-\begin{figure}
+\begin{figure}[h]
   \centering
 \begin{minted}{java}
 /**
@@ -1173,6 +1178,8 @@ Iterable<String> QueryQTP(String k, String v, String m, DocumentNodeStore store)
   \label{fig:java_qtp}
 \end{figure}
 
+\newpage
+
 \section{Experimental Evaluation}
 \label{sec:experimental-evaluation}
 
@@ -1193,7 +1200,28 @@ in order to see how the update to query ration affects the performance of GC and
 
 \subsection{Datasets}
 
+For our experiments we make use of 2 datasets. Each dataset resembles the
+content subtree. The \textit{synthetic} dataset is a complete binary tree with
+max height 20 and $2^20 \approx 10^6$ nodes. The real-world dataset contains
+$1.3 \cdot 10^6$ and is unbalanced. It is taken from an online shop built on top
+of Adobe's AEM.
+
 \subsection{Workload}
+
+We paid a lot of attention to the way we simulate a changing workload during the
+experiments. The goal was to design a function $f$, which given two integer
+arguments, one randomly selected integer $k$ and another representing the
+current workload. $f$ returns a new integer representing the picked content node.
+
+We calculate the current workload integer by dividing the time passed since the
+experiment started (in milliseconds) by the workload interval, 30 seconds in our
+instance. Doing so, we can change the workload every 30 seconds.
+
+It is crucial that $f$ has an an avalanche effect \cite{HF73}. When changing the
+workload, we want $f$ to pick completely different content nodes.
+
+We selected a function that takes the two inputs, concatenates them, hashes the
+concatenated value and returns a single integer.
 
 \subsection{Experiments}
 
@@ -1276,7 +1304,6 @@ explained by the zipf distribution our workload uses.
 \caption{Impact of Volatility Threshold $\tau$ on Query Runtime}
 \end{figure}
 
-\textbf{Maybe remove, repetitive (only query runtime)}
 \Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
 depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
 nodes traversed during query execution over update operations. We observe lower
@@ -1286,7 +1313,17 @@ number of traversed unproductive nodes during query execution over a range of
 thresholds. We observe a decrease in unproductive nodes while increasing
 threshold $\tau$. As suggested earlier, a lower volatility threshold
 increases the amount of volatile nodes in the index. Volatile nodes eventually
-cease to be volatile and become unproductive.
+cease to be volatile and become unproductive. 
+
+We also see in this figure
+the two variables sharing a power law relationship as well. We believe the
+workload's zipf skew to be responsible for the power law relationship. We see
+the query executor having to traverse $5k$ unproductive index nodes with a
+threshold of $\tau = 5$. By increasing the threshold to $\tau = 6$, the average
+number of traversed unproductive nodes does not decrease significantly because
+of the zipf-distribution's skewness. We believe the decrease to be bigger if the
+distribution were less skewed. Having less skew implies more nodes being picked
+by the workload.
 
 \begin{figure}
   \centering
@@ -1346,11 +1383,8 @@ We hypothesize that an increase in $L$ yields an increase to the number of
 traversed unproductive nodes during query execution. If $L$ increases, it is
 more likely for a node to become volatile, since more updates are considered
 towards the volatility count.
-Having more volatile nodes should imply an increase in unproductive nodes.
-
-We also suggest that an increase in $L$ yields an increase to the query runtime.
-More unproductive nodes should increase the number of unproductive nodes traversed
-during query execution and therefore increase query runtime.
+Having more volatile nodes should imply an increase in unproductive nodes and
+consequently also query runtime in the CMS workload.
 
 \begin{shaded}
   \begin{itemize}
@@ -1361,8 +1395,8 @@ during query execution and therefore increase query runtime.
   \end{itemize}
 \end{shaded}
 
-We conduct our experiment with a varying sliding window length and present our
-observations below.
+% We conduct our experiment with a varying sliding window length and present our
+% observations below.
 
 \Cref{fig:query_runtime_Ls_synthetic,fig:query_runtime_Ls_real} show WAPI's average
 query runtime over update operations with sliding window of length $L \in \{10, 20,
