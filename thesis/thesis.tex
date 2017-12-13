@@ -30,9 +30,10 @@
 % \forestset{qtree/.style={for tree={parent anchor=south, child anchor=north,align=left,inner sep=0pt}}}
 \graphicspath{
   {images/},
-  {images/1_unprod_nodes/},
-  {images/2_unprod_nodes_tau/}
-  {images/3_unprod_nodes_L/}
+  {images/unproductive_nodes/},
+  {images/volatility_threshold/},
+  {images/sliding_window/},
+  {images/gc/}
 }
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
@@ -952,6 +953,19 @@ which correspond to a depth-first tree traversal of the subtree rooted at node
 filtered from the sequence since they are productive. All other nodes are pruned
 from the index.
 
+\Cref{fig:query_runtime_GC_synthetic,fig:query_runtime_GC_real} show the
+resulting decrease in query runtime when applying periodic GC on Oak. The
+garbage collector is run every 30 seconds. We observe the query runtime
+increasing during the first minute of the simulation. Afterwards, we observe
+query runtime having a sawtooth wave due to periodic garbage collection.
+
+\Cref{fig:trav_nodes_GC_synthetic,fig:trav_nodes_GC_real} show the index
+structure during query execution with periodic GC. We observe the unproductive
+nodes increase until GC is run, after which they are removed again. We also
+observe the total number of traversed nodes to be significantly different
+between the two datasets although the difference in volatile nodes is not so
+big.  
+
 \begin{figure}[h]
 \begin{minted}{java}
 /**
@@ -959,24 +973,55 @@ from the index.
  *
  * @param n: index node whose descendants are being cleaned
  */
-void cleanIndexWAPI(DocumentNodeState n) {
+void cleanIndexWAPI(Tree n) {
 
     /* filter nodes which have children, are matching or volatile */
-    for (DocumentNodeState unproductiveNode : filter(
-            (DocumentNodeState d) -> d.hasNoChildren() &&
-                        !d.getBoolean("match") &&
-                        !d.isVolatile()
+    for (Tree unproductiveNode : filter(
+            (Tree d) -> d.getChildrenCount(1) == 0 &&
+                        !isMatching(d) &&
+                        !isVolatile(d)
             ),
 
             /* DFS tree traversing iterable */
             DFS(n)
     ) {
-        unproductiveNode.builder().remove();
+        unproductiveNode.remove();
     }
 }
 \end{minted}
   \caption{Java implementation of periodic garbage collection}
   \label{fig:java_periodic_gc}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_GC_synthetic}
+    \caption{}
+    \label{fig:query_runtime_GC_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_GC_real}
+    \caption{}
+    \label{fig:query_runtime_GC_real}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_GC_synthetic}
+    \caption{}
+    \label{fig:trav_nodes_GC_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_GC_real}
+    \caption{}
+    \label{fig:trav_nodes_GC_real}
+  \end{subfigure}
+  \caption{Periodic GC in action}
 \end{figure}
 
 \newpage
@@ -1041,6 +1086,21 @@ depth-first search in the subtree rooted at $n$. We filter any node that is not
 matching from the sequence. If a node has no children, is not matching and is
 not volatile, we prune it from the index. next, we take the filtered sequence of
 matching index nodes and map them to their corresponding content nodes' path.
+
+\Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
+resulting decrease in query runtime when applying QTP on Oak. We see the runtime
+rise during the first 30 seconds and then see the runtime remain stable.
+
+\Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the index
+structure with QTP enabled during query execution. We observe the number of
+unproductive nodes to be close to 0 throughout the entire simulation. We suggest
+that unproductive nodes should be near a constant throughout the simulation
+because we clean the index during query execution. Since query execution is
+continuous, so is our garbage collection. Since we always query the root content
+node in our experiment, we apply garbage collect to the whole tree. We will see
+in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
+querying different ranges of nodes. We also see the gap between total and
+volatile nodes to be greater in the synthetic dataset.
 
 \begin{figure}[h]
   \centering
@@ -1126,7 +1186,7 @@ matching index nodes and map them to their corresponding content nodes' path.
   snapshot $G^1$. QTP is used during query execution. 
 }
  
-  \caption{Query Time Pruning applied to Oak}
+  \caption{Query Time Pruning applied on Oak}
   \label{fig:qtp}
 \end{figure}
 
@@ -1139,10 +1199,10 @@ matching index nodes and map them to their corresponding content nodes' path.
  * @param k: Property
  * @param v: Value
  * @param m: path of content node in which we execute the query
- * @param store: Oak's database interface
+ * @param root: Oak root
  * @returns an iterable with content paths satisfying the CAS query
  */
-Iterable<String> QueryQTP(String k, String v, String m, DocumentNodeStore store) {
+Iterable<String> QueryQTP(String k, String v, String m, Root root) {
 
     /* e.g: /oak:index/pub/:index/now */
     String indexRootPath = concat(OAK_INDEX_PREFIX, k, OAK_INDEX_INTERNAL, v); 
@@ -1150,23 +1210,21 @@ Iterable<String> QueryQTP(String k, String v, String m, DocumentNodeStore store)
     /* e.g: /oak:index/pub/:index/now/a */
     String targetNodePath = concat(indexRootPath, m);
 
-    DocumentNodeState n = getNode(targetNodePath, store);
+    Tree n = root.getTree(targetNodePath);
 
     /* map index nodes' path to corresponding content nodes' path */
-    return map((DocumentNodeState n) -> relativize(indexRootPath, n.getPath()),
+    return map((Tree d) -> relativize(indexRootPath, d.getPath()),
 
         /* filter non-matching index nodes */
-        filter((DocumentNodeState d) -> {
-                boolean matching = d.getBoolean("match");
-
+        filter((Tree d) -> {
                 /* prune if no children, not matching and not volatile */
-                if (d.hasNoChildren() &&
-                    !matching &&
-                    !d.isVolatile()
+                if (d.getChildrenCount(1) == 0 &&
+                    !isMatching(d) &&
+                    !isVolatile(d)
                 ) {
-                    d.builder().remove();
+                    d.remove();
                 }
-                return matching;
+                return isMatching(d);
             },
 
             /* DFS tree traversal of descendants of n */
@@ -1177,6 +1235,38 @@ Iterable<String> QueryQTP(String k, String v, String m, DocumentNodeStore store)
   \caption{Java implementation of QTP}
   \label{fig:java_qtp}
 \end{figure}
+
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_QTP_synthetic}
+    \caption{}
+    \label{fig:query_runtime_QTP_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_QTP_real}
+    \caption{}
+    \label{fig:query_runtime_QTP_real}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_QTP_synthetic}
+    \caption{}
+    \label{fig:trav_nodes_QTP_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_QTP_real}
+    \caption{}
+    \label{fig:trav_nodes_QTP_real}
+  \end{subfigure}
+  \caption{QTP in action}
+\end{figure}
+
 
 \newpage
 
@@ -1499,7 +1589,7 @@ increases.
 \subsubsection{GC Periodicity}
 
 \subsubsection{QTP Queried Nodes}
-
+\label{sec:qtp-queried-nodes}
 \subsubsection{Workload Skew}
 
 \subsubsection{Update to Query ratio}
@@ -1527,19 +1617,19 @@ increases.
  * @param root: Root node of subtree we apply traversal on
  * @returns: iterable for DFS tree traversal
  */
-Iterable<DocumentNodeState> DFS(DocumentNodeState root) {
+Iterable<Tree> DFS(Tree root) {
     return () -> {
         /* Stacks */
-        Deque<DocumentNodeState> s1 = new LinkedList();
-        Deque<DocumentNodeState> s2 = new LinkedList();
+        Deque<Tree> s1 = new LinkedList();
+        Deque<Tree> s2 = new LinkedList();
         s1.push(root);
-        return new Iterator<DocumentNodeState>() {
+        return new Iterator<Tree>() {
             @Override
             public boolean hasNext() {
                 return s1.size() > 0 || s2.size() > 0;
             }
             @Override
-            public DocumentNodeState next() {
+            public Tree next() {
                 while (s1.size() > 0 && (
                     s2.size() == 0 ||
                         isAncestor(
@@ -1547,10 +1637,10 @@ Iterable<DocumentNodeState> DFS(DocumentNodeState root) {
                             s1.peek().getPath()
                         )
                 )) {
-                    DocumentNodeState n = s1.pop();
+                    Tree n = s1.pop();
                     s2.push(n);
-                    for (ChildNodeEntry child : n.getChildNodeEntries()) {
-                        s1.push((DocumentNodeState) child.getNodeState());
+                    for (Tree child : n.getChildren()) {
+                        s1.push(child);
                     }
                 }
                 return s2.pop();

@@ -5,8 +5,8 @@
                      '(("scrartcl" "abstracton" "12pt")))
    (TeX-add-to-alist 'LaTeX-provided-package-options
                      '(("inputenc" "utf8") ("algorithm2e" "ruled" "vlined")))
-   (add-to-list 'LaTeX-verbatim-environments-local "lstlisting")
    (add-to-list 'LaTeX-verbatim-environments-local "minted")
+   (add-to-list 'LaTeX-verbatim-environments-local "lstlisting")
    (add-to-list 'LaTeX-verbatim-macros-with-braces-local "lstinline")
    (add-to-list 'LaTeX-verbatim-macros-with-delims-local "lstinline")
    (TeX-run-style-hooks
@@ -59,9 +59,17 @@
     "algo:periodic_gc_wapi"
     "fig:periodic_gc"
     "fig:java_periodic_gc"
+    "fig:query_runtime_GC_synthetic"
+    "fig:query_runtime_GC_real"
+    "fig:trav_nodes_GC_synthetic"
+    "fig:trav_nodes_GC_real"
     "algo:query_qtp_wapi"
     "fig:qtp"
     "fig:java_qtp"
+    "fig:query_runtime_QTP_synthetic"
+    "fig:query_runtime_QTP_real"
+    "fig:trav_nodes_QTP_synthetic"
+    "fig:trav_nodes_QTP_real"
     "sec:experimental-evaluation"
     "fig:query_runtime_taus_synthetic"
     "fig:query_runtime_taus_real"
@@ -79,6 +87,7 @@
     "fig:trav_unprod_nodes_Ls_real"
     "fig:L_trav_unprod_nodes_synthetic"
     "fig:L_trav_unprod_nodes_real"
+    "sec:qtp-queried-nodes"
     "fig:java_dfs"
     "fig:java_map"
     "fig:java_filter")
