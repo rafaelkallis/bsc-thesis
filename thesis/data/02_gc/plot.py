@@ -78,7 +78,7 @@ for dataset in ["synthetic", "real"]:
             ylim(-.1, 4)
             for m, t in milestones:
                 axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-                text(t-.35, 12.2, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+                text(t-.35, 4.4, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
             legend()
             savefig("trav_nodes_{}_{}.pdf".format(gc_type, dataset))
             clf()

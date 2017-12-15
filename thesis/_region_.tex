@@ -1,4 +1,4 @@
-\documentclass[abstracton,12pt]{scrartcl}
+\message{ !name(thesis.tex)}\documentclass[abstracton,12pt]{scrartcl}
     
 \usepackage[utf8]{inputenc}
 % \usepackage[T1]{fontenc}
@@ -92,6 +92,9 @@
 \definecolor{shadecolor}{rgb}{0.97,0.97,0.97}
     
 \begin{document}
+
+\message{ !name(thesis.tex) !offset(-3) }
+
 
 \maketitle
 \thispagestyle{empty}
@@ -187,6 +190,13 @@ The goal of this BSc thesis is to study, implement, and empirically compare GC
 and QTP as proposed by \cite{KW17} in the open-source hierarchical distributed
 database Apache Jackrabbit Oak (Oak).
 
+% The goal of this project is to implement a WAPI, as proposed by \cite{KW17} in
+% Apache Jackrabbit Oak (Oak) in order to improve the transactional throughput
+% of Oak. In \Cref{sec:wapi} we describe how nodes are inserted, queried and
+% deleted from the WAPI. Next, we describe how volatility is computed in
+% \Cref{sec:volatility}. Finally, a reference implementation in Java is
+% presented in \Cref{sec:implementation}.
+
 \section{Background}
 
 \subsection{Apache Jackrabbit Oak (Oak)}
@@ -207,6 +217,7 @@ One such application is Adobe's enterprise content management system (CMS),
 the Adobe Experience
 Manager.\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}
 
+% \begin{wrapfigure}{r}{0.5\textwidth}
 \begin{figure}[h]
   \begin{center}
     \begin{tikzpicture}[scale=0.8,thick]
@@ -224,7 +235,10 @@ Manager.\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}
         oak_c/mongo} \draw [->] (\from) -- (\to);
     \end{tikzpicture}
   \end{center}
+  % \vspace{-0.5cm}
+  \caption{Oak's system architecture}
   \label{fig:architecture}
+  % \end{wrapfigure}
 \end{figure}
 
 \subsection{Application Scenario}
@@ -236,25 +250,21 @@ These workloads have distinct properties: they are \textit{skewed},
 job-queuing system that has the noted characteristics.
 
 Consider a social media feed as a running example. Some posts are more popular
-and have more interactions than others. Many people write comments or leave a
-like on these popular posts, therefore implying a skewed workload. Users submit
-new posts or interact with existing posts by
+and have more interactions than others, therefore implying a
+skewed workload. Users submit new posts or interact with existing posts by
 writing comments for example, thus creating an update-heavy workload. As time
 passes, new posts are created. Users are more likely to interact with recent
 posts than older ones, hence the workload changes over time.
 
-When a user submits a new post, a job is sent to the CMS for processing. For
-example, if the post had an image, the CMS needs to compress the image and
-create a thumbnail. A job is created for processing the uploaded image. A
-background thread is periodically checking for pending
-jobs. A pending job is signaled using node properties in Oak.
-The CMS adds a property to the respective node in
+When a user submits a new post, it is sent to the CMS for processing. A
+background thread is periodically checking for pending jobs. A pending job is
+signaled using node properties in Oak.
+The CMS adds a property to the respective node  in
 order to signal the background thread that the specific node is a pending job that needs
-processing.  A node has the ``pub'' property signals when the job
-has to be published. We set the value to ``now'' to signal that the job can be
-published immediately.
-Once the background thread detects the node and finishes processing,
-it removes the ``pub'' property and successfully publishes the post.
+processing. Once the
+background thread detects the node and finishes processing, it removes the
+previously set property and
+successfully publishes the post.
 
 From now on, we shall refer to a workload with the properties mentioned above as
 a \textit{CMS workload}.
@@ -286,17 +296,15 @@ to answer CAS queries efficiently.
 The WAPI is hierarchically organized under node \texttt{/i} (denoted
 \textit{Index Subtree Root} in \Cref{fig:hierarchical_db}).
 The second index level consists of all properties $k$ we want
-to index, such as ``pub'' in \Cref{fig:hierarchical_db}.
-The third index level contains any values $v$ of property $k$, for example
-``now'' in \Cref{fig:hierarchical_db}.
+to index. The third index level contains any values $v$ of property $k$.
 The remaining index levels replicate all nodes from the root node to any
 content node with $k$ set to $v$.
 
 When processing a CAS Query, Oak traverses the WAPI in order to answer the query
 efficiently. Any index node has a \textit{corresponding} content node.
 Given index node $n$, we denote $n$'s corresponding content node as $*n$.
-If index node $n$'s path is $path(n) = \texttt{/i/k/v/m} = \texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$, then $n$'s corresponding content
-node $*n$ has the path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$.
+If index node $n$'s path is $path(n) = \texttt{/i/k/v/m}$, then $n$'s corresponding content
+node $*n$ must have path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$.
 
 \begin{figure}
   \centering
@@ -355,15 +363,16 @@ node $*n$ has the path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\do
   content node, \texttt{/a/b/d}, has property ``pub'' set to ``now''.
 \end{example}
 
-From the CMS workload described in \Cref{sec:application_scenario} we can infer that the index subtree has a small number of
-matching nodes relative to the number of nodes in the content subtree. The index is
+As mentioned in \Cref{sec:application_scenario}, the CMS workload has certain
+properties. From the workload we can infer that the index subtree has a small number of
+matching nodes relative to the content subtree. The index is
  used to signal pending jobs to the background thread using
 the ``pub'' property. Assuming jobs are processed by
 the background thread and removed from the index faster than they are created,
 the number of matching nodes should be close to $0$.  
 
 The CMS workload is also skewed and update-heavy, therefore causing repeated structural index
-updates (insertions/deletions) over a small subset of nodes to the index.
+updates over a small subset of nodes to the index.
 The WAPI takes into account if an index node is frequently added and removed,
 i.e \textit{volatile} (see \Cref{def:volatile_node}), before performing structural
 index modifications. If a node is considered volatile, we do not remove it from the index.
@@ -380,16 +389,14 @@ set of nodes which are members of snapshot $G^a$. We use a superscript $a$
 to emphasize that a node $n^a$ belongs to tree $G^a$. $pre(G^b)$ is the
 predecessor of snapshot $G^b$ in $H_i$.
 
-Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that
-nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have
-the same absolute path from the root node.
-
 Node $n$ is volatile iff $n$'s volatility count is at least $\tau$, called
 volatility threshold. The volatility count of $n$ is defined as the number of
 times $n$ was added or removed from snapshots in a sliding window of length
 $L$ over history $H_i$.
 
-\newpage
+Given two snapshots $G^a$ and $G^b$ we write $n^a$ and $n^b$ to emphasize that
+nodes $n^a$ and $n^b$ are two versions of the same node $n$, i.e, they have
+the same absolute path from the root node.
 
 \begin{definition}[Volatility Count]
   The volatility count $vol(n)$ of index node $n$ on Oak instance $O_i$, is the number of
@@ -413,20 +420,18 @@ $L$ over history $H_i$.
 
 \begin{example}[Volatile Node]
   Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
-  threshold $\tau = 1$, sliding window of length $L = 1$ and history $H_h
+  threshold $\tau = 1$, sliding window length $L = 1$ and history $H_h
   = \langle G^0,G^1,G^2,G^3 \rangle$. Oak instance $O_h$ executes transactions
   $T_1, \dots , T_3$. Snapshot $G^0$ was committed at time $t(G^0) =
   t$. Given snapshot $G^0$, transaction $T_1$ adds property ``pub'' = ``now'' to
   \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
   transaction $T_2$ removes property ``pub'' from \texttt{/a/b/d} given snapshot
   $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
-  not pruned during $T_2$ since they are volatile. The index nodes were added
-  during the last snapshot and therefore have a volatility count of 1.
-  Since the threshold is $\tau = 1$, the nodes are considered volatile.
+  not pruned during $T_2$ since they are volatile.
   \label{ex:volatile_node}
 \end{example}
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
 
   \begin{large}
@@ -582,11 +587,7 @@ $L$ over history $H_i$.
 \subsection{Introduction}
 
 When time passes and the database workload changes, volatile nodes cease to be
-volatile and they become unproductive. When nodes are volatile, their volatility
-count has to be $\tau$. When time passes, insertions and deletions are not in
-the sliding window anymore, causing the volatility count to drop. If the
-volatility count drops below threshold $\tau$, the node ceases to be volatile
-and becomes unproductive. Unproductive index nodes slow down
+volatile and they become unproductive. Unproductive index nodes slow down
 queries as traversing an unproductive node is useless, because neither the node
 itself nor any of its descendants contain an indexed property and thus cannot
 yield a query match. Additionally, unproductive nodes occupy storage space that
@@ -600,43 +601,32 @@ over time \cite{KW17}.
   \Cref{def:volatile_node}), i.e
   $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
   (matching(m) \lor volatile(m)))$$
-  \label{def:unproductive-node}
 \end{definition}
 
 \begin{example}
   In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
-  property ``pub'' = ``now'' to \texttt{/a/c/e} to $G^2$ and commits $G^3$ at time
-  $t(G^3) = t+3$. We assume the same parameterization as in the last example
-  ($\tau = 1, L = 1$).
+  property ``pub'' = ``now'' to \texttt{/a/c/e} given $G^2$ and commits $G^3$ at time
+  $t(G^3) = t+3$. We assume the same parameterization as in the last example.
   In snapshot $G^3$, index nodes \texttt{/i/pub/now/a/b/d} and
   \texttt{/i/pub/now/a/b} cease to be volatile because their 
-  volatility counts are below the threshold. The sliding window has length $L =
-  1$, so we only consider snapshots $G^2,G^3$ towards the volatility count. The two
-  nodes were not inserted or deleted in any of the mentioned snapshots and
-  therefore the volatility count is $vol(\texttt{/i/pub/now/a/b/d}) =
-  vol(\texttt{/i/pub/now/a/b}) = 0$. Since the threshold is $\tau = 1$, the nodes are
-  not volatile. In addition to not being volatile,
-  they are not matching either, therefore they are unproductive according to
-  \Cref{def:unproductive-node}. Index node
+  volatility counts are below the threshold. In addition to not being volatile,
+  they are not matching either, therefore being unproductive. Index node
   \texttt{/i/pub/now/a} is not unproductive in snapshot $G^3$ since it has
-  two volatile descendants (\texttt{/i/pub/now/a/c/e}, \texttt{/i/pub/now/a/c}) and
-  one of them is additionally matching. 
+  volatile descendants (\texttt{/i/pub/now/a/c/e}, \texttt{/i/pub/now/a/c}). 
 \end{example}
 
-In the example above, we saw how index nodes become unproductive after being
-volatile. Index nodes do not necessarily have to be volatile before they become
-unproductive.
-If an non volatile index node has a volatile descendant and the descendant ceases to
+In the example above, we saw how index nodes become unproductive by being
+volatile. Unproductive nodes aren't exclusively produced by volatile index
+nodes. If an non volatile index node has a volatile descendant and the descendant seizes to
 be volatile, the index node also becomes unproductive, although it never was
 volatile.
 
 \begin{example}[CAS Query with Unproductive Nodes]
   Consider CAS-Query $Q(\text{pub},\text{now},\texttt{/a})$ from
   \Cref{ex:cas_query} again. We apply the query to snapshot $G^3$ in
-  \Cref{fig:unproductive_nodes}. The query executor has to traverse the four
-  descendants of \texttt{/i/pub/now/a}. The query has to traverse two index nodes
-  \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} which are useless and slow down the
-  query because they are unproductive. The query evaluates to
+  \Cref{fig:unproductive_nodes}. The query executor has to traverse index nodes
+  \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b} which slow down the
+  query. The query evaluates to
   $Q(\text{pub},\text{now},\texttt{/a}) = \{\texttt{/a/c/e}\}$.
 \end{example}
 
@@ -745,7 +735,7 @@ explains the increase in query runtime in
 As time passes, more and more content nodes are randomly
 selected by the CMS workload and their corresponding index nodes become volatile
 and, most likely, become
-unproductive after some time and are not pruned from the index anymore.
+unproductive and are not pruned from the index anymore.
 Therefore, the probability of picking a content node with no corresponding index
 node (non-indexed)
 decreases over time. Since it becomes less and less likely for a non-indexed content node
@@ -774,12 +764,12 @@ decrease over time, which can be explained by the same rationale that cause the
 decrease of the rate of growth of total index nodes.
 
 Additionally, we observe the functions of the unproductive and volatile index
-nodes having the shape of a cycloid. In \Cref{fig:trav_nodes_synthetic}, each
-cusp ($30 s, 60 s, \dots, 300 s$) represents a point in which the workload
-changes during the experiment. When the workload changes, we initially see a
-steep increase in unproductive nodes. During that phase, more nodes cease to be
-volatile than become volatile. Nodes need to reach the threshold in order to
-become volatile and few do, since the skew in the workload only picks a subset of
+nodes having cycloids. In \Cref{fig:trav_nodes_synthetic}, each cusp ($30 s, 60 s,
+\dots, 300 s$) represents a point in which the workload changes during the
+experiment. When the workload changes, we initially see a steep increase in
+unproductive nodes. During that phase, more nodes cease to be volatile than
+become volatile. Nodes need to reach the threshold in order to become volatile
+and few do, since the skew in the workload only picks a subset of
 nodes frequently. Before a new workload kicks in, we observe the opposite
 phenomenon. More nodes become volatile than cease to be volatile, because many nodes are
 on the verge of becoming volatile and therefore need to be picked fewer times to
@@ -788,7 +778,7 @@ become volatile in comparison to the time shortly after the workload kicked in.
 Lastly, we also observe the real-world dataset having a more gentle slope over
 the synthetic dataset. Since
 the real-world dataset has more content nodes, it is less likely for each
-content node to be picked by the skewed workload. Having a smaller chance to be
+content node to be picked by the zipf distribution. Having a smaller chance to be
 picked by the workload implies having less volatile and unproductive nodes in
 the index.  
 
@@ -819,17 +809,16 @@ the index.
 \end{figure}
 
 \Crefrange{fig:trav_node_ratio_synthetic}{fig:trav_node_ratio_real}
-show the ratio of volatile over total and unproductive over total index nodes
-over time and update operations from our datasets. These figures quantify how
-strongly unproductive nodes dominate the total traversed nodes. The data shows
-that unproductive nodes account for over $80\%$ of the traversed nodes whilst
-less than $20\%$ are volatile on the synthetic dataset after 5 minutes.
-Similarly, on the real-world dataset, we observe $90\%$ traversed unproductive and $10\%$
-traversed volatile index nodes.
+show the ratio of volatile and unproductive nodes over time and update
+operations from our datasets. These figures quantify how strongly unproductive
+nodes dominate the traversed nodes. The data shows that unproductive nodes
+account for over $80\%$ of the traversed nodes whilst less than $20\%$ are
+volatile on the synthetic dataset, $90\%$ and $10\%$ on the real-world dataset,
+respectively.
 
 Concluding, the data strongly supports our hypotheses. We see the query runtime
-increase by an order of magnitude after 5 minutes. We also see unproductive
-nodes, which dominate the index, being accountable for the increase in query runtime. 
+increase as the number of index nodes increases. We also see unproductive nodes
+being mostly accountable for the increase in index nodes. 
 In the following sections we present two ways dealing with unproductive nodes.
 
 \newpage
@@ -844,17 +833,14 @@ investigate their performance in \Cref{sec:experimental-evaluation}.
 
 \subsection{Periodic Garbage Collection (GC)}
 
-First, we propose to clean the index periodically. Using GC, we can guarantee
-that all unproductive nodes are removed from the index. Since GC has to be
-explicitly called, GC takes resources from the system. Executing GC too often
-may decrease system performance. Oak has a number of
-background processes that maintain the database. We add a background job that periodically executes
+First, we propose to clean the index periodically.  Oak has a number of background processes that
+maintain the database. We add a background job that periodically executes
 garbage collection on Oak.
 
 \Cref{algo:periodic_gc_wapi} takes an index node $n$ as parameter and prunes all
 its unproductive descendants. The algorithm traverses
-the subtree rooted at $n$ depth-first. If a descendant $d \in desc(n)$ has no
-children, is not matching and not
+the subtree rooted at $n$. If a descendant $d \in desc(n)$ has no children, is
+not matching and not
 volatile, it is pruned from the index. The depth-first tree traversal ensures
 that the algorithm prunes a child before its parent node. This guarantees that
 all unproductive nodes are pruned.
@@ -873,11 +859,6 @@ all unproductive nodes are pruned.
 
 \begin{figure}[H]
   \centering
-
-  \begin{large}
-    $$ G^0 \xrightarrow{\quad T_1 \quad} G^1$$
-  \end{large}
-
 \begin{subfigure}{0.30\textwidth}
   \centering \scriptsize{
     \begin{framed}
@@ -909,6 +890,11 @@ all unproductive nodes are pruned.
       \end{forest}
     \end{framed}
   } \footnotesize{ Snapshot $G^0$ }
+\end{subfigure}
+\begin{subfigure}{0.30\linewidth}
+  \begin{large}
+    $$ \xrightarrow{\quad T_1 \quad} $$
+  \end{large}
 \end{subfigure}
 \begin{subfigure}{0.30\textwidth}
   \centering \scriptsize{
@@ -1064,6 +1050,8 @@ verge of becoming volatile and therefore need to picked fewer times by the
 workload. We also observe the total number of traversed nodes to be
 significantly different between the two datasets although the difference in
 volatile nodes is not so big.
+
+\newpage
 
 \subsection{Query Time Pruning (QTP)}
 
@@ -1252,7 +1240,7 @@ Iterable<String> QueryQTP(String k, String v, String m, Root root) {
 
 \Cref{fig:java_qtp} shows the java implementation of QTP in Oak. The algorithm
 takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
-\texttt{Root} and returns a lazy sequence of content node paths satisfying
+\texttt{NodeStore} and returns a lazy sequence of content node paths satisfying
 the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. We first find index node
 $n$. By Calling \texttt{DFS(n)} we get a sequence of nodes representing a
 depth-first search in the subtree rooted at $n$. We filter any node that is not
@@ -1325,33 +1313,23 @@ volatile nodes to be greater in the synthetic dataset.
 \subsection{Goals}
 
 Using the experiment, we wish to learn more about how different parameters
-affect the performance of periodic garbage collection and query time pruning.
+affects the performance of periodic garbage collection and query time pruning.
 We initially see how different values of the volatility threshold $\tau$
-and sliding window of length $L$ impact unproductive nodes in the index. These
-parameters directly impact the growth of volatile nodes and therefore can affect
-the production of unproductive nodes in the index. Next,
-we investigate the effects periodicity of garbage collection has on its
-algorithm's performance. Executing GC more often might increase system
-performance since more unproductive nodes are pruned. On the other hand side,
-executing GC too often might decrease performance. We will investigate how
-different query workloads affect the overall
+and sliding window of length $L$ impact unproductive nodes in the index. Next,
+we investigate the effects periodicity of garbage collection has in its
+algorithms performance. Since the effectiveness of QTP depends on the query
+workload, we will investigate how different query workloads affect the overall
 performance of QTP. We also conduct an experiment in order to examine how
 workload skew impacts the performance of GC and QTP. Finally, we run simulations
 in order to see how the update to query ration affects the performance of GC and QTP.
 
 \subsection{Setup}
 
-All experiments are conducted on a virtual machine on a 15'' Macbook Pro 2015.
-We allocate 4 out of 8 virtual cores (Intel i7-4980HQ 2.7 - 4.0 GHz) to the virtual
-machine and 12 GB of RAM. We allocated half the available cores of the machine
-because we wanted to ensure the CPU cooling performance will not create noise
-during the simulations.
-
 \subsection{Datasets}
 
 For our experiments we make use of 2 datasets. Each dataset resembles the
 content subtree. The \textit{synthetic} dataset is a complete binary tree with
-max height 20 and $2^20 \approx 10^6$ nodes. The \textit{real-world} dataset contains
+max height 20 and $2^20 \approx 10^6$ nodes. The real-world dataset contains
 $1.3 \cdot 10^6$ and is unbalanced. It is taken from an online shop built on top
 of Adobe's AEM.
 
@@ -1520,7 +1498,7 @@ nodes yield lower WAPI query runtimes. Another factor affecting the rate of
 growth of unproductive nodes is sliding window of length $L$. The following
 section addresses the effects of the sliding window.
 
-\subsubsection{Sliding Window of length $L$}
+\subsubsection{Sliding Window of Length $L$}
 
 Sliding window of length $L$ determines the length of the recent workload that WAPI
 considers to compute an index node's volatility count. Greater values of $L$
@@ -1551,7 +1529,7 @@ consequently also query runtime in the CMS workload.
 query runtime over update operations with sliding window of length $L \in \{10, 20,
 30\}$ seconds.
 \Cref{fig:L_query_runtime_synthetic,fig:L_query_runtime_real} depict query
-runtime with respect to the sliding window. 
+runtime with respect to the sliding window length. 
 We see queries being executed by a WAPI with a greater sliding
 window length to have greater runtimes on average. By increasing the sliding
 window, we increase the likelihood of a node becoming volatile. More volatile
@@ -1636,7 +1614,7 @@ More volatile nodes imply an increase in unproductive nodes in the index.
     \caption{}
     \label{fig:L_trav_unprod_nodes_real}
   \end{subfigure}
-  \caption{Impact of Sliding Window of length $L$ on Unproductive Nodes}
+  \caption{Impact of Sliding Window Length $L$ on Unproductive Nodes}
 \end{figure}
 
 Concluding, we see sliding window of length $L$ to be affecting query runtime.
@@ -1647,17 +1625,14 @@ increases.
 
 \subsubsection{GC Periodicity}
 
-In this section we discuss the performance impact of GC periodicity. Oak can run
-GC arbitrary many times. Given our setup, we would like to find out what the
-optimal periodicity of GC is. We run GC under varying periodicity and compare
-the results. 
-
 \subsubsection{QTP Queried Nodes}
 \label{sec:qtp-queried-nodes}
-
 \subsubsection{Workload Skew}
 
 \subsubsection{Update to Query ratio}
+
+% In order to empirically evaluate and compare GC and QTP under a changing
+% workload, a experiment harness has to be setup.
 
 % datasets
 
@@ -1670,7 +1645,7 @@ the results.
 \section{Appendix}
 
 \begin{figure}
-  \begin{framed}
+  \centering
 \begin{minted}{java}
 /**
  * Returns an iterable which lazily traverses a subtree rooted at root
@@ -1711,13 +1686,14 @@ Iterable<Tree> DFS(Tree root) {
     };
 }
 \end{minted}
-  \end{framed}
+% \end{verbatim}
   \caption{\texttt{DFS()} implementation}
   \label{fig:java_dfs}
 \end{figure}
 
 \begin{figure}
-  \begin{framed}
+  \centering
+% \begin{verbatim}
 \begin{minted}{java}
 /**
  * Higher order function that applies func to each element of iterable.
@@ -1742,13 +1718,14 @@ Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
     };
 }
 \end{minted}
-  \end{framed}
+% \end{verbatim}
   \caption{\texttt{map()} implementation}
   \label{fig:java_map}
 \end{figure}
 
 \begin{figure}
-  \begin{framed}
+  \centering
+  % \begin{verbatim}
 \begin{minted}{java}
 /**
  * Higher order function that removes all elements from an iterable
@@ -1788,7 +1765,7 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
     };
 }
 \end{minted}
-  \end{framed}
+% \end{verbatim}
   \caption{\texttt{filter()} implementation}
   \label{fig:java_filter}
 \end{figure}
@@ -1799,3 +1776,5 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
 \bibliography{thesis}
 
 \end{document}
+
+\message{ !name(thesis.tex) !offset(-1780) }

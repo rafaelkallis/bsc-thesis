@@ -47,6 +47,7 @@
     "def:volatile_node"
     "ex:volatile_node"
     "fig:unproductive_nodes"
+    "def:unproductive-node"
     "fig:query_runtime_synthetic"
     "fig:query_runtime_real"
     "fig:query_runtime"
