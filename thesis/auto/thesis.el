@@ -4,9 +4,9 @@
    (TeX-add-to-alist 'LaTeX-provided-class-options
                      '(("scrartcl" "abstracton" "12pt")))
    (TeX-add-to-alist 'LaTeX-provided-package-options
-                     '(("inputenc" "utf8") ("algorithm2e" "ruled" "vlined")))
-   (add-to-list 'LaTeX-verbatim-environments-local "minted")
+                     '(("inputenc" "utf8") ("xcolor" "dvipsnames") ("algorithm2e" "ruled" "vlined")))
    (add-to-list 'LaTeX-verbatim-environments-local "lstlisting")
+   (add-to-list 'LaTeX-verbatim-environments-local "minted")
    (add-to-list 'LaTeX-verbatim-macros-with-braces-local "lstinline")
    (add-to-list 'LaTeX-verbatim-macros-with-delims-local "lstinline")
    (TeX-run-style-hooks
@@ -14,6 +14,7 @@
     "scrartcl"
     "scrartcl12"
     "inputenc"
+    "xcolor"
     "fancyhdr"
     "graphicx"
     "tikz"
@@ -40,6 +41,7 @@
     "fig:architecture"
     "sec:application_scenario"
     "sec:wapi"
+    "def:cas-query"
     "ex:cas_query"
     "fig:hierarchical_db"
     "def:matching_node"
@@ -48,6 +50,7 @@
     "ex:volatile_node"
     "fig:unproductive_nodes"
     "def:unproductive-node"
+    "ex:unproductive-node"
     "fig:query_runtime_synthetic"
     "fig:query_runtime_real"
     "fig:query_runtime"
@@ -57,21 +60,15 @@
     "fig:trav_node_ratio_synthetic"
     "fig:trav_node_ratio_real"
     "fig:trav_node_ratio"
+    "fig:postorder"
     "algo:periodic_gc_wapi"
     "fig:periodic_gc"
     "fig:java_periodic_gc"
-    "fig:query_runtime_GC_synthetic"
-    "fig:query_runtime_GC_real"
-    "fig:trav_nodes_GC_synthetic"
-    "fig:trav_nodes_GC_real"
     "algo:query_qtp_wapi"
     "fig:qtp"
     "fig:java_qtp"
-    "fig:query_runtime_QTP_synthetic"
-    "fig:query_runtime_QTP_real"
-    "fig:trav_nodes_QTP_synthetic"
-    "fig:trav_nodes_QTP_real"
     "sec:experimental-evaluation"
+    "fig:workload"
     "fig:query_runtime_taus_synthetic"
     "fig:query_runtime_taus_real"
     "fig:tau_query_runtime_synthetic"
@@ -88,11 +85,24 @@
     "fig:trav_unprod_nodes_Ls_real"
     "fig:L_trav_unprod_nodes_synthetic"
     "fig:L_trav_unprod_nodes_real"
+    "fig:query_runtime_GC_synthetic"
+    "fig:query_runtime_GC_real"
+    "fig:trav_nodes_GC_synthetic"
+    "fig:trav_nodes_GC_real"
+    "fig:query_runtime_QTP_synthetic"
+    "fig:query_runtime_QTP_real"
+    "fig:trav_nodes_QTP_synthetic"
+    "fig:trav_nodes_QTP_real"
+    "sec:periodicity"
     "sec:qtp-queried-nodes"
+    "sec:skew"
+    "sec:update-query-ratio"
     "fig:java_dfs"
     "fig:java_map"
     "fig:java_filter")
    (LaTeX-add-bibliographies)
+   (LaTeX-add-xcolor-definecolors
+    "shadecolor")
    (LaTeX-add-amsthm-newtheorems
     "definition"
     "example"))

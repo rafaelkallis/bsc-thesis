@@ -2,6 +2,7 @@
     
 \usepackage[utf8]{inputenc}
 % \usepackage[T1]{fontenc}
+\usepackage[dvipsnames]{xcolor}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
 \usepackage{tikz}
@@ -200,7 +201,7 @@ concurrency control technique~\cite{TM11}.
 \Cref{fig:architecture} depicts Oak's data-sharing architecture. Oak embodies the
 \textit{Database Tier}. Multiple Oak instances can operate concurrently.
 Whilst Oak is responsible for handling the database logic, it stores the actual
-data on MongoDB\footnote{https://www.mongodb.com/what-is-mongodb}, labeled as
+data on MongoDB,\footnote{https://www.mongodb.com/what-is-mongodb} labeled as
 \textit{Persistence Tier}. On the other end, applications can make use of Oak as
 shown in \Cref{fig:architecture} under \textit{Application Tier}.
 One such application is Adobe's enterprise content management system (CMS),
@@ -235,11 +236,12 @@ These workloads have distinct properties: they are \textit{skewed},
 \textit{update-heavy} and \textit{changing} \cite{KW17}. CMSs frequently use a
 job-queuing system that has the noted characteristics.
 
-Consider a social media feed as a running example. Some posts are more popular
-and have more interactions than others. Many people write comments or leave a
-like on these popular posts, therefore implying a skewed workload. Users submit
+Consider a social media feed as a running example. Only a few posts are popular.
+These posts have many comments or likes. Since most of the interactions
+(comments, likes) are on a small subset of the posts, we have a skewed workload.
+Users submit
 new posts or interact with existing posts by
-writing comments for example, thus creating an update-heavy workload. As time
+writing comments for example, creating an update-heavy workload. As time
 passes, new posts are created. Users are more likely to interact with recent
 posts than older ones, hence the workload changes over time.
 
@@ -270,6 +272,7 @@ $desc(n)$.
   Given content node $m$, property $k$ and value $v$, a CAS query
   $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e
   $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
+  \label{def:cas-query}
 \end{definition}
 
 \begin{example}[CAS Query]
@@ -281,14 +284,15 @@ $desc(n)$.
   \label{ex:cas_query}
 \end{example}
 
+\Cref{fig:hierarchical_db} depicts an Oak instance with the WAPI.
 The WAPI is an hierarchical index which indexes the properties of nodes in order
 to answer CAS queries efficiently.
 The WAPI is hierarchically organized under node \texttt{/i} (denoted
-\textit{Index Subtree Root} in \Cref{fig:hierarchical_db}).
+\textit{Index Subtree Root}).
 The second index level consists of all properties $k$ we want
-to index, such as ``pub'' in \Cref{fig:hierarchical_db}.
+to index, such as ``pub''.
 The third index level contains any values $v$ of property $k$, for example
-``now'' in \Cref{fig:hierarchical_db}.
+``now''.
 The remaining index levels replicate all nodes from the root node to any
 content node with $k$ set to $v$.
 
@@ -300,43 +304,46 @@ node $*n$ has the path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\do
 
 \begin{figure}
   \centering
-  \scriptsize{
-    \begin{forest}
-      [
-      [$\lambda:i$
-      [$\lambda:\text{pub}$
-      [$\lambda:\text{now}$
-      [$\lambda:a$
-      [$\lambda:b$
-      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=i_node] {
-        \draw[<-,gray] (.north west)--++(-5em,1em)
-        node[anchor=east]{\textit{Matching Node}};
-      }
-      ]
-      [,phantom]
-      ]
-      ]
-      ]
-      ] {
-        \draw[<-,gray] (.south west)--++(-5em, -1em)
-        node[anchor=east]{\textit{Index Subtree Root}};
-      }
-      [$\lambda:a$
-      [$\lambda:b$
-      [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=c_node]
-      ]
-      [$\lambda:c$
-      [$\lambda:e$]
-      ]
-      ] {
-        \draw[<-,gray] (.south east)--++(5em, -1em)
-        node[anchor=west]{\textit{Content Subtree Root}};
-      }
-      ]
-      \draw[->,dotted] (i_node) to[out=east, in=south] node[gray,midway,right]{\textit{corresponding content node}} (c_node);
-    \end{forest}
-  }
-  \caption{An instance of an hierarchical database}
+  \footnotesize
+  \begin{forest}
+    [
+    [$\lambda:i$
+    [$\lambda:\text{pub}$
+    [$\lambda:\text{now}$
+    [$\lambda:a$
+    [$\lambda:b$
+    [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=i_node] {
+      \draw[<-,gray] (.north west)--++(-5em,1em)
+      node[anchor=east]{\textit{Matching Node}};
+    }
+    ]
+    [,phantom]
+    ]
+    ]
+    ]
+    ] {
+      \draw[<-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{\textit{Index Subtree Root}};
+    }
+    [$\lambda:a$
+    [$\lambda:b$
+    [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=c_node]
+    ]
+    [$\lambda:c$
+    [$\lambda:e$]
+    ]
+    ] {
+      \draw[<-,gray] (.south east)--++(5em, -1em)
+      node[anchor=west]{\textit{Content Subtree Root}};
+    }
+    ]
+    \draw[->,dotted] (i_node) to[out=east, in=south] node[gray,midway,right]{\textit{corresponding content node}} (c_node);
+  \end{forest}
+  \caption[An instance of an hierarchical database]{An instance of an
+    hierarchical database. The index subtree is rooted
+    at \texttt{/i}. The content subtree is rooted at \texttt{/a}. Index node
+    \texttt{/i/pub/now/a/b/d} is matching, since its corresponding content node
+    \texttt{/a/b/d} has property ``pub'' set to ``now''.}
   \label{fig:hierarchical_db}
 \end{figure}
 
@@ -389,8 +396,6 @@ volatility threshold. The volatility count of $n$ is defined as the number of
 times $n$ was added or removed from snapshots in a sliding window of length
 $L$ over history $H_i$.
 
-\newpage
-
 \begin{definition}[Volatility Count]
   The volatility count $vol(n)$ of index node $n$ on Oak instance $O_i$, is the number of
   times node $n$ was added or removed from snapshots contained in a sliding
@@ -403,6 +408,8 @@ $L$ over history $H_i$.
   \label{def:vol_count}
 \end{definition}
 
+\vspace{-4mm}
+
 \begin{definition}[Volatile Node]
   Index node $n$ is volatile iff $n$'s volatility count (see
   \Cref{def:vol_count}) is greater or equal than the volatility threshold
@@ -411,29 +418,33 @@ $L$ over history $H_i$.
   \label{def:volatile_node}
 \end{definition}
 
+\vspace{-4mm}
+
 \begin{example}[Volatile Node]
   Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
   threshold $\tau = 1$, sliding window of length $L = 1$ and history $H_h
   = \langle G^0,G^1,G^2,G^3 \rangle$. Oak instance $O_h$ executes transactions
-  $T_1, \dots , T_3$. Snapshot $G^0$ was committed at time $t(G^0) =
-  t$. Given snapshot $G^0$, transaction $T_1$ adds property ``pub'' = ``now'' to
+  $T_1, \dots , T_3$. Note that volatile index nodes are color-coded
+  blue in \Cref{fig:unproductive_nodes}. Snapshot $G^0$ was committed at time
+  $t(G^0) = t$. Given snapshot $G^0$,
+  transaction $T_1$ adds property ``pub'' = ``now'' to
   \texttt{/a/b/d} and commits snapshot $G^1$ at time $t(G^1) = t + 1$. Next,
   transaction $T_2$ removes property ``pub'' from \texttt{/a/b/d} given snapshot
   $G^1$ and commits snapshot $G^2$ at time $t(G^2) = t + 2$. The index nodes are
   not pruned during $T_2$ since they are volatile. The index nodes were added
   during the last snapshot and therefore have a volatility count of 1.
-  Since the threshold is $\tau = 1$, the nodes are considered volatile.
+  Since the threshold is $\tau = 1$, the nodes are considered volatile. 
   \label{ex:volatile_node}
 \end{example}
 
+\vspace{-1mm}
+
 \begin{figure}[H]
   \centering
-
   \begin{large}
     $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2
     \xrightarrow{\quad T_3 \quad} G^3  $$
   \end{large}
-
   \begin{subfigure}{0.24\textwidth}
     \centering \tiny{
       \begin{framed}
@@ -468,11 +479,11 @@ $L$ over history $H_i$.
       \begin{forest}
         [
         [$\lambda$:$i$
-        [$\lambda$:pub
-        [$\lambda$:now
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+        [$\lambda$:pub, color=RoyalBlue
+        [$\lambda$:now, color=RoyalBlue
+        [$\lambda$:$a$, color=RoyalBlue
+        [$\lambda$:$b$, color=RoyalBlue
+        [$\lambda$:$d$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
         ]
         [,phantom]
         ]
@@ -500,11 +511,11 @@ $L$ over history $H_i$.
       \begin{forest}
         [
         [$\lambda$:$i$
-        [$\lambda$:pub
-        [$\lambda$:now
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$]
+        [$\lambda$:pub, color=RoyalBlue
+        [$\lambda$:now, color=RoyalBlue
+        [$\lambda$:$a$, color=RoyalBlue
+        [$\lambda$:$b$, color=RoyalBlue
+        [$\lambda$:$d$, color=RoyalBlue]
         ]
         [,phantom]
         [,phantom]
@@ -539,11 +550,11 @@ $L$ over history $H_i$.
         [$\lambda$:pub
         [$\lambda$:now
         [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$]
+        [$\lambda$:$b$, color=Orange
+        [$\lambda$:$d$, color=Orange]
         ]
-        [$\lambda$:$c$
-        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
+        [$\lambda$:$c$, color=RoyalBlue
+        [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
         ]
         ]
         ]
@@ -567,11 +578,12 @@ $L$ over history $H_i$.
 \end{subfigure}
 
 \vspace{3mm}
-\caption*{
-  Given $\tau = 1$, $L = 1$, nodes \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b}
-  are unproductive in snapshot $G^3$. They are not volatile and don't match either.
-}
-\caption{Volatile nodes becoming unproductive}
+\caption[Volatile nodes becoming unproductive]{Volatile nodes becoming
+  unproductive. Given $\tau = 1$, $L = 1$, nodes
+  \texttt{/i/pub/now/a/b/d} and \texttt{/i/pub/now/a/b}
+  are unproductive in snapshot $G^3$. They are not volatile and don't match
+  either. Note that volatile and unproductive index nodes are color-coded blue
+  and orange, respectively.}
 \label{fig:unproductive_nodes}
 \end{figure}
 
@@ -598,16 +610,17 @@ over time \cite{KW17}.
   Index node $n$ is unproductive iff $n$, and any descendant of
   $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
   \Cref{def:volatile_node}), i.e
-  $$ unproductive(n) \iff \nexists m (m \in (\{n\} \cup desc(n)) \land
-  (matching(m) \lor volatile(m)))$$
+  $$ unproductive(n) \iff \forall  m (m \in (\{n\} \cup desc(n)) \land
+  \neg matching(m) \land \neg volatile(m))$$
   \label{def:unproductive-node}
 \end{definition}
 
-\begin{example}
+\begin{example}[Unproductive Node]
   In our running example (cf. \Cref{fig:unproductive_nodes}), transaction $T_3$ adds
   property ``pub'' = ``now'' to \texttt{/a/c/e} to $G^2$ and commits $G^3$ at time
   $t(G^3) = t+3$. We assume the same parameterization as in the last example
-  ($\tau = 1, L = 1$).
+  ($\tau = 1, L = 1$). Volatile and unproductive index nodes are color-coded
+  blue and orange, respectively.
   In snapshot $G^3$, index nodes \texttt{/i/pub/now/a/b/d} and
   \texttt{/i/pub/now/a/b} cease to be volatile because their 
   volatility counts are below the threshold. The sliding window has length $L =
@@ -616,11 +629,12 @@ over time \cite{KW17}.
   therefore the volatility count is $vol(\texttt{/i/pub/now/a/b/d}) =
   vol(\texttt{/i/pub/now/a/b}) = 0$. Since the threshold is $\tau = 1$, the nodes are
   not volatile. In addition to not being volatile,
-  they are not matching either, therefore they are unproductive according to
-  \Cref{def:unproductive-node}. Index node
+  they are not matching either, therefore they are unproductive (cf.
+  \Cref{def:unproductive-node}). Index node
   \texttt{/i/pub/now/a} is not unproductive in snapshot $G^3$ since it has
   two volatile descendants (\texttt{/i/pub/now/a/c/e}, \texttt{/i/pub/now/a/c}) and
-  one of them is additionally matching. 
+  one of them is matching, too.
+  \label{ex:unproductive-node}
 \end{example}
 
 In the example above, we saw how index nodes become unproductive after being
@@ -838,34 +852,123 @@ In the following sections we present two ways dealing with unproductive nodes.
 
 In the previous section, we saw how unproductive nodes slow down query
 execution. To prevent unproductive nodes from accumulating in the index, we
-clean the index periodically. In the following two subsections, we suggest two
-different approaching for dealing with unproductive nodes. We will empirically
+need strategies to clean up the index. In the following two subsections, we suggest two
+different approaches for dealing with unproductive nodes. We will empirically
 investigate their performance in \Cref{sec:experimental-evaluation}.
 
 \subsection{Periodic Garbage Collection (GC)}
 
-First, we propose to clean the index periodically. Using GC, we can guarantee
-that all unproductive nodes are removed from the index. Since GC has to be
-explicitly called, GC takes resources from the system. Executing GC too often
-may decrease system performance. Oak has a number of
-background processes that maintain the database. We add a background job that periodically executes
-garbage collection on Oak.
+First, we propose to clean the index periodically with a garbage collector.
+% Using GC, we can guarantee
+% that all unproductive nodes are removed from the index. Since GC has to be
+% explicitly called, GC takes resources from the system. Executing GC too often
+% may decrease system performance.
+We add a background process that periodically executes
+garbage collection of unproductive nodes inside transactions in Oak.
 
-\Cref{algo:periodic_gc_wapi} takes an index node $n$ as parameter and prunes all
-its unproductive descendants. The algorithm traverses
-the subtree rooted at $n$ depth-first. If a descendant $d \in desc(n)$ has no
+The naïve approach for garbage collection is to traverse the entire index subtree,
+apply \Cref{def:unproductive-node} to each visited node $n$ and delete $n$ if it
+is unproductive. Deciding if $n$ is unproductive, requires us to check that no
+descendant $desc(n)$ of $n$ is matching or volatile. By applying a
+\textit{postorder tree walk} \cite{Cormen}, we can garbage collect the
+index subtree in linear time complexity. The postorder tree walk allows us to
+process $n$'s descendants before $n$. Checking if $n$ has children is sufficient
+to determine if $n$ has matching or volatile descendants. \Cref{fig:postorder}  
+depicts a postorder tree walk on an instance of Oak. The numbers represent the
+order in which the nodes are checked and pruned if unproductive. A node's
+descendants are always evaluated before the node itself.
+\begin{figure}
+  \centering
+  \small
+  \begin{forest}
+    [
+    [$\lambda$:$i$, name=i
+    [$\lambda$:pub, name=i_pub
+    [$\lambda$:now, name=i_pub_now
+    [$\lambda$:$a$, name=i_pub_now_a
+    [$\lambda$:$b$, name=i_pub_now_a_b
+    [$\lambda$:$d$ \\ pub:now, align=center, base=bottom, name=i_pub_now_a_b_d] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{1};
+    }
+    ] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{2};
+    }
+    [,phantom]
+    [,phantom]
+    [$\lambda$:$c$, name=i_pub_now_a_c
+    [$\lambda$:$e$, name=i_pub_now_a_c_e] {
+      \draw[-,gray] (.south east)--++(5em, -1em)
+      node[anchor=west]{3};
+    }
+    ] {
+      \draw[-,gray] (.south east)--++(5em, -1em)
+      node[anchor=west]{4};
+    }
+    ] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{5};
+    }
+    ] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{6};
+    }
+    ] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{7};
+    }
+    ] {
+      \draw[-,gray] (.south west)--++(-5em, -1em)
+      node[anchor=east]{8};
+    } 
+    [$\lambda$:$a$
+    [$\lambda$:$b$
+    [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
+    ]
+    [$\lambda$:$c$
+    [$\lambda$:$e$]
+    ]
+    ]
+    ]
+    \draw[-,dotted] (i) to[out=west, in=west] (i_pub);
+    \draw[-,dotted] (i_pub) to[out=west, in=west] (i_pub_now);
+    \draw[-,dotted] (i_pub_now) to[out=west, in=west] (i_pub_now_a);
+    \draw[-,dotted] (i_pub_now_a) to[out=west, in=west] (i_pub_now_a_b);
+    \draw[->,dotted] (i_pub_now_a_b) to[out=west, in=west] (i_pub_now_a_b_d);
+    \draw[->,dotted] (i_pub_now_a_b_d) to[out=east, in=south east] (i_pub_now_a_b);
+    \draw[-,dotted] (i_pub_now_a_b) to[out=east, in=west] (i_pub_now_a_c);
+    \draw[->,dotted] (i_pub_now_a_c) to[out=west, in=west] (i_pub_now_a_c_e);
+    \draw[->,dotted] (i_pub_now_a_c_e) to[out=east, in=east] (i_pub_now_a_c);
+    \draw[->,dotted] (i_pub_now_a_c) to[out=north, in=south east] (i_pub_now_a);
+    \draw[->,dotted] (i_pub_now_a) to[out=east, in=south east] (i_pub_now);
+    \draw[->,dotted] (i_pub_now) to[out=east, in=south east] (i_pub);
+    \draw[->,dotted] (i_pub) to[out=east, in=south east] (i);
+  \end{forest}
+  \caption[Postorder tree walk]{Postorder tree walk on the index subtree rooted at
+    \texttt{/i}. The numbers represent the order the corresponding nodes where
+    visited, e.g \texttt{/i/pub/now/a/b/d} was visited first,
+    \texttt{/i/pub/now/a/b} second, etc.}
+  \label{fig:postorder}
+\end{figure}
+
+
+\Cref{algo:periodic_gc_wapi} prunes all
+unproductive descendants of the index subtree rooted at \texttt{/i}. The algorithm traverses
+the subtree rooted at \texttt{/i} postorder. If a descendant $n \in desc(\texttt{/i})$ has no
 children, is not matching and not
-volatile, it is pruned from the index. The depth-first tree traversal ensures
+volatile, it is pruned from the index. If $n$ has at least one child, we infer
+that it has at least one matching or volatile descendant and thus $n$ is
+not unproductive. The postorder tree walk ensures
 that the algorithm prunes a child before its parent node. This guarantees that
 all unproductive nodes are pruned.
 
 \begin{algorithm}
   \caption{CleanIndexWAPI}
   \DontPrintSemicolon
-  \KwData{Index node $n$}
-  \For{node $d \in desc(n)$ in DFS}{
-    \If{$chd(d) = \emptyset \land \neg matching(d) \land \neg volatile(d)$}{
-      delete node $d$\;
+  \For{node $n \in desc(\texttt{/i})$ in postorder tree walk}{
+    \If{$chd(n) = \emptyset \land \neg matching(n) \land \neg volatile(n)$}{
+      delete node $n$\;
     }
   }
   \label{algo:periodic_gc_wapi}
@@ -873,94 +976,101 @@ all unproductive nodes are pruned.
 
 \begin{figure}[H]
   \centering
-
   \begin{large}
-    $$ G^0 \xrightarrow{\quad T_1 \quad} G^1$$
+    $$ G^3 \xrightarrow{\quad T_4 \quad} G^4$$
   \end{large}
-
 \begin{subfigure}{0.30\textwidth}
-  \centering \scriptsize{
-    \begin{framed}
-      \begin{forest}
-        [
-        [$\lambda$:$i$
-        [$\lambda$:pub
-        [$\lambda$:now
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-        ]
-        [$\lambda$:$c$
-        [$\lambda$:$e$]
-        ]
-        ]
-        ]
-        ]
-        ]
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-        ]
-        [$\lambda$:$c$
-        [$\lambda$:$e$]
-        ]
-        ]
-        ]
-      \end{forest}
-    \end{framed}
-  } \footnotesize{ Snapshot $G^0$ }
+  \centering
+  \scriptsize
+  \begin{framed}
+    \begin{forest}
+      [
+      [$\lambda$:$i$
+      [$\lambda$:pub
+      [$\lambda$:now
+      [$\lambda$:$a$
+      [$\lambda$:$b$, color=Orange
+      [$\lambda$:$d$, color=Orange]
+      ]
+      [$\lambda$:$c$, color=RoyalBlue
+      [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
+      ]
+      ]
+      ]
+      ]
+      ]
+      [,phantom]
+      [$\lambda$:$a$
+      [$\lambda$:$b$
+      [$\lambda$:$d$]
+      ]
+      [$\lambda$:$c$
+      [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
+      ]
+      ]
+      ]
+    \end{forest}
+  \end{framed}
+  \footnotesize{
+    Snapshot $G^3$
+
+    $t(G^3) = t + 3$
+  }
 \end{subfigure}
 \begin{subfigure}{0.30\textwidth}
-  \centering \scriptsize{
-    \begin{framed}
-      \begin{forest}
-        [
-        [$\lambda$:$i$
-        [$\lambda$:pub
-        [$\lambda$:now
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-        ]
-        [,phantom]
-        [,phantom]
-        ]
-        ]
-        ]
-        ]
-        [$\lambda$:$a$
-        [$\lambda$:$b$
-        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-        ]
-        [$\lambda$:$c$
-        [$\lambda$:$e$]
-        ]
-        ]
-        ]
-      \end{forest}
-    \end{framed}
-  } \footnotesize{ Snapshot $G^1$ }
-\end{subfigure}
+  \centering
+  \scriptsize
+  \begin{framed} 
+    \begin{forest}
+      [
+      [$\lambda$:$i$
+      [$\lambda$:pub
+      [$\lambda$:now
+      [$\lambda$:$a$
+      [,phantom]
+      [,phantom]
+      [$\lambda$:$c$, color=RoyalBlue
+      [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
+      ]
+      ]
+      ]
+      ]
+      ]
+      [$\lambda$:$a$
+      [$\lambda$:$b$
+      [$\lambda$:$d$]
+      ]
+      [$\lambda$:$c$
+      [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
+      ]
+      ]
+      ]
+    \end{forest}
+  \end{framed}
+  \footnotesize{
+    Snapshot $G^4$
 
-\vspace{3mm}
-\caption*{
-  Assume nodes \texttt{/i/pub/now/a/c/e} and \texttt{i/pub/now/a/c} are
-  unproductive in snapshot $G^0$. Transaction $T_1$ is executed by the periodic
-  garbage collector and committs the resulting snapshot $G^1$.
-}
-\caption{Garbage collection applied on Oak}
+    $t(G^4) = t + 4$
+  }
+\end{subfigure}
+\caption[GC applied on Oak]{Garbage collection applied on Oak.
+  Assume nodes \texttt{/i/pub/now/a/b/d} and \texttt{i/pub/now/a/b} are
+  unproductive (color-coded orange) in snapshot $G^3$. Garbage collection is
+  executed during transaction $T_4$. $G^4$ is the committed snapshot.}
 \label{fig:periodic_gc}
 \end{figure}
 
 \begin{example}[Periodic GC]
-  Consider \Cref{fig:periodic_gc}. Assume index nodes \texttt{/i/pub/now/a/c/e}
-  and \texttt{/i/pub/now/a/c} are unproductive in snapshot $G^0$. Oak's
-  background thread executes a periodic garbage collection inside transaction
-  $T_1$. During $T_1$, the index is traversed in depth-first order.
+  \Cref{fig:periodic_gc} shows snapshot $G^3$ from
+  \Cref{fig:unproductive_nodes}. Index nodes \texttt{/i/pub/now/a/b/d}
+  and \texttt{/i/pub/now/a/b} are unproductive in snapshot $G^3$, as explained
+  in \Cref{ex:unproductive-node}. Oak's background process executes garbage
+  collection during $T_4$. While executing GC, the index subtree in $G^3$ is
+  traversed in postorder.
   The first unproductive node we encounter and prune is
-  \texttt{/i/pub/now/a/c/e}. Next, the garbage collector encounters and prunes
-  \texttt{/i/pub/now/a/c}. No further unproductive node is left for pruning. We
-  see the index after garbage collection in snapshot $G^1$.
+  \texttt{/i/pub/now/a/b/d}. Next, the garbage collector encounters and prunes
+  \texttt{/i/pub/now/a/b}. No further unproductive node is left for pruning. We
+  see the cleaned index after garbage collection in snapshot $G^4$.
 \end{example}
 
 \begin{figure}[H]
@@ -968,21 +1078,23 @@ all unproductive nodes are pruned.
   \begin{framed}
 \begin{minted}{java}
 /**
- * Removes any unproductive descendant of index node n.
+ * Removes any unproductive descendant from the index subtree.
  *
- * @param n: index node whose descendants are being cleaned
+ * @param root: latest Oak snapshot 
  */
-void cleanIndexWAPI(Tree n) {
+void cleanIndexWAPI(Root root) {
+
+    /* index subtree root */
+    Tree indexRoot = root.getTree(_OAK_INDEX_);
 
     /* filter nodes which have children, are matching or volatile */
     for (Tree unproductiveNode : filter(
-            (Tree d) -> d.getChildrenCount(1) == 0 &&
-                        !isMatching(d) &&
-                        !isVolatile(d)
-            ),
+            (Tree n) -> n.getChildrenCount(1) == 0 &&
+                        !isMatching(n) &&
+                        !isVolatile(n),
 
-            /* DFS tree traversing iterable */
-            DFS(n)
+            /* postorder tree walk iterable */
+            postOrder(indexRoot)
     ) {
         unproductiveNode.remove();
     }
@@ -994,76 +1106,30 @@ void cleanIndexWAPI(Tree n) {
 \end{figure}
 
 \Cref{fig:java_periodic_gc} shows the implementation of the periodic
-garbage collection task in Java. Calling \texttt{DFS(n)} returns a lazy sequence of nodes
-which correspond to a depth-first tree traversal of the subtree rooted at node
-\texttt{n}. Next, any node that has children, is matching or volatile is
-filtered from the sequence since they are productive. All other nodes are pruned
-from the index.
+GC in Java. Calling \texttt{postOrder(n)} returns a lazy sequence of nodes
+which correspond to a postorder tree walk of the index subtree. Next, any node
+that has children, is matching or volatile is
+filtered from the sequence since they are not unproductive. All other nodes are
+unproductive and therefore pruned from the index.
 
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering Real World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{query_runtime_GC_synthetic}
-    \caption{}
-    \label{fig:query_runtime_GC_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{query_runtime_GC_real}
-    \caption{}
-    \label{fig:query_runtime_GC_real}
-  \end{subfigure}
-  \caption{Query Runtime with periodic GC}
-\end{figure}
+By applying periodic GC on Oak, we are introducing a new
+parameter. \textit{Periodicity} defines how often garbage collection is run by
+the background process on Oak. When picking smaller values for the
+periodicity, garbage collection is run more often. If we run GC more often, we
+reduce the average number of unproductive nodes in the index. By decreasing the
+average number of unproductive nodes, we increase the query performance of Oak,
+since the query executor has to traverse less unproductive nodes on average.
 
-\Cref{fig:query_runtime_GC_synthetic,fig:query_runtime_GC_real} show the
-resulting decrease in query runtime when applying periodic GC on Oak. The
-garbage collector is run every 30 seconds. We observe the query runtime
-increasing during the first minute of the simulation. Afterwards, we observe
-query runtime having a sawtooth wave due to periodic garbage collection.
+It is also worth mentioning that GC uses system resources in order to clean the
+index. If run too often, GC might degrade query performance, because the system
+is busy cleaning the index, instead of processing queries.
 
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering Real World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{trav_nodes_GC_synthetic}
-    \caption{}
-    \label{fig:trav_nodes_GC_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{trav_nodes_GC_real}
-    \caption{}
-    \label{fig:trav_nodes_GC_real}
-  \end{subfigure}
-  \caption{Index composition with periodic GC}
-\end{figure}
+We suggest running GC when the system is not busy executing queries, e.g during
+early morning hours. Like so, garbage collection is run without degrading Oak's
+performance. We will revisit GC's periodicity in \Cref{sec:periodicity}, where we
+conduct an experiment in order to determine the impact of periodicity on
+query performance. 
 
-\Cref{fig:trav_nodes_GC_synthetic,fig:trav_nodes_GC_real} show the index
-structure during query execution with periodic GC. We observe the unproductive
-nodes increase until GC is run, after which they are removed again. The traversed 
-volatile nodes have a cycloid pattern, as seen in
-\Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real}, but they are
-not decreasing over time. Since the number of unproductive nodes is near a
-constant throughout the experiment, the likelihood of becoming volatile does not
-change. The cycloid pattern is created from the workload change and skewness.
-When the workload changes, we see a decrease in volatile nodes. Nodes need to
-reach the threshold in order to become volatile and few do, since the skew in
-the workload only picks a subset of nodes frequently. Before a new workload
-kicks in, we observe an increase in volatile nodes because many nodes are on the
-verge of becoming volatile and therefore need to picked fewer times by the
-workload. We also observe the total number of traversed nodes to be
-significantly different between the two datasets although the difference in
-volatile nodes is not so big.
 
 \subsection{Query Time Pruning (QTP)}
 
@@ -1072,20 +1138,40 @@ clean unproductive nodes, query time pruning is an approach which clears
 unproductive nodes whilst Oak answers queries. By doing so, we benefit by
 avoiding the cost of explicitly traversing the index in order to clean it.  
 
+QTP also benefits from frequent queries. If a query is executed for the first
+time, QTP cleans all unproductive nodes from the relevant subtree of the query.
+If the query is executed a second time, the subtree contains no unproductive
+nodes and therefore is executed fast.
+
+The drawback of QTP are \textit{leftover}
+unproductive nodes we get from subtrees which are not queried anymore. Leftover
+unproductive nodes use space but do not impact query performance since they are
+not traversed during query execution.
+
+When using QTP to answer query $Q(k,v,m)$, we apply a postorder tree walk.
+With postorder tree walk, we traverse the subtree of $\texttt{/i/k/v/m} =
+\texttt{/i/k/v/} \lambda_1 \texttt{/} \dots \texttt{/} \lambda_d$ in linear time
+complexity. If any descendant $n \in desc(\texttt{/i/k/v/m})$ has at least one child, we
+infer that it has at least one matching or volatile descendant, therefore making
+$n$ not unproductive. The postorder tree walk ensures that the algorithm prunes
+a child before its parent node. This guarantees that all unproductive nodes are
+pruned in the subtree rooted at \texttt{/i/k/v/m}.
+
 \begin{algorithm}
   \caption{QueryQTP}
   \DontPrintSemicolon
-  \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ a
+  \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ (=
+    $\texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$) a
     content node's path.}
   \KwResult{A set of nodes satisfying $Q(k,v,m)$}
   $r \longleftarrow \emptyset$\;
-  $n \longleftarrow \texttt{/i/k/v/m}$\;
-  \For{node $d \in desc(n)$ in DFS}{
-    \uIf{$matching(d)$}{
-      $r \longleftarrow r \cup \{ *d \}$\;
+  \For{node $n \in
+    desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
+    \uIf{$matching(n)$}{
+      $r \longleftarrow r \cup \{ *n \}$\;
     }
-    \ElseIf{$chd(d) = \emptyset \land \neg volatile(d)$}{
-      delete node $d$
+    \ElseIf{$chd(n) = \emptyset \land \neg volatile(n)$}{
+      delete node $n$
     }
   }
   \Return{r}\;
@@ -1093,19 +1179,20 @@ avoiding the cost of explicitly traversing the index in order to clean it.
 \end{algorithm}
 
 \Cref{algo:query_qtp_wapi} takes a CAS query $Q(k,v,m)$ as an argument, where
-$k$ is a property, $v$ a value and $m$ a content node's path. We declare set $r$
-and assign it the empty set. $r$ will hold all paths satisfying the CAS query.
-We declare node $n$ and assign it the index node corresponding to the content
-node with path $m$. Next, we traverse any descendant $d$ of $n$ in depth-first
-order. If node $d$ is matching, we add its corresponding content node's path to
-$r$ and proceed to the next descendant. If node $d$ is not matching, has no
-children and is not volatile, it is deleted from the index. After finishing
-traversing the subtree rooted at $n$, we return the result set $r$.
+$k$ is a property, $v$ a value and $m$ a content node's path. We initialize set $r$
+as the empty set. $r$ will hold all content nodes satisfying the CAS query (cf.
+\Cref{def:cas-query}).
+We traverse any descendant $n$ of $\texttt{/i/k/v/m} =
+\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$ in a postorder tree
+walk. If node $n$ is matching, we add its corresponding content node to
+$r$ and proceed to the next descendant. If node $n$ is not matching, has no
+children and is not volatile, it is unproductive and deleted from the index.
+After we finish traversing all descendants $n$, we return the result set $r$.
 
 \begin{figure}[H]
   \centering
   \begin{large}
-    $$ G^0 \xrightarrow{\quad T_1 \quad} G^1$$
+    $$ G^5 \xrightarrow{\quad T_6 \quad} G^6$$
   \end{large}
 \begin{subfigure}{0.40\textwidth}
   \centering \scriptsize{
@@ -1118,9 +1205,9 @@ traversing the subtree rooted at $n$, we return the result set $r$.
         [$\lambda$:$a$
         [$\lambda$:$b$
         [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-        [$\lambda$:$e$ \\ \vspace{-1mm}, align=center, base=bottom]
+        [$\lambda$:$e$ \\ \vspace{-1mm}, color=Orange, align=center, base=bottom]
         ]
-        [$\lambda$:$c$
+        [$\lambda$:$c$, color=Orange
         [,phantom]
         ]
         ]
@@ -1139,7 +1226,7 @@ traversing the subtree rooted at $n$, we return the result set $r$.
         ]
       \end{forest}
     \end{framed}
-  } \footnotesize{ Snapshot $G^0$ }
+  } \footnotesize{ Snapshot $G^5$ }
 \end{subfigure}
 \begin{subfigure}{0.40\textwidth}
   \centering \scriptsize{
@@ -1154,7 +1241,7 @@ traversing the subtree rooted at $n$, we return the result set $r$.
         [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
         [,phantom]
         ]
-        [$\lambda$:$c$
+        [$\lambda$:$c$, color=Orange
         [,phantom]
         ]
         ]
@@ -1173,82 +1260,30 @@ traversing the subtree rooted at $n$, we return the result set $r$.
         ]
       \end{forest}
     \end{framed}
-  } \footnotesize{ Snapshot $G^1$ }
+  } \footnotesize{ Snapshot $G^6$ }
 \end{subfigure}
-
-\vspace{3mm}
-\caption*{
-  Assume nodes \texttt{/i/pub/now/a/b/e} and \texttt{i/pub/now/a/c} are
-  unproductive in snapshot $G^0$. Transaction $T_1$ executes CAS query
+\caption[QTP applied on Oak]{Query Time Pruning applied on Oak. Assume nodes
+  \texttt{/i/pub/now/a/b/e} and \texttt{i/pub/now/a/c} are
+  unproductive in snapshot $G^5$. Transaction $T_6$ executes CAS query
   $Q(\texttt{pub},\texttt{now},\texttt{/a/b})$ which queries for all descendants
-  of \texttt{/a/b} with ``pub'' set to ``now'' and committs the resulting
-  snapshot $G^1$. QTP is used during query execution. 
-}
- 
-  \caption{Query Time Pruning applied on Oak}
+  of \texttt{/a/b} with ``pub'' set to ``now'' and commits the resulting
+  snapshot $G^6$. QTP is used during query execution.}
   \label{fig:qtp}
 \end{figure}
 
 \begin{example}[QTP]
-  Consider \Cref{fig:qtp}. Transaction $T_1$ executes CAS query
+  Consider \Cref{fig:qtp}. Transaction $T_6$ executes CAS query
   $Q(\texttt{pub},\texttt{now},\texttt{/a/b})$ which queries for all descendants
-  of \texttt{/a/b} with ``pub'' set to ``now'' in snapshot $G^0$. Assume the
+  of \texttt{/a/b} with ``pub'' set to ``now'' in snapshot $G^5$. Assume the
   query executor uses QTP and nodes \texttt{/i/pub/now/a/b/e} and
   \texttt{/i/pub/now/a/c} are unproductive. The
   query executor traverses all descendants of \texttt{/i/pub/now/a/b} and
   therefore prunes the unproductive index node \texttt{/i/pub/now/a/b/e}. Since
   the other unproductive index nodes are not traversed during query execution,
   they are not pruned and remain in the index unproductive. The resulting
-  snapshot $G^1$ is committed by $T_1$ after finishing query execution.
+  snapshot $G^6$ is committed by $T_6$ after finishing query execution.
 \end{example}
 
-\begin{figure}[H]
-  \small
-  \begin{framed}    
-\begin{minted}{java}
-/**
- * Answers a CAS Query and prunes traversed unproductive index nodes.
- *
- * @param k: Property
- * @param v: Value
- * @param m: path of content node in which we execute the query
- * @param root: Oak root
- * @returns an iterable with content paths satisfying the CAS query
- */
-Iterable<String> QueryQTP(String k, String v, String m, Root root) {
-
-    /* e.g: /oak:index/pub/:index/now */
-    String indexRootPath = concat(_OAK_INDEX_, k, _INDEX_, v); 
-
-    /* e.g: /oak:index/pub/:index/now/a */
-    String targetNodePath = concat(indexRootPath, m);
-
-    Tree n = root.getTree(targetNodePath);
-
-    /* map index nodes' path to corresponding content nodes' path */
-    return map((Tree d) -> relativize(indexRootPath, d.getPath()),
-
-        /* filter non-matching index nodes */
-        filter((Tree d) -> {
-                /* prune if no children, not matching and not volatile */
-                if (d.getChildrenCount(1) == 0 &&
-                    !isMatching(d) &&
-                    !isVolatile(d)
-                ) {
-                    d.remove();
-                }
-                return isMatching(d);
-            },
-
-            /* DFS tree traversal of descendants of n */
-            DFS(n)
-    );
-}
-\end{minted}
-  \end{framed}
-  \caption{Java implementation of QTP}
-  \label{fig:java_qtp}
-\end{figure}
 
 \Cref{fig:java_qtp} shows the java implementation of QTP in Oak. The algorithm
 takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
@@ -1261,61 +1296,56 @@ not volatile, we prune it from the index. next, we take the filtered sequence of
 matching index nodes and map them to their corresponding content nodes' path.
 
 \begin{figure}[H]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering Real World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{query_runtime_QTP_synthetic}
-    \caption{}
-    \label{fig:query_runtime_QTP_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{query_runtime_QTP_real}
-    \caption{}
-    \label{fig:query_runtime_QTP_real}
-  \end{subfigure}
-  \caption{Query Runtime with QTP}
+  \small
+  \begin{framed}    
+\begin{minted}{java}
+/**
+ * Answers a CAS Query and prunes traversed unproductive index nodes.
+ *
+ * @param k: property we query for
+ * @param v: value we query for
+ * @param m: path of content node which the descendants we query for
+ * @param root: latest Oak snapshot
+ * @returns an iterable with content nodes satisfying the CAS query
+ */
+Iterable<Tree> QueryQTP(String k, String v, String m, Root root) {
+
+    /* e.g: /oak:index/pub/:index/now */
+    String indexRootPath = concat(_OAK_INDEX_, k, _INDEX_, v); 
+
+    /* e.g: /oak:index/pub/:index/now/a */
+    String queryNodePath = concat(indexRootPath, m);
+
+    /* map index nodes to corresponding content nodes */
+    return map((Tree n) -> {
+            return root.getTree(relativize(indexRootPath, n.getPath()));
+        },
+
+        /* filter non-matching index nodes */
+        filter((Tree n) -> {
+                
+                boolean isMatchingMemo = isMatching(n);
+
+                /* prune if no children, not matching and not volatile */
+                if (n.getChildrenCount(1) == 0 &&
+                    !isMatchingMemo &&
+                    !isVolatile(n)
+                ) {
+                    n.remove();
+                }
+                return isMatchingMemo;
+            },
+
+            /* postorder tree walk of descendants of /i/k/v/m */
+            postOrder(root.getTree(queryNodePath))
+        )
+    );
+}
+\end{minted}
+  \end{framed}
+  \caption{Java implementation of QTP}
+  \label{fig:java_qtp}
 \end{figure}
-
-\Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
-resulting decrease in query runtime when applying QTP on Oak. We see the runtime
-rise during the first 30 seconds and then see the runtime remain stable.
-
-\begin{figure}[H]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering Real World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{trav_nodes_QTP_synthetic}
-    \caption{}
-    \label{fig:trav_nodes_QTP_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \includegraphics[width=8cm]{trav_nodes_QTP_real}
-    \caption{}
-    \label{fig:trav_nodes_QTP_real}
-  \end{subfigure}
-  \caption{Index composition with QTP}
-\end{figure}
-
-\Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the index
-structure with QTP enabled during query execution. We observe the number of
-unproductive nodes to be close to 0 throughout the entire simulation. We suggest
-that unproductive nodes should be near a constant throughout the simulation
-because we clean the index during query execution. Since query execution is
-continuous, so is our garbage collection. Since we always query the root content
-node in our experiment, we apply garbage collect to the whole tree. We will see
-in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
-querying different ranges of nodes. We also see the gap between total and
-volatile nodes to be greater in the synthetic dataset.
 
 \newpage
 
@@ -1324,14 +1354,15 @@ volatile nodes to be greater in the synthetic dataset.
 
 \subsection{Goals}
 
-Using the experiment, we wish to learn more about how different parameters
-affect the performance of periodic garbage collection and query time pruning.
+The goal of the experiments is to evaluate and compare GC and QTP under
+different parameterizations and workloads.
 We initially see how different values of the volatility threshold $\tau$
 and sliding window of length $L$ impact unproductive nodes in the index. These
 parameters directly impact the growth of volatile nodes and therefore can affect
-the production of unproductive nodes in the index. Next,
-we investigate the effects periodicity of garbage collection has on its
-algorithm's performance. Executing GC more often might increase system
+the production of unproductive nodes in the index. We compare GC and QTP side by
+side and list their differences. Next, we investigate the effects periodicity
+has on garbage collection.
+Executing GC more often might increase system
 performance since more unproductive nodes are pruned. On the other hand side,
 executing GC too often might decrease performance. We will investigate how
 different query workloads affect the overall
@@ -1357,20 +1388,148 @@ of Adobe's AEM.
 
 \subsection{Workload}
 
-We paid a lot of attention to the way we simulate a changing workload during the
-experiments. The goal was to design a function $f$, which given two integer
-arguments, one randomly selected integer $k$ and another representing the
-current workload. $f$ returns a new integer representing the picked content node.
+In \Cref{sec:application_scenario}, we introduced the characteristics of a CMS
+workload. Using a running example we explained that a CMS workload is skewed,
+update-heavy, changing and CMSs frequently make use of a job-queuing system.
+For our experiments, we designed a workload that has the noted characteristics.
 
-We calculate the current workload integer by dividing the time passed since the
-experiment started (in milliseconds) by the workload interval, 30 seconds in our
-instance. Doing so, we can change the workload every 30 seconds.
+In order to have skew, we incorporate the zipf distribution. The zipf
+distribution picks a small subset of nodes more frequent than other nodes. The
+skewness $s$ of the zipf distribution is parameterizable and we use $s=1$ by
+default in our experiments. By having a greater skew, the subset of nodes which
+is frequently selected becomes smaller and the member nodes are selected more
+frequent. In \Cref{sec:skew}, we make an experiment to compare the performance
+of GC and QTP under workloads with different skew.
 
-It is crucial that $f$ has an an avalanche effect \cite{HF73}. When changing the
-workload, we want $f$ to pick completely different content nodes.
+A CMS workload is also update-heavy. We create many update operations before
+creating a query operation. We fix the update to query ratio to 10:1, 10 update
+operations are created for each query operations. In
+\Cref{sec:update-query-ratio}, we evaluate and compare GC and QTP under various
+update to query rations.
 
-We selected a function that takes the two inputs, concatenates them, hashes the
-concatenated value and returns a single integer.
+Additionally, the workload we design has to be changing. We permute the node
+mappings periodically in order to change the hotspots of the simulation. We
+chose to change the hotspot by default every 30 seconds. During a 5 minute
+experiment we expect 10 different workloads.
+
+Lastly, the workload has to simulate a job-queuing system. An update operations
+executed  during the experiment is composed from two actions. We first set the
+``pub'' = ``now'' property-value pair to the node and then consecutively remove
+it. The actions simulate a node being inserted into the queue and then being
+processed and removed.
+
+\Cref{fig:workload} depicts heatmaps of a content subtree of Oak over time.
+These heatmaps show how often the designed workload selects specific nodes
+inside the content subtree. Red shaded nodes are the most frequently selected nodes.
+
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.20\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Orange
+      ]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Red]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=Yellow
+      [,phantom]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow]
+      [,circle,draw,fill=Yellow]
+      ]
+      [,circle,draw,fill=Orange]
+      ]
+      ]
+      ]
+    \end{forest}
+  \end{subfigure}
+  \begin{subfigure}{0.10\textwidth}
+    \centering
+    $\longrightarrow$
+  \end{subfigure}
+  \begin{subfigure}{0.20\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      ]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=Orange
+      [,phantom]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Orange]
+      [,circle,draw,fill=Red]
+      ]
+      [,circle,draw,fill=Orange]
+      ]
+      ]
+      ]
+    \end{forest}
+  \end{subfigure}
+  \begin{subfigure}{0.10\textwidth}
+    \centering
+    $\longrightarrow$
+  \end{subfigure}
+  \begin{subfigure}{0.20\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Orange
+      ]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=Yellow
+      [,phantom]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Red
+      [,circle,draw,fill=Orange]
+      [,circle,draw,fill=Yellow]
+      ]
+      [,circle,draw,fill=Yellow]
+      ]
+      ]
+      ]
+    \end{forest}
+  \end{subfigure}
+
+  \caption{Visualizing CMS Workloads}
+  \label{fig:workload}
+\end{figure}
+
+
+% We paid a lot of attention to the way we simulate a changing workload during the
+% experiments. The goal was to design a function $f$, which given two integer
+% arguments, one randomly selected integer $k$ and another representing the
+% current workload. $f$ returns a new integer representing the picked content node.
+
+% We calculate the current workload integer by dividing the time passed since the
+% experiment started (in milliseconds) by the workload interval, 30 seconds in our
+% instance. Doing so, we can change the workload every 30 seconds.
+
+% It is crucial that $f$ has an an avalanche effect \cite{HF73}. When changing the
+% workload, we want $f$ to pick completely different content nodes.
+
+% We selected a function that takes the two inputs, concatenates them, hashes the
+% concatenated value and returns a single integer.
 
 \subsection{Experiments}
 
@@ -1645,7 +1804,138 @@ More volatile nodes cause an increase in unproductive index nodes. Since the
 WAPI has to traverse more index nodes during query execution, its query runtime
 increases.
 
+\subsubsection{GC and QTP Query Performance}
+
+Our next experiment compares the query performance of periodic garbage collection and
+query time pruning, when applied on Oak. We record the average query runtime and
+the index structure during query execution first while having GC exclusively enabled and
+then with QTP exclusively enabled.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_GC_synthetic}
+    \caption{}
+    \label{fig:query_runtime_GC_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_GC_real}
+    \caption{}
+    \label{fig:query_runtime_GC_real}
+  \end{subfigure}
+  \caption{Query Runtime with periodic GC}
+\end{figure}
+
+\Cref{fig:query_runtime_GC_synthetic,fig:query_runtime_GC_real} show the
+resulting decrease in query runtime when applying periodic GC on Oak. The
+garbage collector is run every 30 seconds. We observe the query runtime
+increasing during the first minute of the simulation. Afterwards, we observe
+query runtime having a sawtooth wave due to periodic garbage collection.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_GC_synthetic}
+    \caption{}
+    \label{fig:trav_nodes_GC_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_GC_real}
+    \caption{}
+    \label{fig:trav_nodes_GC_real}
+  \end{subfigure}
+  \caption{Index composition with periodic GC}
+\end{figure}
+
+\Cref{fig:trav_nodes_GC_synthetic,fig:trav_nodes_GC_real} show the index
+structure during query execution with periodic GC. We observe the unproductive
+nodes increase until GC is run, after which they are removed again. The traversed 
+volatile nodes have a cycloid pattern, as seen in
+\Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real}, but they are
+not decreasing over time. Since the number of unproductive nodes is near a
+constant throughout the experiment, the likelihood of becoming volatile does not
+change. The cycloid pattern is created from the workload change and skewness.
+When the workload changes, we see a decrease in volatile nodes. Nodes need to
+reach the threshold in order to become volatile and few do, since the skew in
+the workload only picks a subset of nodes frequently. Before a new workload
+kicks in, we observe an increase in volatile nodes because many nodes are on the
+verge of becoming volatile and therefore need to picked fewer times by the
+workload. We also observe the total number of traversed nodes to be
+significantly different between the two datasets although the difference in
+volatile nodes is not so big.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_QTP_synthetic}
+    \caption{}
+    \label{fig:query_runtime_QTP_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{query_runtime_QTP_real}
+    \caption{}
+    \label{fig:query_runtime_QTP_real}
+  \end{subfigure}
+  \caption{Query Runtime with QTP}
+\end{figure}
+
+\Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
+resulting decrease in query runtime when applying QTP on Oak. We see the runtime
+rise during the first 30 seconds and then see the runtime remain stable.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_QTP_synthetic}
+    \caption{}
+    \label{fig:trav_nodes_QTP_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{trav_nodes_QTP_real}
+    \caption{}
+    \label{fig:trav_nodes_QTP_real}
+  \end{subfigure}
+  \caption{Index composition with QTP}
+\end{figure}
+
+\Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the index
+structure with QTP enabled during query execution. We observe the number of
+unproductive nodes to be close to 0 throughout the entire simulation. We suggest
+that unproductive nodes should be near a constant throughout the simulation
+because we clean the index during query execution. Since query execution is
+continuous, so is our garbage collection. Since we always query the root content
+node in our experiment, we apply garbage collect to the whole tree. We will see
+in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
+querying different ranges of nodes. We also see the gap between total and
+volatile nodes to be greater in the synthetic dataset.
+
 \subsubsection{GC Periodicity}
+
+\label{sec:periodicity}
 
 In this section we discuss the performance impact of GC periodicity. Oak can run
 GC arbitrary many times. Given our setup, we would like to find out what the
@@ -1656,8 +1946,9 @@ the results.
 \label{sec:qtp-queried-nodes}
 
 \subsubsection{Workload Skew}
-
+\label{sec:skew}
 \subsubsection{Update to Query ratio}
+\label{sec:update-query-ratio}
 
 % datasets
 
