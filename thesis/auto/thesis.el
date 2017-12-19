@@ -60,6 +60,7 @@
     "fig:trav_node_ratio_synthetic"
     "fig:trav_node_ratio_real"
     "fig:trav_node_ratio"
+    "sec:gc"
     "fig:postorder"
     "algo:periodic_gc_wapi"
     "fig:periodic_gc"
@@ -97,7 +98,7 @@
     "sec:qtp-queried-nodes"
     "sec:skew"
     "sec:update-query-ratio"
-    "fig:java_dfs"
+    "fig:java_postorder"
     "fig:java_map"
     "fig:java_filter")
    (LaTeX-add-bibliographies)
