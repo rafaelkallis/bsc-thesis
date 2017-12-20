@@ -303,7 +303,7 @@ Given index node $n$, we denote $n$'s corresponding content node as $*n$.
 If index node $n$'s path is $path(n) = \texttt{/i/k/v/m} = \texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$, then $n$'s corresponding content
 node $*n$ has the path $path(*n) = \texttt{m} = \texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$.
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \footnotesize
   \begin{forest}
@@ -667,22 +667,22 @@ An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
 by unproductive nodes, that is unproductive nodes constitute a large percentage
 of all index nodes.
 
-We summarize the statements above into the following hypotheses:
+% We summarize the statements above into the following hypotheses:
 
-\begin{shaded}
-  \begin{itemize}
-  \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
-  \item[$H_2$:] Unproductive nodes significantly affect WAPI's query runtime
-    under a CMS workload. 
-  \end{itemize}
-\end{shaded}
+% \begin{shaded}
+%   \begin{itemize}
+%   \item[$H_1$:] WAPI's average query runtime increases over time under a CMS workload.
+%   \item[$H_2$:] Unproductive nodes significantly affect WAPI's query runtime
+%     under a CMS workload. 
+%   \end{itemize}
+% \end{shaded}
 
 In order to find supporting evidence for the hypotheses above, we conduct a series of
 experiments on Oak. The experimental evaluation and
 datasets will be described in \Cref{sec:experimental-evaluation}. We
 record the query runtime throughout the experiment and present the data below.
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -722,7 +722,7 @@ real-world dataset.
 % i.e the increase in query runtime is explained by the increase in total
 % traversed nodes per query. 
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -819,7 +819,7 @@ content node to be picked by the workload. Having a smaller chance to be
 picked by the workload implies less volatile and consequently less
 unproductive nodes in the index.  
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -858,6 +858,8 @@ Concluding, the data strongly supports our hypotheses. The query runtime
 increase by an order of magnitude after 5 minutes. Also, unproductive
 nodes, which dominate the index, are accountable for the increase in query runtime. 
 
+\newpage
+
 \section{Cleaning Unproductive Nodes}
 
 In the previous section, we saw how unproductive nodes slow down query
@@ -893,7 +895,7 @@ depicts a postorder tree walk on snapshot $G^3$ from
 order in which the nodes are checked and pruned if unproductive. A node's
 descendants are always evaluated before the node itself.
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \small
   \begin{forest}
@@ -990,6 +992,8 @@ all unproductive nodes are pruned.
   }
   \label{algo:periodic_gc_wapi}
 \end{algorithm}
+
+\vspace{-1cm}
 
 \begin{figure}[H]
   \centering
@@ -1375,75 +1379,152 @@ Iterable<Tree> QueryQTP(String k, String v, String m, Root root) {
 
 \subsection{Goals}
 
-The goal of the experiments is to evaluate and compare GC and QTP under
+The goal of an experimental evaluation is to compare GC and QTP under
 different parameterizations and workloads.
-We initially see how different values of the volatility threshold $\tau$
+In \Cref{sec:threshold,sec:sliding-window}, we see how different values of the
+volatility threshold $\tau$
 and sliding window of length $L$ impact unproductive nodes in the index. These
 parameters directly impact the growth of volatile nodes and therefore can affect
 the production of unproductive nodes in the index. We compare GC and QTP side by
-side and list their differences. Next, we investigate the effects periodicity
-has on garbage collection.
+side and list their differences in \Cref{sec:gc-qtp-performance}. Next, we
+investigate the effects periodicity has on garbage collection in \Cref{sec:periodicity}.
 Executing GC more often might increase system
 performance since more unproductive nodes are pruned. On the other hand side,
 executing GC too often might decrease performance. We will investigate how
 different query workloads affect the overall
-performance of QTP. We also conduct an experiment in order to examine how
+performance of QTP in \Cref{sec:qtp-queried-nodes}. Also, we conduct an
+experiment in \Cref{sec:skew} in order to examine how
 workload skew impacts the performance of GC and QTP. Finally, we run simulations
-in order to see how the update to query ration affects the performance of GC and QTP.
+in order to see how the update to query ration affects the performance of GC and
+QTP in \Cref{sec:update-query-ratio}.
 
 \subsection{Setup}
 
-All experiments are conducted on a virtual machine on a 15'' Macbook Pro 2015.
+All experiments are conducted on a 15'' Macbook Pro 2015 inside
+a virtual machine running Linux Arch\footnote{https://www.archlinux.org/about/}.
 We allocate 4 out of 8 virtual cores (Intel i7-4980HQ 2.7 - 4.0 GHz) to the virtual
 machine and 12 GB of RAM. We allocated half the available cores of the machine
-because we wanted to ensure the CPU cooling performance will not create noise
-during the simulations.
+because we wanted to ensure the CPU cooling performance will not affect the simulations.
+
+
 
 \subsection{Datasets}
 
-For our experiments we make use of 2 datasets. Each dataset resembles the
-content subtree. The \textit{synthetic} dataset is a complete binary tree with
-max height 20 and $2^20 \approx 10^6$ nodes. The \textit{real-world} dataset contains
-$1.3 \cdot 10^6$ and is unbalanced. It is taken from an online shop built on top
-of Adobe's AEM.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \tiny
+    \begin{forest}
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw] 
+      ]
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw]
+      ]
+      ]    
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw] 
+      ]
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw]
+      ]
+      ] 
+      ]
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw] 
+      ]
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw]
+      ]
+      ]
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw] 
+      ]
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw]
+      ]
+      ]  
+      ]
+      ]
+    \end{forest}
+  \caption*{Synthetic}
+\end{subfigure}
+\begin{subfigure}{0.49\linewidth}
+  \centering
+    \tiny
+    \begin{forest}
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw
+      [,circle,draw]
+      ]
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw
+      [,circle,draw]
+      ]
+      ]
+      ]
+      [,circle,draw]
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw]
+      [,circle,draw]
+      ]
+      [,circle,draw
+      [,circle,draw]
+      ]
+      ]
+      ]
+      ]
+    \end{forest}
+    \caption*{Real-World}
+  \end{subfigure}
+  \caption{Datasets visualized}
+  \label{fig:dataset}
+\end{figure}
+
+
+We use two datasets in our experiments. Each dataset resembles the content
+subtree of an Oak instance. The \textit{synthetic} dataset is a complete binary
+tree of height 19, that is a binary tree in which all leaf nodes have depth 19
+\cite{Cormen}. It contains $2^{20} \approx 10^6$ nodes, of which 50\% are leaf
+nodes. Each node has a mean depth and degree of 18 and 2, respectively. The
+\textit{real-world} dataset is taken from DELL's
+website\footnote{https://wwwimages2.adobe.com/content/dam/acom/en/customer-success/pdfs/dell-case-study.pdf}
+which is built on top of Adobe's AEM that uses Oak. It contains $13 \cdot 10^6$
+nodes, 65\% of which are leaf nodes. Each node has a mean depth and degree of
+$13.68$ and 1, respectively. The tree's nodes have a max depth and degree of 24
+and 1729, respectively. \Cref{fig:dataset} shows a sample subtree for each
+dataset. 
 
 \subsection{Workload}
 
-In \Cref{sec:application_scenario}, we introduced the characteristics of a CMS
-workload. Using a running example we explained that a CMS workload is skewed,
-update-heavy, changing and CMSs frequently make use of a job-queuing system.
-For our experiments, we designed a workload that has the noted characteristics.
-
-In order to have skew, we incorporate the zipf distribution. The zipf
-distribution picks a small subset of nodes more frequent than other nodes. The
-skewness $s$ of the zipf distribution is parameterizable and we use $s=1$ by
-default in our experiments. By having a greater skew, the subset of nodes which
-is frequently selected becomes smaller and the member nodes are selected more
-frequent. In \Cref{sec:skew}, we make an experiment to compare the performance
-of GC and QTP under workloads with different skew.
-
-A CMS workload is also update-heavy. We create many update operations before
-creating a query operation. We fix the update to query ratio to 10:1, 10 update
-operations are created for each query operations. In
-\Cref{sec:update-query-ratio}, we evaluate and compare GC and QTP under various
-update to query ratios.
-
-Additionally, the workload we design has to be changing. We permute the node
-mappings periodically in order to change the hotspots of the simulation. We
-chose to change the hotspot by default every 30 seconds. During a 5 minute
-experiment we expect 10 different workloads.
-
-Lastly, the workload has to simulate a job-queuing system. An update operations
-executed  during the experiment is composed from two actions. We first set the
-``pub'' = ``now'' property-value pair to the node and then consecutively remove
-it. The actions simulate a node being inserted into the queue and then being
-processed and removed.
-
-\Cref{fig:workload} depicts heatmaps of a content subtree of Oak over time.
-These heatmaps show how often the designed workload selects specific nodes
-inside the content subtree. Red shaded nodes are the most frequently selected nodes.
-
-\begin{figure}
+\begin{figure}[H]
   \centering
   \begin{subfigure}{0.20\textwidth}
     \centering
@@ -1532,10 +1613,43 @@ inside the content subtree. Red shaded nodes are the most frequently selected no
     \end{forest}
   \end{subfigure}
 
-  \caption{Visualizing CMS Workloads}
+  \caption{CMS Workloads visualized}
   \label{fig:workload}
 \end{figure}
 
+In \Cref{sec:application_scenario}, we introduced the characteristics of a CMS
+workload. Using a running example we explained that a CMS workload is skewed,
+update-heavy, changing and CMSs frequently make use of a job-queuing system.
+For our experiments, we designed a workload that has the noted characteristics.
+
+In order to have skew, we incorporate the zipf distribution. The zipf
+distribution picks a small subset of nodes more frequent than other nodes. The
+skewness $s$ of the zipf distribution is parameterizable and we use $s=1$ by
+default in our experiments. By having a greater skew, the subset of nodes which
+is frequently selected becomes smaller and the member nodes are selected more
+frequent. In \Cref{sec:skew}, we make an experiment to compare the performance
+of GC and QTP under workloads with different skew.
+
+A CMS workload is also update-heavy. We create many update operations before
+creating a query operation. We fix the update to query ratio to 10:1, 10 update
+operations are created for each query operations. In
+\Cref{sec:update-query-ratio}, we evaluate and compare GC and QTP under various
+update to query ratios.
+
+Additionally, the workload we design has to be changing. We permute the node
+mappings periodically in order to change the hotspots of the simulation. We
+chose to change the hotspot by default every 30 seconds. During a 5 minute
+experiment we expect 10 different workloads.
+
+Lastly, the workload has to simulate a job-queuing system. An update operations
+executed  during the experiment is composed from two actions. We first set the
+``pub'' = ``now'' property-value pair to the node and then consecutively remove
+it. The actions simulate a node being inserted into the queue and then being
+processed and removed.
+
+\Cref{fig:workload} depicts heatmaps of a content subtree of Oak over time.
+These heatmaps show how often the designed workload selects specific nodes
+inside the content subtree. Red shaded nodes are the most frequently selected nodes.
 
 % We paid a lot of attention to the way we simulate a changing workload during the
 % experiments. The goal was to design a function $f$, which given two integer
@@ -1552,9 +1666,9 @@ inside the content subtree. Red shaded nodes are the most frequently selected no
 % We selected a function that takes the two inputs, concatenates them, hashes the
 % concatenated value and returns a single integer.
 
-\subsection{Experiments}
+\subsection{Volatility Threshold $\tau$}
 
-\subsubsection{Volatility Threshold $\tau$}
+\label{sec:threshold}
 
 Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
 it becomes volatile (see \Cref{def:volatile_node}). In this section, we study the impact of
@@ -1567,36 +1681,16 @@ less likely for a node to become volatile. Having less volatile nodes should
 cause a decrease to the number of unproductive nodes and consequently also query
 runtime in the CMS workload.
 
-\begin{shaded}
-  \begin{itemize}
-  \item[$H_3$:] An increase in $\tau$ yields a decrease to WAPI's query runtime
-    under a CMS workload. 
-  \item[$H_4$:] An increase in $\tau$ yields a decrease to the number of
-    traversed unproductive nodes during WAPI's query execution under a CMS workload.
-  \end{itemize}
-\end{shaded}
+% \begin{shaded}
+%   \begin{itemize}
+%   \item[$H_3$:] An increase in $\tau$ yields a decrease to WAPI's query runtime
+%     under a CMS workload. 
+%   \item[$H_4$:] An increase in $\tau$ yields a decrease to the number of
+%     traversed unproductive nodes during WAPI's query execution under a CMS workload.
+%   \end{itemize}
+% \end{shaded}
 
-We conduct the same experiment under a varying volatility threshold. 
-\Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_real} show
-thresholds $\tau \in \{1,5,10\}$ affecting query runtime
-over update operations. We observe a decrease in query runtime
-while increasing threshold $\tau$.
-A lower volatility threshold increases the likelihood of a node
-becoming volatile. The amount of volatile nodes also affect the number of
-unproductive nodes, since volatile nodes eventually stop being frequently
-updated and become unproductive. The increase in unproductive nodes in the index
-directly affects query runtime because Oak has to traverse these nodes during
-query execution.
-\Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_real} compare query
-runtime over a range of thresholds. The values picked correspond to
-the query runtime after $10^4$ update operations.
-We observe a power law relationship between threshold $\tau$ and average query
-runtime. As explained above, a lower threshold increases the number of volatile
-and consequently also the number of unproductive nodes. More unproductive nodes
-do increase the query runtime. We believe the power law relationship is
-explained by the zipf distribution our workload uses. 
-
-\begin{figure}
+\begin{figure}[H]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1633,28 +1727,27 @@ explained by the zipf distribution our workload uses.
 \caption{Impact of Volatility Threshold $\tau$ on Query Runtime}
 \end{figure}
 
-\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
-depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
-nodes traversed during query execution over update operations. We observe lower
-thresholds $\tau$ yielding in a steeper slope.
-\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
-number of traversed unproductive nodes during query execution over a range of
-thresholds. We observe a decrease in unproductive nodes while increasing
-threshold $\tau$. As suggested earlier, a lower volatility threshold
-increases the amount of volatile nodes in the index. Volatile nodes eventually
-cease to be volatile and become unproductive. 
+We conduct the same experiment under a varying volatility threshold. 
+\Cref{fig:query_runtime_taus_synthetic,fig:query_runtime_taus_real} show
+thresholds $\tau \in \{1,5,10\}$ affecting query runtime
+over update operations. We observe a decrease in query runtime
+while increasing threshold $\tau$.
+A lower volatility threshold increases the likelihood of a node
+becoming volatile. The amount of volatile nodes also affect the number of
+unproductive nodes, since volatile nodes eventually stop being frequently
+updated and become unproductive. The increase in unproductive nodes in the index
+directly affects query runtime because Oak has to traverse these nodes during
+query execution.
+\Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_real} compare query
+runtime over a range of thresholds. The values picked correspond to
+the query runtime after $10^4$ update operations.
+We observe a power law relationship between threshold $\tau$ and average query
+runtime. As explained above, a lower threshold increases the number of volatile
+and consequently also the number of unproductive nodes. More unproductive nodes
+do increase the query runtime. We believe the power law relationship is
+explained by the workload's skew. 
 
-We also see in this figure
-the two variables sharing a power law relationship as well. We believe the
-workload's zipf skew to be responsible for the power law relationship. We see
-the query executor having to traverse $5k$ unproductive index nodes with a
-threshold of $\tau = 5$. By increasing the threshold to $\tau = 6$, the average
-number of traversed unproductive nodes does not decrease significantly because
-of the zipf-distribution's skewness. We believe the decrease to be bigger if the
-distribution were less skewed. Having less skew implies more nodes being picked
-by the workload.
-
-\begin{figure}
+\begin{figure}[H]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1691,20 +1784,41 @@ by the workload.
   \caption{Impact of Volatility Threshold $\tau$ on Unproductive Nodes}
 \end{figure}
 
-Summarizing, all observations verify hypotheses $H_3$ and $H_4$.
+
+\Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
+depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
+nodes traversed during query execution over update operations. We observe lower
+thresholds $\tau$ yielding in a steeper slope.
+\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
+number of traversed unproductive nodes during query execution over a range of
+thresholds. We observe a decrease in unproductive nodes while increasing
+threshold $\tau$. As suggested earlier, a lower volatility threshold
+increases the amount of volatile nodes in the index and consequently also
+increases the number of unproductive nodes. 
+
+We see the two variables sharing a power law relationship, too. We believe the
+workload's skew to be responsible for the power law relationship. We see
+the query executor having to traverse $5k$ unproductive index nodes with a
+threshold of $\tau = 5$. By increasing the threshold to $\tau = 6$, the average
+number of traversed unproductive nodes does not decrease significantly because
+of the zipf-distribution's skewness. We believe the decrease would be bigger if the
+distribution was less skewed. Having less skew implies nodes being picked
+by the workload more uniformly.
+
+Summarizing, all observations verify our hypotheses.
 Increasing volatility threshold $\tau$ decreases the number of unproductive
 nodes traversed which decreases query runtime. Increasing the volatility
 threshold causes less nodes become volatile. Since we create less volatile
 nodes, we also reduce the number of unproductive nodes. Less unproductive
-nodes yield lower WAPI query runtimes. Another factor affecting the rate of
-growth of unproductive nodes is sliding window of length $L$. The following
-section addresses the effects of the sliding window.
+nodes yield lower WAPI query runtimes. 
 
-\subsubsection{Sliding Window of length $L$}
+\subsection{Sliding Window of Length $L$}
 
-Sliding window of length $L$ determines the length of the recent workload that WAPI
+\label{sec:sliding-window}
+
+Sliding Window of Length $L$ determines the length of the recent workload that WAPI
 considers to compute an index node's volatility count. Greater values of $L$
-allow WAPI to consider more updates and therefore increase the chances of a node
+allow WAPI to count more updates and therefore increase the chances of a node
 becoming volatile. In this section, we study
 the effect of the sliding window on unproductive nodes and query runtime.
 
@@ -1715,14 +1829,14 @@ towards the volatility count.
 Having more volatile nodes should imply an increase in unproductive nodes and
 consequently also query runtime in the CMS workload.
 
-\begin{shaded}
-  \begin{itemize}
-  \item[$H_5$:] An increase in $L$ yields an increase to WAPI's query runtime
-    under a CMS workload. 
-  \item[$H_6$:] An increase in $L$ should increase the number of unproductive
-    nodes WAPI traverses during query execution under a CMS workload.
-  \end{itemize}
-\end{shaded}
+% \begin{shaded}
+%   \begin{itemize}
+%   \item[$H_5$:] An increase in $L$ yields an increase to WAPI's query runtime
+%     under a CMS workload. 
+%   \item[$H_6$:] An increase in $L$ should increase the number of unproductive
+%     nodes WAPI traverses during query execution under a CMS workload.
+%   \end{itemize}
+% \end{shaded}
 
 % We conduct our experiment with a varying sliding window length and present our
 % observations below.
@@ -1732,13 +1846,14 @@ query runtime over update operations with sliding window of length $L \in \{10, 
 30\}$ seconds.
 \Cref{fig:L_query_runtime_synthetic,fig:L_query_runtime_real} depict query
 runtime with respect to the sliding window. 
-We see queries being executed by a WAPI with a greater sliding
-window length to have greater runtimes on average. By increasing the sliding
-window, we increase the likelihood of a node becoming volatile. More volatile
-nodes result in an increase in unproductive nodes. Since the WAPI has to traverse
+We see queries being executed by a WAPI with a greater $L$ to have greater
+runtimes on average. By increasing the sliding
+window, we increase the likelihood of a node becoming volatile because the WAPI
+counts more updates towards the volatility count. As a result, the number of
+unproductive nodes increases as well. Since the WAPI has to traverse
 more unproductive nodes during query execution, the query runtime increases.
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1777,12 +1892,12 @@ more unproductive nodes during query execution, the query runtime increases.
 
 
 \Cref{fig:trav_unprod_nodes_Ls_synthetic,fig:trav_unprod_nodes_Ls_real} show the
-number of unproductive nodes the WAPI has traversed during query execution. As
+number of unproductive nodes the query executor has to traverse. As
 expected, we observe greater sliding window lengths to cause an increase to the
 rate of growth of unproductive nodes traversed by WAPI during query execution.
 More volatile nodes imply an increase in unproductive nodes in the index.
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -1825,7 +1940,9 @@ More volatile nodes cause an increase in unproductive index nodes. Since the
 WAPI has to traverse more index nodes during query execution, its query runtime
 increases.
 
-\subsubsection{GC and QTP Query Performance}
+\subsection{GC and QTP Query Performance}
+
+\label{sec:gc-qtp-performance}
 
 Our next experiment compares the query performance of periodic garbage collection and
 query-time pruning, when applied on Oak. We record the average query runtime and
@@ -1954,7 +2071,7 @@ in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
 querying different ranges of nodes. We also see the gap between total and
 volatile nodes to be greater in the synthetic dataset.
 
-\subsubsection{GC Periodicity}
+\subsection{GC Periodicity}
 
 \label{sec:periodicity}
 
@@ -1963,25 +2080,30 @@ GC arbitrary many times. Given our setup, we would like to find out what the
 optimal periodicity of GC is. We run GC under varying periodicity and compare
 the results. 
 
-\subsubsection{QTP Queried Nodes}
+\subsection{QTP Queried Nodes}
+
 \label{sec:qtp-queried-nodes}
 
-\subsubsection{Workload Skew}
+\subsection{Workload Skew $s$}
+
 \label{sec:skew}
-\subsubsection{Update to Query ratio}
+
+\subsection{Update to Query ratio}
+
 \label{sec:update-query-ratio}
 
-% datasets
+\newpage
 
-% zipf distribution
+\bibliographystyle{abbrv}
+\bibliography{thesis}
 
-% changing Workload
-
-% parameters
+\newpage
 
 \section{Appendix}
 
-\begin{figure}
+\begin{figure}[H]
+  \centering
+  \small
   \begin{framed}
 \begin{minted}{java}
 /**
@@ -2028,7 +2150,7 @@ Iterable<Tree> postOrder(Tree root) {
   \label{fig:java_postorder}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
   \begin{framed}
 \begin{minted}{java}
 /**
@@ -2059,7 +2181,7 @@ Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
   \label{fig:java_map}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
   \begin{framed}
 \begin{minted}{java}
 /**
@@ -2104,10 +2226,5 @@ Iterable<T> filter(Predicate<T> predicate, Iterable<T> iterable) {
   \caption{\texttt{filter()} implementation in Java}
   \label{fig:java_filter}
 \end{figure}
-
-\newpage
-
-\bibliographystyle{abbrv}
-\bibliography{thesis}
 
 \end{document}
