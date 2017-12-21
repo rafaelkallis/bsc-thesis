@@ -38,7 +38,6 @@
     "float"
     "wrapfig")
    (LaTeX-add-labels
-    "fig:architecture"
     "sec:application_scenario"
     "sec:wapi"
     "def:cas-query"
@@ -61,6 +60,7 @@
     "fig:trav_node_ratio_real"
     "fig:trav_node_ratio"
     "sec:gc"
+    "fig:worst-case"
     "fig:postorder"
     "algo:periodic_gc_wapi"
     "fig:periodic_gc"
