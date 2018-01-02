@@ -35,6 +35,7 @@
   {images/volatility_threshold/},
   {images/sliding_window/},
   {images/gc/}
+  {images/skew/}
 }
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
@@ -1862,6 +1863,19 @@ runtime in the CMS workload.
     \caption{}
     \label{fig:query_runtime_taus_real}
   \end{subfigure}
+  \caption{Query Runtime over update operations with threshold $\tau \in \{1,5,10\}$ }
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \includegraphics[width=8cm]{tau_query_runtime_synthetic}
@@ -1874,7 +1888,7 @@ runtime in the CMS workload.
     \caption{}
     \label{fig:tau_query_runtime_real}
   \end{subfigure}
-\caption{Impact of Volatility Threshold $\tau$ on Query Runtime}
+\caption{Query Runtime over volatility threshold $\tau$}
 \end{figure}
 
 We conduct the same experiment under a varying volatility threshold. 
@@ -1888,6 +1902,7 @@ unproductive nodes, since volatile nodes eventually stop being frequently
 updated and become unproductive. The increase in unproductive nodes in the index
 directly affects query runtime because Oak has to traverse these nodes during
 query execution.
+
 \Cref{fig:tau_query_runtime_synthetic,fig:tau_query_runtime_real} compare query
 runtime over a range of thresholds. The values picked correspond to
 the query runtime after $10^4$ update operations.
@@ -1919,19 +1934,32 @@ explained by the workload's skew.
     \caption{}
     \label{fig:trav_unprod_nodes_taus_real}
   \end{subfigure}
+  \caption{Traversed Unproductive Nodes over update operations with threshold $\tau \in \{1,5,10\}$}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \includegraphics[width=8cm]{tau_unprod_nodes_synthetic}
     \caption{}
-    \label{fig:tau_trav_unprod_nodes_synthetic}
+    \label{fig:tau_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \includegraphics[width=8cm]{tau_unprod_nodes_real}
     \caption{}
-    \label{fig:tau_trav_unprod_nodes_real}
+    \label{fig:tau_unprod_nodes_real}
   \end{subfigure}
-  \caption{Impact of Volatility Threshold $\tau$ on Unproductive Nodes}
+  \caption{Traversed Unproductive Nodes over volatility threshold $\tau$}
 \end{figure}
 
 
@@ -1939,7 +1967,7 @@ explained by the workload's skew.
 depict thresholds $\tau \in \{1,5,10\}$ affecting the number of unproductive
 nodes traversed during query execution over update operations. We observe lower
 thresholds $\tau$ yielding in a steeper slope.
-\Cref{fig:tau_trav_unprod_nodes_synthetic,fig:tau_trav_unprod_nodes_real} compare the
+\Cref{fig:tau_unprod_nodes_synthetic,fig:tau_unprod_nodes_real} compare the
 number of traversed unproductive nodes during query execution over a range of
 thresholds. We observe a decrease in unproductive nodes while increasing
 threshold $\tau$. As suggested earlier, a lower volatility threshold
@@ -1991,6 +2019,58 @@ consequently also query runtime in the CMS workload.
 % We conduct our experiment with a varying sliding window length and present our
 % observations below.
 
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_Ls_synthetic}
+    \caption{}
+    \label{fig:query_runtime_Ls_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_Ls_real}
+    \caption{}
+    \label{fig:query_runtime_Ls_real}
+  \end{subfigure}
+  \caption{Query Runtime over update operations with sliding window 
+  of length $L \in \{10s,20s,30s\}$ }
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_query_runtime_synthetic}
+    \caption{}
+    \label{fig:L_query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{L_query_runtime_real}
+    \caption{}
+    \label{fig:L_query_runtime_real}
+  \end{subfigure}
+  \caption{Query Runtime over sliding window length $L$}
+\end{figure}
+
+
 \Cref{fig:query_runtime_Ls_synthetic,fig:query_runtime_Ls_real} show WAPI's average
 query runtime over update operations with sliding window of length $L \in \{10, 20,
 30\}$ seconds.
@@ -2015,37 +2095,19 @@ more unproductive nodes during query execution, the query runtime increases.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_Ls_synthetic}
+    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_synthetic}
     \caption{}
-    \label{fig:query_runtime_Ls_synthetic}
+    \label{fig:trav_unprod_nodes_Ls_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{query_runtime_Ls_real}
+    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_real}
     \caption{}
-    \label{fig:query_runtime_Ls_real}
+    \label{fig:trav_unprod_nodes_Ls_real}
   \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_query_runtime_synthetic}
-    \caption{}
-    \label{fig:L_query_runtime_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{L_query_runtime_real}
-    \caption{}
-    \label{fig:L_query_runtime_real}
-  \end{subfigure}
-  \caption{Impact of Sliding Window of length $L$ on Query Runtime}
+  \caption{Traversed Unproductive Nodes over update operations with sliding 
+  window of length $L \in \{10s,20s,30s\}$}
 \end{figure}
-
-
-\Cref{fig:trav_unprod_nodes_Ls_synthetic,fig:trav_unprod_nodes_Ls_real} show the
-number of unproductive nodes the query executor has to traverse. As
-expected, we observe greater sliding window lengths to cause an increase to the
-rate of growth of unproductive nodes traversed by WAPI during query execution.
-More volatile nodes imply an increase in unproductive nodes in the index.
 
 \begin{figure}[h]
   \centering
@@ -2059,18 +2121,6 @@ More volatile nodes imply an increase in unproductive nodes in the index.
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_synthetic}
-    \caption{}
-    \label{fig:trav_unprod_nodes_Ls_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{trav_unprod_nodes_Ls_real}
-    \caption{}
-    \label{fig:trav_unprod_nodes_Ls_real}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
     \includegraphics[width=8cm]{L_unprod_nodes_synthetic}
     \caption{}
     \label{fig:L_trav_unprod_nodes_synthetic}
@@ -2081,8 +2131,14 @@ More volatile nodes imply an increase in unproductive nodes in the index.
     \caption{}
     \label{fig:L_trav_unprod_nodes_real}
   \end{subfigure}
-  \caption{Impact of Sliding Window of length $L$ on Unproductive Nodes}
+  \caption{Traversed Unproductive Nodes over sliding window length $L$}
 \end{figure}
+
+\Cref{fig:trav_unprod_nodes_Ls_synthetic,fig:trav_unprod_nodes_Ls_real} show the
+number of unproductive nodes the query executor has to traverse. As
+expected, we observe greater sliding window lengths to cause an increase to the
+rate of growth of unproductive nodes traversed by WAPI during query execution.
+More volatile nodes imply an increase in unproductive nodes in the index.
 
 Concluding, we see sliding window of length $L$ to be affecting query runtime.
 Increasing $L$ does increase the likelihood of an index node become volatile.
@@ -2099,7 +2155,7 @@ query-time pruning, when applied on Oak. We record the average query runtime and
 the index structure during query execution first while having GC exclusively enabled and
 then with QTP exclusively enabled.
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering Synthetic
@@ -2117,7 +2173,7 @@ then with QTP exclusively enabled.
     \caption{}
     \label{fig:query_runtime_GC_real}
   \end{subfigure}
-  \caption{Query Runtime with periodic GC}
+  \caption{Query Runtime over update operations, periodic GC enabled}
 \end{figure}
 
 \Cref{fig:query_runtime_GC_synthetic,fig:query_runtime_GC_real} show the
@@ -2126,7 +2182,7 @@ garbage collector is run every 30 seconds. We observe the query runtime
 increasing during the first minute of the simulation. Afterwards, we observe
 query runtime having a sawtooth wave due to periodic garbage collection.
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering Synthetic
@@ -2144,7 +2200,7 @@ query runtime having a sawtooth wave due to periodic garbage collection.
     \caption{}
     \label{fig:trav_nodes_GC_real}
   \end{subfigure}
-  \caption{Index composition with periodic GC}
+  \caption{Index composition over update operations, periodic GC enabled}
 \end{figure}
 
 \Cref{fig:trav_nodes_GC_synthetic,fig:trav_nodes_GC_real} show the index
@@ -2164,7 +2220,7 @@ workload. We also observe the total number of traversed nodes to be
 significantly different between the two datasets although the difference in
 volatile nodes is not so big.
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering Synthetic
@@ -2182,14 +2238,14 @@ volatile nodes is not so big.
     \caption{}
     \label{fig:query_runtime_QTP_real}
   \end{subfigure}
-  \caption{Query Runtime with QTP}
+  \caption{Query Runtime over update operations, QTP enabled}
 \end{figure}
 
 \Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
 resulting decrease in query runtime when applying QTP on Oak. We see the runtime
 rise during the first 30 seconds and then see the runtime remain stable.
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering Synthetic
@@ -2207,7 +2263,7 @@ rise during the first 30 seconds and then see the runtime remain stable.
     \caption{}
     \label{fig:trav_nodes_QTP_real}
   \end{subfigure}
-  \caption{Index composition with QTP}
+  \caption{Index composition over update operations, QTP enabled}
 \end{figure}
 
 \Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the index
@@ -2237,6 +2293,107 @@ the results.
 \subsection{Workload Skew $s$}
 
 \label{sec:skew}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_skews_synthetic}
+    \caption{}
+    \label{fig:query_runtime_skews_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_skews_real}
+    \caption{}
+    \label{fig:query_runtime_skews_real}
+  \end{subfigure}
+  \caption{Query Runtime over update operations with skew $s \in \{0,2,4\}$ }
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{skew_query_runtime_synthetic}
+    \caption{}
+    \label{fig:skew_query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{skew_query_runtime_real}
+    \caption{}
+    \label{fig:skew_query_runtime_real}
+  \end{subfigure}
+\caption{Query Runtime over skew $s$}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_skews_synthetic}
+    \caption{}
+    \label{fig:trav_unprod_nodes_skews_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_skews_real}
+    \caption{}
+    \label{fig:trav_unprod_nodes_skews_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over update operations with skew $s \in \{0,2,4\}$}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{skew_unprod_nodes_synthetic}
+    \caption{}
+    \label{fig:skew_unprod_nodes_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{skew_unprod_nodes_real}
+    \caption{}
+    \label{fig:skew_unprod_nodes_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over skew $s$}
+\end{figure}
+
 
 \subsection{Update to Query ratio}
 
