@@ -34,8 +34,9 @@
   {images/unproductive_nodes/},
   {images/volatility_threshold/},
   {images/sliding_window/},
-  {images/gc/}
-  {images/skew/}
+  {images/gc/},
+  {images/skew/},
+  {images/periodicity/}
 }
 
 % \setlength{\multicolsep}{6.0pt plus 2.0pt minus 1.5pt}% 50% of original values
@@ -1250,9 +1251,9 @@ that has children, is matching or volatile from the sequence. All other nodes ar
 unproductive and therefore pruned from the index.
 
 By applying periodic GC on Oak, we introduce a new
-parameter. \textit{Periodicity} defines how often garbage collection is run by
+parameter. \textit{GC period $T$} defines how often garbage collection is run by
 the background process on Oak. If we pick a smaller
-periodicity, garbage collection is run more often and this
+period $T$, garbage collection is run more often and this
 reduces the average number of unproductive nodes in the index. As a result, we
 increase the query performance of Oak,
 since the query executor has to traverse less unproductive nodes on average.
@@ -1264,8 +1265,8 @@ is busy cleaning the index, instead of processing queries.
 We suggest running GC when the system is not busy executing queries, e.g, every
 day during the 
 early morning hours. Like so, garbage collection minimally interferes with other
-transactions. We will revisit GC's periodicity in \Cref{sec:periodicity}, where we
-conduct an experiment in order to determine the impact of periodicity on
+transactions. We will revisit GC period in \Cref{sec:periodicity}, where we
+conduct an experiment in order to determine the impact of period $T$ on
 query performance. 
 
 
@@ -1526,7 +1527,7 @@ and sliding window of length $L$ impact unproductive nodes in the index. These
 parameters directly impact the number of volatile nodes and therefore can affect
 the production of unproductive nodes in the index. We compare GC and QTP side by
 side and list their differences in \Cref{sec:gc-qtp-performance}. Next, we
-investigate the effects periodicity has on garbage collection in \Cref{sec:periodicity}.
+investigate the effects GC period has on garbage collection in \Cref{sec:periodicity}.
 Executing GC more often might increase system
 performance since more unproductive nodes are pruned. On the other hand side,
 executing GC too often might decrease performance. We will investigate how
@@ -2277,14 +2278,115 @@ in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
 querying different ranges of nodes. We also see the gap between total and
 volatile nodes to be greater in the synthetic dataset.
 
-\subsection{GC Periodicity}
+\subsection{GC Period $T$}
 
 \label{sec:periodicity}
 
-In this section we discuss the performance impact of GC periodicity. Oak can run
+In this section we discuss the performance impact of GC period $T$. Oak can run
 GC arbitrary many times. Given our setup, we would like to find out what the
-optimal periodicity of GC is. We run GC under varying periodicity and compare
+optimal period of GC is. We run GC under varying period and compare
 the results. 
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_periodicity_synthetic}
+    \caption{}
+    \label{fig:query_runtime_periodicity_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{query_runtime_periodicity_real}
+    \caption{}
+    \label{fig:query_runtime_periodicity_real}
+  \end{subfigure}
+  \caption{Query Runtime over update operations with GC period $T \in \{5s,50s\}$ }
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{periodicity_query_runtime_synthetic}
+    \caption{}
+    \label{fig:periodicity_query_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{periodicity_query_runtime_real}
+    \caption{}
+    \label{fig:periodicity_query_runtime_real}
+  \end{subfigure}
+\caption{Query Runtime over GC period $T$}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_periodicity_synthetic}
+    \caption{}
+    \label{fig:trav_unprod_nodes_periodicity_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_periodicity_real}
+    \caption{}
+    \label{fig:trav_unprod_nodes_periodicity_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over update operations with GC period $T \in \{5s, 50s\}$}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{periodicity_unprod_nodes_synthetic}
+    \caption{}
+    \label{fig:periodicity_unprod_nodes_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{periodicity_unprod_nodes_real}
+    \caption{}
+    \label{fig:periodicity_unprod_nodes_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over GC period $T$}
+\end{figure}
+
 
 \subsection{QTP Queried Nodes}
 

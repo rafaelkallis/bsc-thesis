@@ -23,7 +23,7 @@ data_synthetic = dict()
 data_real = dict()
 
 for filename in filenames:
-    skew = int(search("_skew(?P<skew>[0-9]*)_", filename).group("skew"))
+    skew = float(search("_skew(?P<skew>[0-9.]*)_", filename).group("skew"))
     dataset = search("(?P<dataset>(synthetic|real))", filename).group("dataset")
     data = data_synthetic if dataset == "synthetic" else data_real if dataset == "real" else None
     with open(filename) as f:
