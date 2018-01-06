@@ -36,6 +36,7 @@
   {images/sliding_window/},
   {images/gc/},
   {images/skew/},
+  {images/updates_per_query/},
   {images/periodicity/}
 }
 
@@ -1283,15 +1284,15 @@ If the query is executed a second time shortly thereafter and  no new nodes
 become unproductive in the meantime, the query executor encounters no
 unproductive nodes anymore and therefore the query is answered faster.
 
-The subtrees traversed during query execution depend on the database's workload.
-Due to the CMS workload's skew, the query executor frequently traverses the
-subtrees of a small subset of nodes. When the workload changes and consequently
-also the queries, the query executor starts traversing new subtrees in the index.
-Some subtrees are not queried by the new workload anymore. If an unproductive
-node is a member of a subtree that is not queries anymore, it is not pruned and
+If the path filter of the queries changes often, 
+the query executor starts traversing new subtrees in the index
+and consequently, some subtrees are not queried anymore. If an unproductive
+node is a member of a subtree that is not queried anymore, it is not pruned and
 remains in the index.
 Such unproductive nodes waste space because they contain no data but do not
 impact query performance since they are not traversed during query execution.
+At the present time, it remains unknown what the performance impact of a changing
+path filter is. We will investigate the very question in \Cref{sec:qtp-queried-nodes}.
 
 % The drawback of QTP are \textit{leftover}
 % unproductive nodes we get from subtrees which are not queried anymore. Leftover
@@ -1529,10 +1530,9 @@ the production of unproductive nodes in the index. We compare GC and QTP side by
 side and list their differences in \Cref{sec:gc-qtp-performance}. Next, we
 investigate the effects GC period has on garbage collection in \Cref{sec:periodicity}.
 Executing GC more often might increase system
-performance since more unproductive nodes are pruned. On the other hand side,
-executing GC too often might decrease performance. We will investigate how
-different query workloads affect the overall
-performance of QTP in \Cref{sec:qtp-queried-nodes}. Also, we conduct an
+performance since more unproductive nodes are pruned. We investigate how
+the query filter affects QTP's overall performance in 
+\Cref{sec:qtp-queried-nodes}. Also, we conduct an
 experiment in \Cref{sec:skew} in order to examine how
 workload skew impacts the performance of GC and QTP. Finally, we run simulations
 in order to see how the update to query ration affects the performance of GC and
@@ -1546,9 +1546,9 @@ We allocate 4 out of 8 virtual cores (Intel i7-4980HQ 2.7 - 4.0 GHz) to the virt
 machine and 12 GB of RAM. We allocated half the available cores of the machine
 because we wanted to ensure the CPU cooling performance will not affect the simulations.
 
-
-
 \subsection{Datasets}
+
+\label{sec:datasets}
 
 \begin{figure}[H]
   \centering
@@ -1663,10 +1663,12 @@ which is built on top of Adobe's AEM that uses Oak.
 \footnote{https://wwwimages2.adobe.com/content/dam/acom/en/customer-success/pdfs/dell-case-study.pdf} It contains $13 \cdot 10^6$
 nodes, 65\% of which are leaf nodes. Each node has a mean depth and fanout of
 $13.68$ and 1, respectively. The tree's nodes have a max depth and degree of 24
-and 1729, respectively. \Cref{fig:dataset} shows a sample subtree for each
-dataset. 
+and 1729, respectively. There are many nodes with a single child and few with
+many children. \Cref{fig:dataset} shows a sample subtree for each dataset.
 
 \subsection{Workload}
+
+\label{sec:workload}
 
 \begin{figure}[H]
   \centering
@@ -2153,7 +2155,7 @@ sliding window ($L = 30s$) has the highest rate of growth of unproducive nodes.
 When $L$ increases, more updates are considered towards a node's volatility count,
 hence more nodes become volatile and consequently unproductive, later on.
 
-\Cref{fig:trav_unprod_nodes_Ls_synthetic,fig:trav_unprod_nodes_Ls_real} show the
+\Cref{fig:L_trav_unprod_nodes_synthetic,fig:L_trav_unprod_nodes_real} show the
 number of unproductive nodes the query executor has to traverse with respect
 to the sliding window length $L$. The two variables share a linear relationship.
 We observe greater sliding window lengths to cause an increase to the
@@ -2249,9 +2251,20 @@ reach the threshold in order to become volatile and few do, since the skew in
 the workload only picks a subset of nodes frequently. Before a new workload
 kicks in, we observe an increase in volatile nodes because many nodes are on the
 verge of becoming volatile and therefore need to picked fewer times by the
-workload. We also observe the total number of traversed nodes to be
-significantly different between the two datasets although the difference in
-volatile nodes is not so big.
+workload.
+
+Comparing the synthetic dataset to the real-world one, we observe another phenomenon.
+The gap between traversed volatile and total traversed nodes is significantly bigger
+in the synthetic dataset. In other words, the ratio of trversed volatile over total 
+traversed index nodes is higher in the real-world dataset. We suggest that non-volatile
+ancestors of volatile nodes account for the gap. As mentioned in \Cref{sec:datasets},
+the real-world dataset has many nodes with a single child and few with many children,
+forming long chains of nodes. If the leaf node in such a chain is updated, each 
+ancestor in the chain is also added or removed, given they are not volatile. In that scendario,
+when the leaf node becomes volatile, most likely its ancestors inside the chain also become
+volatile, since they were added or removed every time the leaf node did. It is more likely
+for an ancestor to become volatile in the real-world dataset due to the long chains, hence
+the higher ratio of traversed volatile over total traversed index nodes.
 
 \begin{figure}[h]
   \centering
@@ -2277,6 +2290,7 @@ volatile nodes is not so big.
 \Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
 resulting decrease in query runtime when applying QTP on Oak. We see the runtime
 rise during the first 30 seconds and then see the runtime remain stable.
+We suggest that volatile nodes account for the query runtime. 
 
 \begin{figure}[h]
   \centering
@@ -2302,13 +2316,18 @@ rise during the first 30 seconds and then see the runtime remain stable.
 \Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the index
 structure with QTP enabled during query execution. We observe the number of
 unproductive nodes to be close to 0 throughout the entire simulation. We suggest
-that unproductive nodes should be near a constant throughout the simulation
-because we clean the index during query execution. Since query execution is
-continuous, so is our garbage collection. Since we always query the root content
-node in our experiment, we apply garbage collect to the whole tree. We will see
-in \Cref{sec:qtp-queried-nodes} how the algorithm's performance changes when
-querying different ranges of nodes. We also see the gap between total and
-volatile nodes to be greater in the synthetic dataset.
+that unproductive nodes should be near a constant at any time during the simulation
+because the index is continuously cleaned from the queries. As long as query execution is
+continuous, so is our index cleaning. Since we always query the root content
+node in our experiment, we clean the whole index subtree from unproductive nodes.
+As seen earlier, we also observe a bigger gap between traversed volatile and total
+traversed index nodes in the synthetic dataset compared to the real-world one due to
+more non-volatile ancestors of volatile nodes.
+
+The workload during the experiment always query the subtree root node. It still remains
+open how QTP affects performance when the query filter changes. The question will be handled 
+in \Cref{sec:qtp-queried-nodes}, where we will see how the algorithm's performance changes when
+querying different ranges of nodes.
 
 \subsection{GC Period $T$}
 
@@ -2319,55 +2338,55 @@ GC arbitrary many times. Given our setup, we would like to find out what the
 optimal period of GC is. We run GC under varying period and compare
 the results. 
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Real-World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_periodicity_synthetic}
-    \caption{}
-    \label{fig:query_runtime_periodicity_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_periodicity_real}
-    \caption{}
-    \label{fig:query_runtime_periodicity_real}
-  \end{subfigure}
-  \caption{Query Runtime over update operations with GC period $T \in \{5s,50s\}$ }
-\end{figure}
+%\begin{figure}[h]
+  %\centering
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Synthetic
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Real-World
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{query_runtime_periodicity_synthetic}
+    %\caption{}
+    %\label{fig:query_runtime_periodicity_synthetic}
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{query_runtime_periodicity_real}
+    %\caption{}
+    %\label{fig:query_runtime_periodicity_real}
+  %\end{subfigure}
+  %\caption{Query Runtime over update operations with GC period $T \in \{5s,50s\}$ }
+%\end{figure}
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Real-World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{periodicity_query_runtime_synthetic}
-    \caption{}
-    \label{fig:periodicity_query_runtime_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{periodicity_query_runtime_real}
-    \caption{}
-    \label{fig:periodicity_query_runtime_real}
-  \end{subfigure}
-\caption{Query Runtime over GC period $T$}
-\end{figure}
+%\begin{figure}[h]
+  %\centering
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Synthetic
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Real-World
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{periodicity_query_runtime_synthetic}
+    %\caption{}
+    %\label{fig:periodicity_query_runtime_synthetic}
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{periodicity_query_runtime_real}
+    %\caption{}
+    %\label{fig:periodicity_query_runtime_real}
+  %\end{subfigure}
+%\caption{Query Runtime over GC period $T$}
+%\end{figure}
 
 \begin{figure}[h]
   \centering
@@ -2428,55 +2447,68 @@ the results.
 
 \label{sec:skew}
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Real-World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_skews_synthetic}
-    \caption{}
-    \label{fig:query_runtime_skews_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{query_runtime_skews_real}
-    \caption{}
-    \label{fig:query_runtime_skews_real}
-  \end{subfigure}
-  \caption{Query Runtime over update operations with skew $s \in \{0,2,4\}$ }
-\end{figure}
+One of our initial assumptions was that Oak's workload is update heavy, amongst others.
+To emphasize the implications of such an update heavy workload, we conduct the following
+experiment. Oak is benchmarked with different update to query ratios, that is the number of updates executed between two consequtive queries, in order to show the effect of such a workload
+on unproductive nodes. As mentioned in \Cref{sec:workload}, we use the Zipf distribution
+to model a skewed workload. If skew $s$ increases, the group of frequently drawn nodes
+becomes smaller but the member nodes are drawn more frequent.
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Synthetic
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    Real-World
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{skew_query_runtime_synthetic}
-    \caption{}
-    \label{fig:skew_query_runtime_synthetic}
-  \end{subfigure}
-  \begin{subfigure}{0.49\linewidth}
-    \centering
-    \includegraphics[width=8cm]{skew_query_runtime_real}
-    \caption{}
-    \label{fig:skew_query_runtime_real}
-  \end{subfigure}
-\caption{Query Runtime over skew $s$}
-\end{figure}
+We expect skew $s$ to affect the number of unproductive nodes WAPI traverses during
+query execution. Since some nodes are updated more often, more nodes become volatile
+and eventually also unproductive. On the other hand, increasing skew $s$ also reduces
+the number of members of the group of frequently updated nodes and therefore reduce
+the number of volatile nodes, hence unproductive nodes also reduce.
+
+%\begin{figure}[h]
+  %\centering
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Synthetic
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Real-World
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{query_runtime_skews_synthetic}
+    %\caption{}
+    %\label{fig:query_runtime_skews_synthetic}
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{query_runtime_skews_real}
+    %\caption{}
+    %\label{fig:query_runtime_skews_real}
+  %\end{subfigure}
+  %\caption{Query Runtime over update operations with skew $s \in \{0,2,4\}$ }
+%\end{figure}
+
+%\begin{figure}[h]
+  %\centering
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Synthetic
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %Real-World
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{skew_query_runtime_synthetic}
+    %\caption{}
+    %\label{fig:skew_query_runtime_synthetic}
+  %\end{subfigure}
+  %\begin{subfigure}{0.49\linewidth}
+    %\centering
+    %\includegraphics[width=8cm]{skew_query_runtime_real}
+    %\caption{}
+    %\label{fig:skew_query_runtime_real}
+  %\end{subfigure}
+%\caption{Query Runtime over skew $s$}
+%\end{figure}
 
 \begin{figure}[h]
   \centering
@@ -2528,10 +2560,68 @@ the results.
   \caption{Traversed Unproductive Nodes over skew $s$}
 \end{figure}
 
+\Cref{fig:trav_unprod_nodes_skews_synthetic,fig:trav_unprod_nodes_skews_real} show the number
+of unproductive nodes traversed by WAPI during query execution with workloads having skew
+$s \in \{0,2,4\}$. The workload with skew $s = 0$ is uniformy distributed. We see a smaller
+skew $s$ increase the number of unproductive nodes. We believe that even though nodes are
+more frequently updated, many more stop being updated and therefore the total number of nodes
+becoming volatile, and eventually unproductive, decreases.
 
 \subsection{Update to Query ratio}
 
 \label{sec:update-query-ratio}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_upt_synthetic}
+    \caption{}
+    \label{fig:trav_unprod_nodes_upt_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{trav_unprod_nodes_upt_real}
+    \caption{}
+    \label{fig:trav_unprod_nodes_upt_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over time for 1,10 and 20 updates per query}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{upt_unprod_nodes_synthetic}
+    \caption{}
+    \label{fig:upt_unprod_nodes_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \includegraphics[width=8cm]{upt_unprod_nodes_real}
+    \caption{}
+    \label{fig:upt_unprod_nodes_real}
+  \end{subfigure}
+  \caption{Traversed Unproductive Nodes over updates per query}
+\end{figure}
+
+
 
 \newpage
 
@@ -2542,7 +2632,7 @@ the results.
 
 \section{Appendix}
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
   \small
   \begin{framed}
