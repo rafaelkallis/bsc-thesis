@@ -25,6 +25,7 @@
 \usepackage{soul}
 \usepackage{float}
 \usepackage{wrapfig}
+\usepackage{lipsum}
 % \usepackage{geometry}
 % \usepackage{titlesec}
 
@@ -1791,7 +1792,8 @@ update to query ratios.
 
 Additionally, the workload we design has to be changing. We periodically permute 
 the node mappings by reassigning a random and unique integer $k \in [1,N]$ to each
-node from the dataset in orderto change the hotspots of the simulation. 
+node from the dataset in order to change the hotspots of the simulation, that is
+the subset of nodes which frequently updated.
 We change the hotspot by default every 30 seconds. During a 5 minute
 experiment we expect 10 different workloads.
 
@@ -2325,7 +2327,8 @@ traversed index nodes in the synthetic dataset compared to the real-world one du
 more non-volatile ancestors of volatile nodes.
 
 The workload during the experiment always query the subtree root node. It still remains
-open how QTP affects performance when the query filter changes. The question will be handled 
+open how QTP affects performance when the query filter changes and we don't benefit from
+frequent queries anymore. The question will be handled 
 in \Cref{sec:qtp-queried-nodes}, where we will see how the algorithm's performance changes when
 querying different ranges of nodes.
 
@@ -2336,7 +2339,9 @@ querying different ranges of nodes.
 In this section we discuss the performance impact of GC period $T$. Oak can run
 GC arbitrary many times. Given our setup, we would like to find out what the
 optimal period of GC is. We run GC under varying period and compare
-the results. 
+the results.
+
+\lipsum[1]
 
 %\begin{figure}[h]
   %\centering
@@ -2438,27 +2443,119 @@ the results.
   \caption{Traversed Unproductive Nodes over GC period $T$}
 \end{figure}
 
+\lipsum[2-4]
 
 \subsection{QTP Queried Nodes}
 
 \label{sec:qtp-queried-nodes}
 
+\lipsum[5-9]
+
 \subsection{Workload Skew $s$}
 
 \label{sec:skew}
 
-One of our initial assumptions was that Oak's workload is update heavy, amongst others.
-To emphasize the implications of such an update heavy workload, we conduct the following
-experiment. Oak is benchmarked with different update to query ratios, that is the number of updates executed between two consequtive queries, in order to show the effect of such a workload
-on unproductive nodes. As mentioned in \Cref{sec:workload}, we use the Zipf distribution
-to model a skewed workload. If skew $s$ increases, the group of frequently drawn nodes
-becomes smaller but the member nodes are drawn more frequent.
+One of the key characteristics of the CMS Workload is skewness, as mentioned in 
+\Cref{sec:application_scenario}. A small subset of nodes is frequently updated,
+whereass the rest of the nodes is not. We use the term \textit{hotspot} to refer
+to the set of frequently drawn nodes from now on.
+We recall that \Cref{sec:workload} states that we use the Zipf distribution
+to model a skewed workload. If skew $s$ increases, the hotspot becomes smaller 
+but the hotspot's member nodes are drawn more frequent.
 
 We expect skew $s$ to affect the number of unproductive nodes WAPI traverses during
 query execution. Since some nodes are updated more often, more nodes become volatile
 and eventually also unproductive. On the other hand, increasing skew $s$ also reduces
-the number of members of the group of frequently updated nodes and therefore reduce
-the number of volatile nodes, hence unproductive nodes also reduce.
+the members of the hotspot and therefore reduce
+the number of volatile nodes, hence less nodes become unproductive.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.30\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=YellowOrange
+      [,circle,draw,fill=YellowOrange
+      [,circle,draw,fill=YellowOrange
+      ]
+      [,circle,draw,fill=YellowOrange
+      [,circle,draw,fill=YellowOrange]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=YellowOrange
+      [,phantom]
+      [,circle,draw,fill=YellowOrange
+      [,circle,draw,fill=YellowOrange]
+      [,circle,draw,fill=YellowOrange]
+      ]
+      ]
+      ]
+    \end{forest}
+
+    No skew ($s=0$)
+  \end{subfigure}
+  \begin{subfigure}{0.30\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      ]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=Orange
+      [,phantom]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Red]
+      [,circle,draw,fill=Orange]
+      ]
+      ]
+      ]
+    \end{forest}
+  
+    Normal skew ($s=1$)
+  \end{subfigure}
+  \begin{subfigure}{0.30\textwidth}
+    \centering
+    \scriptsize
+    \begin{forest}
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow
+      ]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=Yellow]
+      [,phantom]
+      ]
+      ]
+      [,circle,draw,fill=Yellow
+      [,phantom]
+      [,circle,draw,fill=Yellow
+      [,circle,draw,fill=YellowOrange]
+      [,circle,draw,fill=Yellow]
+      ]
+      ]
+      ]
+    \end{forest}
+
+    High skew ($s>1$)
+  \end{subfigure}
+
+  \caption{Hotspots affected by different skew values}
+  \label{fig:skew}
+\end{figure}
+
+\Cref{fig:skew} visualizes workloads with different skew values for the
+reader's convenience. In the uniform workload, that is the workload with no skew,
+each node is equaly likely to be drawn. The workload with skew $s=1$ has a hotspot
+and nodes in the hotspot are drawn more frequent than other nodes. The workload
+with high skew has an even smaller hotspot but member nodes are drawn more frequent.
 
 %\begin{figure}[h]
   %\centering
@@ -2510,7 +2607,7 @@ the number of volatile nodes, hence unproductive nodes also reduce.
 %\caption{Query Runtime over skew $s$}
 %\end{figure}
 
-\begin{figure}[h]
+\begin{figure}[H]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -2571,26 +2668,27 @@ becoming volatile, and eventually unproductive, decreases.
 perspective by showing the traversed unproductive nodes with respect to skew $s$. We see a
 steep decrease in unproductive nodes when the skew is $s=1.5$. We believe the hotspot reaches
 a point where it loses significantly more nodes than them becoming volatile, and eventually
-unproductive. From there on we see a sublinear rate of convergence. When $s \to \infty$,
-the hotspot only has a single member which gets exclusively updated, as proven below:
+unproductive. From there on we see a sublinear rate of convergence. 
+%When $s \to \infty$,
+%the hotspot only has a single member which gets exclusively updated, as proven below:
 
-\vspace{-0.5cm}
+%\vspace{-0.5cm}
 
-\begin{align*}
-    \lim_{s \to \infty} Zipf(k,N,s)
-    & = \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\sum^{N}_{i=1} \frac{1}{i^s}}
-    = \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\frac{1}{1^s} + \sum^{N}_{i=2} \frac{1}{i^s}} \\
-    & = \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{i^\infty}}
-    = \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{\infty}} \\
-    & = \frac{\frac{1}{k^\infty}}{ \frac{1}{1} + \sum^{N}_{i=2} 0}
-    = \frac{\frac{1}{k^\infty}}{1 + 0} \\
-    & = \frac{1}{k^\infty} \\
-    \text{for}\ k = 1 : \quad \frac{1}{k^\infty} & = \frac{1}{1^\infty} = 1 \\
-    \text{for}\ k > 1 : \quad \frac{1}{k^\infty} & = \frac{1}{\infty} = 0
-\end{align*}
+%\begin{align*}
+    %\lim_{s \to \infty} Zipf(k,N,s)
+    %& = \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\sum^{N}_{i=1} \frac{1}{i^s}}
+    %= \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\frac{1}{1^s} + \sum^{N}_{i=2} \frac{1}{i^s}} \\
+    %& = \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{i^\infty}}
+    %= \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{\infty}} \\
+    %& = \frac{\frac{1}{k^\infty}}{ \frac{1}{1} + \sum^{N}_{i=2} 0}
+    %= \frac{\frac{1}{k^\infty}}{1 + 0} \\
+    %& = \frac{1}{k^\infty} \\
+    %\text{for}\ k = 1 : \quad \frac{1}{k^\infty} & = \frac{1}{1^\infty} = 1 \\
+    %\text{for}\ k > 1 : \quad \frac{1}{k^\infty} & = \frac{1}{\infty} = 0
+%\end{align*}
 
-No other nodes besides the node with $k = 1$ gets drawn from the Zipf distribution 
-when $s \to \infty$.
+%No other nodes besides the node with $k = 1$ gets drawn from the Zipf distribution 
+%when $s \to \infty$.
 
 We also see another interesting phenomenon. Comparing the synthetic to the real-world
 dataset, we see the number of traversed unproductive nodes decrease in the interval
@@ -2603,6 +2701,13 @@ observed phenomenon.
 \subsection{Update to Query ratio}
 
 \label{sec:update-query-ratio}
+
+One of our initial assumptions was that Oak's workload is update heavy, amongst others.
+To emphasize the implications of such an update heavy workload, we conduct the following
+experiment. Oak is benchmarked with different update to query ratios,
+that is the number of updates executed between two consequtive queries,
+in order to show the effect of such a workload
+on unproductive nodes. 
 
 \begin{figure}[h]
   \centering
@@ -2653,6 +2758,8 @@ observed phenomenon.
   \end{subfigure}
   \caption{Traversed Unproductive Nodes over updates per query}
 \end{figure}
+
+\lipsum[2-5]
 
 \newpage
 
