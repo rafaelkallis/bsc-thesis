@@ -1271,7 +1271,6 @@ transactions. We will revisit GC period in \Cref{sec:periodicity}, where we
 conduct an experiment in order to determine the impact of period $T$ on
 query performance. 
 
-
 \subsection{Query-Time Pruning (QTP)}
 
 While periodic garbage collection is explicitly executed by Oak in order to
@@ -1447,7 +1446,6 @@ After we finish traversing all descendants $n$, we return the result set $r$.
   it is not pruned and remains in the index unproductive. The resulting
   snapshot $G^6$ is committed by $T_6$ after finishing query execution.
 \end{example}
-
 
 \Cref{fig:java_qtp} shows the Java implementation of QTP in Oak. The algorithm
 takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
