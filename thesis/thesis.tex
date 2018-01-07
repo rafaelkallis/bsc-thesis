@@ -2567,6 +2567,39 @@ skew $s$ increase the number of unproductive nodes. We believe that even though 
 more frequently updated, many more stop being updated and therefore the total number of nodes
 becoming volatile, and eventually unproductive, decreases.
 
+\Cref{fig:skew_unprod_nodes_synthetic,fig:skew_unprod_nodes_real} offer a more detailed
+perspective by showing the traversed unproductive nodes with respect to skew $s$. We see a
+steep decrease in unproductive nodes when the skew is $s=1.5$. We believe the hotspot reaches
+a point where it loses significantly more nodes than them becoming volatile, and eventually
+unproductive. From there on we see a sublinear rate of convergence. When $s \to \infty$,
+the hotspot only has a single member which gets exclusively updated, as proven below:
+
+\vspace{-0.5cm}
+
+\begin{align*}
+    \lim_{s \to \infty} Zipf(k,N,s)
+    & = \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\sum^{N}_{i=1} \frac{1}{i^s}}
+    = \lim_{s \to \infty} \frac{ \frac{1}{k^s} }{\frac{1}{1^s} + \sum^{N}_{i=2} \frac{1}{i^s}} \\
+    & = \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{i^\infty}}
+    = \frac{\frac{1}{k^\infty}}{ \frac{1}{1^\infty} + \sum^{N}_{i=2} \frac{1}{\infty}} \\
+    & = \frac{\frac{1}{k^\infty}}{ \frac{1}{1} + \sum^{N}_{i=2} 0}
+    = \frac{\frac{1}{k^\infty}}{1 + 0} \\
+    & = \frac{1}{k^\infty} \\
+    \text{for}\ k = 1 : \quad \frac{1}{k^\infty} & = \frac{1}{1^\infty} = 1 \\
+    \text{for}\ k > 1 : \quad \frac{1}{k^\infty} & = \frac{1}{\infty} = 0
+\end{align*}
+
+No other nodes besides the node with $k = 1$ gets drawn from the Zipf distribution 
+when $s \to \infty$.
+
+We also see another interesting phenomenon. Comparing the synthetic to the real-world
+dataset, we see the number of traversed unproductive nodes decrease in the interval
+$s \in [0,1]$, whilst it increases during the same interval in the real-world dataset.
+The synthetic dataset produces the most unproductive nodes with no skew ($s = 0$).
+We conjecture if the absence of long chains of nodes and presence of many non-volatile
+ancestors of volatile nodes in the synthetic dataset are responsible for the
+observed phenomenon.
+
 \subsection{Update to Query ratio}
 
 \label{sec:update-query-ratio}
@@ -2620,8 +2653,6 @@ becoming volatile, and eventually unproductive, decreases.
   \end{subfigure}
   \caption{Traversed Unproductive Nodes over updates per query}
 \end{figure}
-
-
 
 \newpage
 
