@@ -2729,10 +2729,23 @@ on unproductive nodes.
     \caption{}
     \label{fig:trav_unprod_nodes_upt_real}
   \end{subfigure}
-  \caption{Traversed Unproductive Nodes over time for 1,10 and 20 updates per query}
+  \caption{Traversed Unproductive Nodes over time for 1, 10 and 20 updates per query}
 \end{figure}
 
-\begin{figure}[h]
+
+\Cref{fig:trav_unprod_nodes_upt_synthetic,fig:trav_unprod_nodes_upt_real} show
+the number of traversed unproductive nodes over time. We run the simulation for
+three update to query ratios: 1, 10 and 10 updates per query. An increase
+in updates yields an increase in traversed unproductive nodes, an observation
+depicted in \Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real}, too.
+The latter Figures show the number of traversed unproctive nodes over update to
+query ratio.
+A node becomes volatile if it updated $t$ during a sliding window of length $L$.
+If we increase the number of updates, the node is more likely to become volatile.
+Obviously, if volatile nodes increase, there must be an increase in unproductive nodes, too.
+A volatile node eventually ceases to be volatile and becomes unproductive.
+
+\begin{figure}[H]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
@@ -2757,8 +2770,6 @@ on unproductive nodes.
   \caption{Traversed Unproductive Nodes over updates per query}
 \end{figure}
 
-\lipsum[2-5]
-
 \newpage
 
 \bibliographystyle{abbrv}
@@ -2768,7 +2779,7 @@ on unproductive nodes.
 
 \section{Appendix}
 
-\begin{figure}[h]
+\begin{figure}[H]
   \centering
   \small
   \begin{framed}
@@ -2821,11 +2832,11 @@ Iterable<Tree> postOrder(Tree root) {
   \begin{framed}
 \begin{minted}{java}
 /**
- * Higher order function that applies func to each element of iterable.
+ * Higher order function, applies func to each element of iterable.
  *
  * @param func: The function to apply on each element of iterable
  * @param iterable: The iterable func is applied on
- * @returns: An iterable with the resulting elements of the application
+ * @returns: Resulting elements from applying func
  */
 Iterable<R> map(Function<T,R> func, Iterable<T> iterable) {
     return () -> {
