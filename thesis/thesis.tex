@@ -38,6 +38,7 @@
   {images/gc/},
   {images/skew/},
   {images/updates_per_query/},
+  {images/qtp_cost/},
   {images/periodicity/}
 }
 
@@ -2329,6 +2330,38 @@ open how QTP affects performance when the query filter changes and we don't bene
 frequent queries anymore. The question will be handled 
 in \Cref{sec:qtp-queried-nodes}, where we will see how the algorithm's performance changes when
 querying different ranges of nodes.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering Synthetic
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering Real-World
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{qtp_cost_synthetic}
+    \caption{}
+    \label{fig:query_runtime_qtp_cost_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \includegraphics[width=8cm]{qtp_cost_real}
+    \caption{}
+    \label{fig:query_runtime_qtp_cost_real}
+  \end{subfigure}
+  \caption{QTP overhead}
+\end{figure}
+
+It is also worth mentioning what the performance penalty of QTP is when
+there are no unproductive nodes. 
+\Cref{fig:query_runtime_qtp_cost_synthetic,fig:query_runtime_qtp_cost_real}
+compare the average query runtime over update operations, with QTP and without.
+The experiments last for 30 seconds and since the sliding window has length $L = 30s$,
+there are no unproductive nodes during the experiments.
+We observe that queries with QTP tend to require double the time queries need
+without QTP and therefore queries without QTP perform better, when there are
+no unproductive nodes. Obviously, once we encounter unproductive nodes, queries
+with QTP perform better.
 
 \subsection{GC Period $T$}
 
