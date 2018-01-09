@@ -2805,6 +2805,32 @@ A volatile node eventually ceases to be volatile and becomes unproductive.
 
 \newpage
 
+\section{Conclusion}
+
+We proposed two algorithms to detect and prune unproductive nodes in hotspots of a
+hierarchical index. Unproductive nodes are useless since they do not contain any data.
+By pruning these unproductive nodes, we are able to improve the
+index query performance since we only encounter index nodes that do yield a
+query match, are volatile, or are an ancestor of such a node.
+Additionally, we free storage space that was previously allocated to unproductive nodes.
+
+The first approach is to periodically apply garbage collection (GC) on WAPI. Doing so
+requires us to explicitly traverse the index subtree thus introducing a performance penalty,
+but we are able to prune all unproductive nodes from the index.
+The second approach is to prune unproductive nodes during query execution (QTP). Doing so we
+don't have to explicitly traverse the index, but we add a small overhead on query execution.
+Additionally, we only prune unproductive nodes from subtrees which are being queried.
+We extend WAPI by implementing periodic GC and QTP in Apache Jackrabbit Oak
+and our evaluation shows that we significantly decrease the query runtime of WAPI.
+
+It is still open how concurrency control affects the performance of the two mentioned
+algorithms. We believe QTP will take a bigger permormance hit in comparison to GC, since
+QTP continuously prunes and updates the index causing more index conflicts than
+GC with its periodic updates. Furthemore, we did not investigate what the benefits and caveats
+are of running both periodic GC and QTP on the database system.
+
+\newpage
+
 \bibliographystyle{abbrv}
 \bibliography{thesis}
 
