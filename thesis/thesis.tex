@@ -1292,8 +1292,6 @@ node is a member of a subtree that is not queried anymore, it is not pruned and
 remains in the index.
 Such unproductive nodes waste space because they contain no data but do not
 impact query performance since they are not traversed during query execution.
-At the present time, it remains unknown what the performance impact of a changing
-path filter is. We will investigate the very question in \Cref{sec:qtp-queried-nodes}.
 
 % The drawback of QTP are \textit{leftover}
 % unproductive nodes we get from subtrees which are not queried anymore. Leftover
@@ -1530,9 +1528,7 @@ the production of unproductive nodes in the index. We compare GC and QTP side by
 side and list their differences in \Cref{sec:gc-qtp-performance}. Next, we
 investigate the effects GC period has on garbage collection in \Cref{sec:periodicity}.
 Executing GC more often might increase system
-performance since more unproductive nodes are pruned. We investigate how
-the query filter affects QTP's overall performance in 
-\Cref{sec:qtp-queried-nodes}. Also, we conduct an
+performance since more unproductive nodes are pruned. Also, we conduct an
 experiment in \Cref{sec:skew} in order to examine how
 workload skew impacts the performance of GC and QTP. Finally, we run simulations
 in order to see how the update to query ration affects the performance of GC and
@@ -2327,9 +2323,7 @@ more non-volatile ancestors of volatile nodes.
 
 The workload during the experiment always query the subtree root node. It still remains
 open how QTP affects performance when the query filter changes and we don't benefit from
-frequent queries anymore. The question will be handled 
-in \Cref{sec:qtp-queried-nodes}, where we will see how the algorithm's performance changes when
-querying different ranges of nodes.
+frequent queries anymore.
 
 \begin{figure}[h]
   \centering
@@ -2475,12 +2469,6 @@ the results.
 \end{figure}
 
 \lipsum[2-4]
-
-\subsection{QTP Queried Nodes}
-
-\label{sec:qtp-queried-nodes}
-
-\lipsum[5-9]
 
 \subsection{Workload Skew $s$}
 
