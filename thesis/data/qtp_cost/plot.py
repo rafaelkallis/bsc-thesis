@@ -41,7 +41,7 @@ def percentile(perc):
 for dataset in ["synthetic", "real"]:
     xlabel("Update Operations [1k]")
     ylabel("Avg. Query Runtime [ms]")
-    ylim(0, 20)
+    # ylim(0, 20)
     for gc_type in ["Default", "QTP"]:
         filename = max(glob("query_output_{}_{}".format(gc_type,dataset)))
         with open(filename) as f:
@@ -55,7 +55,7 @@ for dataset in ["synthetic", "real"]:
 
             plot(
                     ticks/100, 
-                    [median(window) for window in sliding_window(query_runtime,12)],
+                    [median(window) for window in sliding_window(query_runtime,15)],
                     label=gc_type
             )
     legend()
