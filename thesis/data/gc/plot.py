@@ -2,11 +2,14 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, axvline, ylim, text
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, axvline, ylim, text, rc, tight_layout, subplots_adjust
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
+
+rc("font", size=17, family="serif")
+rc("text", usetex=True)
 
 def tick_milestones(ticks, timestamps, interval):
     last_milestone = -1
@@ -56,9 +59,9 @@ for dataset in ["synthetic", "real"]:
 
             window = 20
 
-            xlabel("Update Operations [1k]")
+            xlabel("Update Operations [$\\times 10^3$]")
             ylabel("Avg. Query Runtime [ms]")
-            ylim(0, 50)
+            ylim(0,30)
             # plot((ticks/100)[:-window+1], np.convolve(query_runtime, np.ones(window), "valid"),".")
             # plot(ticks/100, list(map(percentile(50), sliding_window(query_runtime, 10))))
             plot(ticks/100, [np.percentile(list(window), 50) for window in sliding_window(query_runtime,10)])
@@ -66,19 +69,23 @@ for dataset in ["synthetic", "real"]:
             # plot(ticks/100, list(map(percentile(10), sliding_window(query_runtime, 30))))
             for m, t in milestones:
                 axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-                text(t-.35, 55, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+                text(t-.35, 35, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+            tight_layout()
+            subplots_adjust(top=.85)
             savefig("query_runtime_{}_{}.pdf".format(gc_type, dataset))
             clf()
 
-            xlabel("Update Operations [1k]")
-            ylabel("Traversed Nodes per Query [1k]")
+            xlabel("Update Operations [$\\times 10^3$]")
+            ylabel("Index Nodes [$\\times 10^3$]")
             plot(ticks/100, trav_index/1000, "C7", label="Total")
             plot(ticks/100, trav_vol/1000, "C0", label="Volatile")
             plot(ticks/100, trav_unprod/1000, "C1", label="Unproductive")
             ylim(-.1, 4)
             for m, t in milestones:
                 axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-                text(t-.35, 4.4, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+                text(t-.35, 4.6, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
             legend()
+            tight_layout()
+            subplots_adjust(top=.85)
             savefig("trav_nodes_{}_{}.pdf".format(gc_type, dataset))
             clf()

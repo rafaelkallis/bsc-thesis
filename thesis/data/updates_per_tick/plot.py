@@ -2,13 +2,16 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, rc, tight_layout
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
 from re import search
 from statistics import mean, median
+
+rc("font", size=17, family="serif")
+rc("text", usetex=True)
 
 def sliding_window(iterable, window_length):
     buf = []
@@ -50,7 +53,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     # clf()
 
     xlabel("Time [min]")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
     # plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1 update per query")
     # plot(data[10]["ticks"]/100, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query")
     plot(data[1]["timestamps"]/60000, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1  update per query")
@@ -58,6 +61,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     plot(data[20]["timestamps"]/60000, [median(w) for w in sliding_window(data[20]["trav_unprod"]/1000,10)], label="20 updates per query")
     legend()
     ylim(ymax=12)
+    tight_layout()
     savefig("trav_unprod_nodes_upt_{}.pdf".format(dataset))
     clf()
 
@@ -73,9 +77,10 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     # clf()
 
     xlabel("Updates per Query")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
 #    plot(periods, [median(data[p]["trav_unprod"][995:1005]/1000) for p in periods], linestyle="-", marker="o")
     plot(upts, [mean(data[utp]["trav_unprod"][695:705]/1000) for utp in upts], linestyle="-", marker="o")
     ylim(ymax=12)
+    tight_layout()
     savefig("upt_unprod_nodes_{}.pdf".format(dataset))
     clf()

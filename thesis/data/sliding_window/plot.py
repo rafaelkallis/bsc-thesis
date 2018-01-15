@@ -2,13 +2,16 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, tight_layout, rc
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
 from re import search
 from statistics import mean, median
+
+rc("font", size=17, family="serif")
+rc("text",usetex=True)
 
 def sliding_window(iterable, window_length):
     buf = []
@@ -50,13 +53,14 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("query_runtime_Ls_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Update Operations [1k]")
-    ylabel("Traversed Unproductive Nodes [1k]")
-    plot(data[10000]["ticks"]/100, [median(w) for w in sliding_window(data[10000]["trav_unprod"]/1000,10)], label="L = 10s")
-    plot(data[20000]["ticks"]/100, [median(w) for w in sliding_window(data[20000]["trav_unprod"]/1000,10)], label="L = 20s")
-    plot(data[30000]["ticks"]/100, [median(w) for w in sliding_window(data[30000]["trav_unprod"]/1000,10)], label="L = 30s")
+    xlabel("Update Operations [$\\times 10^3$]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    plot(data[10000]["ticks"]/100, [median(w) for w in sliding_window(data[10000]["trav_unprod"]/1000,10)], label="$L=10s$")
+    plot(data[20000]["ticks"]/100, [median(w) for w in sliding_window(data[20000]["trav_unprod"]/1000,10)], label="$L = 20s$")
+    plot(data[30000]["ticks"]/100, [median(w) for w in sliding_window(data[30000]["trav_unprod"]/1000,10)], label="$L = 30s$")
     legend()
-    # ylim(ymax=60)
+    ylim(ymax=7.5)
+    tight_layout()
     savefig("trav_unprod_nodes_Ls_{}.pdf".format(dataset))
     clf()
 
@@ -69,9 +73,10 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("L_query_runtime_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Sliding Window of Length L [s]")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    xlabel("Sliding Window Length $L$ [s]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
     plot(Ls/1000, [median(data[L]["trav_unprod"][995:1005]/1000) for L in Ls], linestyle="-", marker="o")
-    # ylim(ymax=40)
+    ylim(ymax=4.2)
+    tight_layout()
     savefig("L_unprod_nodes_{}.pdf".format(dataset))
     clf()

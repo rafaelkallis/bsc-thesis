@@ -2,11 +2,14 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, axvline, ylim, text
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, axvline, ylim, text, rc, tight_layout, subplots_adjust
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
+
+rc("font", size=17, family="serif")
+rc("text", usetex=True)
 
 def tick_milestones(ticks, timestamps, interval):
     last_milestone = -1
@@ -55,7 +58,7 @@ for dataset in ["synthetic", "real"]:
 
         window = 20
 
-        xlabel("Update Operations [1k]")
+        xlabel("Update Operations [$\\times 10^3$]")
         ylabel("Avg. Query Runtime [ms]")
         ylim(0, 50)
         # plot((ticks/100)[:-window+1], np.convolve(query_runtime, np.ones(window), "valid"),".")
@@ -65,31 +68,37 @@ for dataset in ["synthetic", "real"]:
         # plot(ticks/100, list(map(percentile(10), sliding_window(query_runtime, 30))))
         for m, t in milestones:
            axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-           text(t-.35, 55, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+           text(t-.35, 58, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+        tight_layout()
+        subplots_adjust(top=.85)
         savefig("query_runtime_{}.pdf".format(dataset))
         clf()
 
-        xlabel("Update Operations [1k]")
-        ylabel("Traversed Nodes per Query [1k]")
+        xlabel("Update Operations [$\\times 10^3$]")
+        ylabel("Index Nodes [$\\times 10^3$]")
         plot(ticks/100, trav_index/1000, "C7", label="Total")
         plot(ticks/100, trav_vol/1000, "C0", label="Volatile")
         plot(ticks/100, trav_unprod/1000, "C1", label="Unproductive")
         ylim(-.1, 11)
         for m, t in milestones:
            axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-           text(t-.35, 12.2, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+           text(t-.35, 12.6, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
         legend()
+        tight_layout()
+        subplots_adjust(top=.85)
         savefig("trav_nodes_{}.pdf".format(dataset))
         clf()
 
-        xlabel("Update Operations [1k]")
+        xlabel("Update Operations [$\\times 10^3$]")
         ylabel("Node Ratio")
         plot(ticks/100, trav_vol/trav_index, "C0", label="Volatile")
         plot(ticks/100, trav_unprod/trav_index, "C1", label="Unproductive")
         for m, t in milestones:
            axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
-           text(t-.35, 1.17, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
+           text(t-.35, 1.22, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
         legend()
+        tight_layout()
+        subplots_adjust(top=.85)
         savefig("trav_node_ratio_{}.pdf".format(dataset))
         clf()
 

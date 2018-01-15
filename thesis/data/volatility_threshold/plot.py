@@ -2,13 +2,16 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, tight_layout, rc
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
 from re import search
 from statistics import mean, median
+
+rc("font", size=17,family="serif")
+rc("text",usetex=True)
 
 def sliding_window(iterable, window_length):
     buf = []
@@ -40,38 +43,42 @@ for filename in filenames:
         }
 
 for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
-    xlabel("Update Operations [1k]")
+    xlabel("Update Operations [$\\times 10^3$]")
     ylabel("Avg. Query Runtime [ms]")
-    plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["query_runtime"],10)], label="τ = 1")
-    plot(data[5]["ticks"]/100, [median(w) for w in sliding_window(data[5]["query_runtime"],10)], label="τ = 5")
-    plot(data[10]["ticks"]/100,[median(w) for w in sliding_window(data[10]["query_runtime"],10)], label="τ = 10")
+    plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["query_runtime"],10)], label="$\\tau = 1$")
+    plot(data[5]["ticks"]/100, [median(w) for w in sliding_window(data[5]["query_runtime"],10)], label="$\\tau = 5$")
+    plot(data[10]["ticks"]/100,[median(w) for w in sliding_window(data[10]["query_runtime"],10)], label="$\\tau = 10$")
     legend()
     ylim(ymax=300)
+    tight_layout()
     savefig("query_runtime_taus_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Update Operations [1k]")
-    ylabel("Traversed Unproductive Nodes [1k]")
-    plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="τ = 1")
-    plot(data[5]["ticks"]/100, [median(w) for w in sliding_window(data[5]["trav_unprod"]/1000,10)], label="τ = 5")
-    plot(data[10]["ticks"]/100, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="τ = 10")
+    xlabel("Update Operations [$\\times 10^3$]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="$\\tau = 1$")
+    plot(data[5]["ticks"]/100, [median(w) for w in sliding_window(data[5]["trav_unprod"]/1000,10)], label="$\\tau = 5$")
+    plot(data[10]["ticks"]/100, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="$\\tau = 10$")
     legend()
     ylim(ymax=60)
+    tight_layout()
     savefig("trav_unprod_nodes_taus_{}.pdf".format(dataset))
     clf()
 
     taus = sorted(list(data.keys()))
 
-    xlabel("Volatility Threshold τ")
+    xlabel("Volatility Threshold $\\tau$")
     ylabel("Avg. Query Runtime [ms]")
     plot(taus, [median(data[tau]["query_runtime"][995:1005]) for tau in taus], linestyle="-", marker="o")
     ylim(ymax=190)
+    tight_layout()
     savefig("tau_query_runtime_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Volatility Threshold τ")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    xlabel("Volatility Threshold $\\tau$")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
     plot(taus, [median(data[tau]["trav_unprod"][995:1005]/1000) for tau in taus], linestyle="-", marker="o")
     ylim(ymax=40)
+    tight_layout()
     savefig("tau_unprod_nodes_{}.pdf".format(dataset))
     clf()

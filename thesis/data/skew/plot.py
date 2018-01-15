@@ -2,13 +2,16 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, tight_layout, rc
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
 from re import search
 from statistics import mean, median
+
+rc("font", size=17, family="serif")
+rc("text",usetex=True)
 
 def sliding_window(iterable, window_length):
     buf = []
@@ -50,13 +53,14 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("query_runtime_skews_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Update Operations [1k]")
-    ylabel("Traversed Unproductive Nodes [1k]")
-    plot(data[0]["ticks"]/100, [median(w) for w in sliding_window(data[0]["trav_unprod"]/1000,10)], label="s = 0")
-    plot(data[2]["ticks"]/100, [median(w) for w in sliding_window(data[2]["trav_unprod"]/1000,10)], label="s = 2")
-    plot(data[4]["ticks"]/100, [median(w) for w in sliding_window(data[4]["trav_unprod"]/1000,10)], label="s = 4")
+    xlabel("Update Operations [$\\times 10^3$]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="$s = 1$")
+    plot(data[1.5]["ticks"]/100, [median(w) for w in sliding_window(data[1.5]["trav_unprod"]/1000,10)], label="$s = \\frac{3}{2}$")
+    plot(data[2]["ticks"]/100, [median(w) for w in sliding_window(data[2]["trav_unprod"]/1000,10)], label="$s = 2$")
     legend()
     ylim(ymax=9)
+    tight_layout()
     savefig("trav_unprod_nodes_skews_{}.pdf".format(dataset))
     clf()
 
@@ -69,9 +73,10 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("skew_query_runtime_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Skew s")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    xlabel("Skew $s$")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
     plot(skews, [median(data[skew]["trav_unprod"][995:1005]/1000) for skew in skews], linestyle="-", marker="o")
     ylim(ymax=4.5)
+    tight_layout()
     savefig("skew_unprod_nodes_{}.pdf".format(dataset))
     clf()
