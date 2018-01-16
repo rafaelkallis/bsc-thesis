@@ -2,13 +2,16 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, rc, tight_layout
 import numpy as np
 from csv import reader
 from glob import glob
 from math import floor
 from re import search
 from statistics import mean, median
+
+rc("font", size=17, family="serif")
+rc("text", usetex=True)
 
 def sliding_window(iterable, window_length):
     buf = []
@@ -49,19 +52,20 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("query_runtime_periodicity_{}.pdf".format(dataset))
     clf()
 
-    xlabel("Update Operations [1k]")
-    ylabel("Traversed Unproductive Nodes [1k]")
-    plot(data[5000]["ticks"]/100, [median(w) for w in sliding_window(data[5000]["trav_unprod"]/1000,10)], label="5s")
-    plot(data[50000]["ticks"]/100, [median(w) for w in sliding_window(data[50000]["trav_unprod"]/1000,10)], label="50s")
+    xlabel("Update Operations [$\\times 10^3$]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    plot(data[5000]["ticks"]/100, [median(w) for w in sliding_window(data[5000]["trav_unprod"]/1000,10)], label="$T = 5s$")
+    plot(data[50000]["ticks"]/100, [median(w) for w in sliding_window(data[50000]["trav_unprod"]/1000,10)], label="$T = 50s$")
     legend()
     ylim(ymax=3)
+    tight_layout()
     savefig("trav_unprod_nodes_periodicity_{}.pdf".format(dataset))
     clf()
 
     first_tick = 250 
     periods = np.array(sorted(list(data.keys())))
 
-    xlabel("GC Period T [s]")
+    xlabel("GC Period $T$ [s]")
     ylabel("Avg. Query Runtime [ms]")
 #    plot(periods, [median(data[p]["query_runtime"][995:1005]) for p in periods], linestyle="-", marker="o")
     plot(periods/1000, [mean(data[p]["query_runtime"][first_tick:]) for p in periods], linestyle="-", marker="o")
@@ -69,10 +73,11 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("periodicity_query_runtime_{}.pdf".format(dataset))
     clf()
 
-    xlabel("GC Period T [s]")
-    ylabel("Traversed Unproductive Nodes [1k]")
+    xlabel("GC Period $T$ [s]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
 #    plot(periods, [median(data[p]["trav_unprod"][995:1005]/1000) for p in periods], linestyle="-", marker="o")
     plot(periods/1000, [mean(data[p]["trav_unprod"][first_tick:]/1000) for p in periods], linestyle="-", marker="o")
     ylim(ymax=2.6)
+    tight_layout()
     savefig("periodicity_unprod_nodes_{}.pdf".format(dataset))
     clf()

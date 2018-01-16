@@ -40,6 +40,7 @@
   {images/updates_per_query/},
   {images/qtp_cost/},
   {images/cdf/},
+  {images/period_runtime/},
   {images/periodicity/}
 }
 
@@ -97,7 +98,14 @@
 % \def\bbbz{{\rm I\!Z}}
 
 \definecolor{shadecolor}{rgb}{0.97,0.97,0.97}
-    
+\usetikzlibrary{decorations.pathreplacing}
+
+\definecolor{C0}{RGB}{31,119,180}
+\definecolor{C1}{RGB}{255,127,14}
+\definecolor{C2}{RGB}{44,192,44}
+\definecolor{C3}{RGB}{214,39,40}
+\definecolor{C4}{RGB}{148,103,189}
+
 \begin{document}
 
 \maketitle
@@ -737,6 +745,8 @@ volatile.
 
 \subsection{Impact on Query Runtime}
 
+\label{sec:query-runtime}
+
 In this section we study and quantify the impact of unproductive nodes on
 query runtime. During query execution, traversing an unproductive node is
 useless, because neither the node itself nor any of its descendants are matching
@@ -803,6 +813,7 @@ volatile and unproductive nodes during query execution for each dataset.
 The total number of traversed nodes is increasing sublinearly over time. This
 explains the increase in query runtime in
 \Cref{fig:query_runtime_synthetic,fig:query_runtime_real}.
+We believe the index becomes \textit{static} over time.
 As time passes, more and more content nodes are randomly
 selected by the CMS workload and their corresponding index nodes become
 volatile. After some time these nodes, most likely become unproductive and are
@@ -1687,7 +1698,7 @@ queries, on average. We denote the set of nodes of the content subtree with
 depth greater than the mean depth as the \textit{lower content subtree}.
 
 In order to have skew, we incorporate the Zipf distribution. The Zipf
-distribution picks a small subset of nodes more frequently than others. 
+distribution picks a small subset of nodes more frequent than others. 
 Let $N$ be the number of nodes inside the lower content subtree.
 We randomly and uniquely assign an integer $k \in [1, N]$ to each node in the
 lower content subtree, creating 
@@ -1696,7 +1707,7 @@ from the lower content subtree according to the Zipf distribution is:
 
 \begin{large}
 
-$$ Zipf(k,N,s) = \frac{\frac{1}{k^s}}{\sum_{i=1}^{N}\frac{1}{i^s}} $$
+    $$ Zipf(k,N,s) = \bigg(k^s \cdot \sum_{i=1}^{N}\frac{1}{i^s} \bigg)^{-1} $$
 
 \end{large}
 
@@ -1981,7 +1992,7 @@ runtime in the CMS workload.
     \label{fig:trav_unprod_nodes_taus_real}
   \end{subfigure}
   \vspace{-0.5cm}
-  \caption{Traversed Unproductive Nodes over update operations with threshold $\tau \in \{1,5,10\}$.}
+  \caption{Unproductive Nodes over update operations with threshold $\tau \in \{1,5,10\}$.}
 \end{figure}
 
 \begin{figure}[h]
@@ -1999,7 +2010,7 @@ runtime in the CMS workload.
     \label{fig:tau_unprod_nodes_real}
   \end{subfigure}
   \vspace{-0.5cm}
-  \caption{Traversed Unproductive Nodes over volatility threshold $\tau$.}
+  \caption{Unproductive Nodes over volatility threshold $\tau$.}
 \end{figure}
 
 
@@ -2010,19 +2021,23 @@ We observe lower thresholds $\tau$ yielding a steeper slope.
 A lower volatility threshold increases the likelihood of a node
 becoming volatile. The amount of volatile nodes also affect the number of
 unproductive nodes, since volatile nodes eventually stop being frequently
-updated and become unproductive. The increase in unproductive nodes in the index
+updated when the workload changes and become unproductive. 
+The increase in unproductive nodes in the index
 also affects query runtime because Oak has to traverse these nodes during
 query execution.
 
-The number of traversed unproductive nodes increases sublinearly as update
-operations increase. We suggest that the number of traversed unproductive nodes
-has an upper bound. Obviously, the index subtree can not have
+The Figures show that unproductive nodes increase linearly as update operations
+increase. We expect the increase to be sublinear for longer experiments.
+The number of traversed unproductive nodes is upper-bounded by the number 
+of content nodes.
+This is the case, because the index subtree for a given property-value pair
+(e.g. pub = now) can not have
 more nodes than the content subtree, because the index subtree is a subset
 of the content subtree.
-Thus, the number of index nodes and therefore
-also the number of unproductive index nodes, have an upper bound. This explains
-why we see the number of traversed unproductive nodes converge sublineary.
-They converge towards this upper bound.
+As time passes by, the index becomes more static (\Cref{sec:query-runtime}), 
+more volatile/unproductive
+index nodes are retained, less nodes are pruned. As a result, fewer nodes
+become volatile. Eventually, we will reach the upper bound.
 
 \Cref{fig:tau_unprod_nodes_synthetic,fig:tau_unprod_nodes_real} compare the
 number of traversed unproductive nodes during query execution over a range of
@@ -2040,6 +2055,13 @@ number of traversed unproductive nodes does not decrease significantly because
 of the Zipf distribution's skewness. The majority of update operations are executed
 amongst a small subset of nodes. This explains the power law relationship
 between traversed unproductive nodes and $\tau$.
+
+At $\tau = 0$, any node drawn by the workload becomes volatile. That is why we
+see so many unproductive nodes. At $\tau = 2$, we observe a sudden drop in 
+unproductive nodes. That is because content nodes have to be drawn twice in order
+to become unproductive, and since the workload is skewed, only a few nodes are
+drawn twice. For even larger values, the function flattens out. Since the workload
+is skewed, only a handful of nodes are drawn enough by the workload to become volatile.
 
 Summarizing, all observations verify our hypotheses.
 Increasing volatility threshold $\tau$ decreases the number of unproductive
@@ -2064,8 +2086,7 @@ traversed unproductive nodes during query execution. If $L$ increases, it is
 more likely for a node to become volatile, since more updates are considered
 towards the volatility count.
 Having more volatile nodes should imply an increase in unproductive nodes and
-consequently also query runtime with the CMS workload since volatile nodes
-eventually become unproductive.
+consequently also query runtime.
 
 % \begin{shaded}
 %   \begin{itemize}
@@ -2185,21 +2206,23 @@ the number of unproductive nodes WAPI traverses during query execution for
 three distinct lengths $L \in \{10s,20s,30s\}$ of the sliding window with
 respect to update operations. As expected, the number of unproductive nodes
 increases the fastest for the longest sliding window length ($L = 30s$).
-The number of unproductive nodes increases sublinearly. We explained earlier that
-there is an upper bound to the number of unproductive index nodes, hence 
-the function converges.
+In the long term,
+the number of unproductive nodes increases sublinearly with respect to time.
+We explained earlier that as time passes, the index becomes more static
+and the number of unproductive nodes converges towards the upper bound
+set by the number of content nodes.
 
 \Cref{fig:L_trav_unprod_nodes_synthetic,fig:L_trav_unprod_nodes_real} show the
 number of unproductive nodes the query executor has to traverse with respect
-to the sliding window length $L$. We observe greater sliding window lengths 
-to cause a sublinear increase to the number of unproductive nodes traversed 
-by WAPI during query execution. Since there
-is a maximum to the amount of unproductive index nodes as explained earlier, 
-the function must converge. The Figures seem to suggest a linear relationship
+to the sliding window length $L$. Greater sliding window lengths 
+cause a sublinear increase to the number of unproductive nodes traversed 
+by WAPI during query execution. Since the index becomes more static 
+as explained earlier, the function converges towards the upper bound. 
+The Figures seem to suggest a linear relationship
 between the two variables. That is because the number of content nodes is greater
 by two orders of magnitude compared to the number of unproductive nodes we can
-produce during the entire experiment. We expect to see the function converge
-if we run the experiment for a significantly longer duration of time.
+produce during the entire five-minute experiment. We expect to see the function 
+converge if we run the experiment for a significantly longer duration of time.
 
 Concluding, we see sliding window of length $L$ to be affecting the rate of growth of
 unproductive nodes.
@@ -2303,9 +2326,10 @@ but the hotspot's member nodes are drawn more frequent.
 \end{figure}
 
 We expect skew $s$ to affect the number of unproductive nodes WAPI traverses during
-query execution. Since some nodes are updated more often, more nodes become volatile
+query execution. Since some nodes are updated more often, these nodes are more likely
+to become volatile
 and also unproductive, later on. On the other hand, increasing skew $s$ also reduces
-the members of the hotspot and therefore reduce
+the size of the hotspot and therefore reduce
 the number of volatile nodes, hence less nodes become unproductive.
 
 \Cref{fig:skew} visualizes workloads with different skew values for the
@@ -2379,7 +2403,8 @@ with high skew ($s>1$) has an even smaller hotspot but member nodes are drawn mo
     \label{fig:trav_unprod_nodes_skews_real}
   \end{subfigure}
   \vspace{-0.5cm}
-  \caption{Traversed Unproductive Nodes over update operations with skew $s \in \{0,2,4\}$.}
+  \caption{Unproductive Nodes over update operations with skew $s \in \{
+  1, \frac{3}{2}, 2\}$.}
 \end{figure}
 
 \begin{figure}[h]
@@ -2397,21 +2422,24 @@ with high skew ($s>1$) has an even smaller hotspot but member nodes are drawn mo
     \label{fig:skew_unprod_nodes_real}
   \end{subfigure}
   \vspace{-0.5cm}
-  \caption{Traversed Unproductive Nodes over skew $s$.}
+  \caption{Unproductive Nodes over skew $s$.}
 \end{figure}
 
 \Cref{fig:trav_unprod_nodes_skews_synthetic,fig:trav_unprod_nodes_skews_real} show the number
 of unproductive nodes traversed by WAPI during query execution with workloads having skew
 $s \in \{1,\frac{3}{2},2\}$.  We see a smaller
-skew $s$ increase the number of unproductive nodes. We believe that when increasing $s$, 
-less nodes get frequently updated and therefore the total number of nodes
+skew $s$ increases the number of unproductive nodes. We believe that when increasing $s$, 
+the size of the hotspot decreases and therefore the number of nodes
 becoming volatile, and eventually unproductive, decreases.
+We also see that a workload with $s = 1$ has barely more unproductive nodes over time
+than a workload with $s = \frac{3}{2}$. We believe that if we run the experiment
+significantly longer, the difference between the two workloads would be greater.
 
 \Cref{fig:skew_unprod_nodes_synthetic,fig:skew_unprod_nodes_real} offer a more detailed
 perspective by showing the traversed unproductive nodes with respect to skew $s$. We see a
-steep decrease in unproductive nodes when skew is $s=1.5$. 
-The hotspot reaches a point where it loses a significant amount of nodes because it is
-so skewed. From there on we see a sublinear rate of convergence. 
+sudden drop in unproductive nodes when skew is $s = 2$. 
+The hotspot reaches a point where it loses a significant amount of nodes because the 
+workload is so skewed. From there on, we see a sublinear rate of convergence. 
 %When $s \to \infty$,
 %the hotspot only has a single member which gets exclusively updated, as proven below:
 
@@ -2433,14 +2461,14 @@ so skewed. From there on we see a sublinear rate of convergence.
 %No other nodes besides the node with $k = 1$ gets drawn from the Zipf distribution 
 %when $s \to \infty$.
 
-We also see another interesting phenomenon. Comparing the synthetic to the real-world
-dataset, we see the number of traversed unproductive nodes decrease in the interval
-$s \in [0,1]$, whilst it increases during the same interval in the real-world dataset.
-The synthetic dataset produces the most unproductive nodes with no skew ($s = 0$).
-We conjecture that the high density of nodes in the synthetic dataset is responsible for the
-observed phenomenon.
+%We also see another interesting phenomenon. Comparing the synthetic to the real-world
+%dataset, we see the number of unproductive nodes decrease in the interval
+%$s \in [0,1]$, whilst it increases during the same interval in the real-world dataset.
+%The synthetic dataset produces the most unproductive nodes with a uniform workload ($s = 0$).
+%We conjecture that the low sparsity in the synthetic dataset is responsible for the
+%observed phenomenon.
 
-\subsubsection{Update to Query ratio}
+\subsubsection{Update to Query Ratio}
 
 \label{sec:update-query-ratio}
 
@@ -2479,8 +2507,8 @@ The latter Figures show the number of traversed unproductive nodes over updates
 per query.
 A node becomes volatile if it is updated $\tau$ times during a sliding window of length $L$.
 If we increase the number of updates, the node is more likely to become volatile.
-Obviously, if volatile nodes increase, there must be an increase in unproductive nodes, too.
-A volatile node eventually ceases to be volatile and becomes unproductive.
+If the number of volatile nodes increases, there is an increase in unproductive nodes, too,
+as shown before.
 
 \begin{figure}[h]
   \centering
@@ -2623,6 +2651,24 @@ on a different thread than the query executor, we have to ensure that GC's
 thread steals CPU time from the query executor so that we can demonstrate
 GC's cost.
 
+\begin{figure}[ht]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \caption{Synthetic}
+    \includegraphics[width=8cm]{periodicity_query_runtime_synthetic}
+    \label{fig:period_runtime_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \caption{Real-World}
+    \includegraphics[width=8cm]{periodicity_query_runtime_real}
+    \label{fig:period_runtime_real}
+  \end{subfigure}
+  \vspace{-0.5cm}
+  \caption{Avg. Query Runtime over GC Period $T$.}
+\end{figure}
+
 %\begin{figure}[h]
   %\centering
   %\begin{subfigure}{0.49\linewidth}
@@ -2673,13 +2719,14 @@ GC's cost.
 %\caption{Query Runtime over GC period $T$}
 %\end{figure}
 
-Figures TEST and TEST show the average query runtime with respect to period $T$.
-The optimal $T$ seems to be around $T=5s$. If $T<5s$, GC starts stealing CPU time
-from the query executor and queries take longes to process.
-On the other hand, when $T>5s$, the query runtime increases sublinearly because
+\Cref{fig:period_runtime_synthetic,fig:period_runtime_real} 
+show the average query runtime with respect to period $T$.
+The optimal period $T^*$ seems to be in the interval $T^* \in [500ms,2000ms]$ for
+both datasets. If $T < T^*$, GC starts stealing CPU time
+from the query executor and queries take longer to process.
+On the other hand, when $T > T^*$, the query runtime increases sublinearly because
 the index fills up with unproductive nodes. We see a sublinear increase since
-unproductive nodes have an upper bound set by the number of content nodes, as
-explained previously.
+the index becomes more static over time, as explained previously.
 
 \begin{figure}[h]
   \centering
@@ -2695,8 +2742,15 @@ explained previously.
     \includegraphics[width=8cm]{trav_unprod_nodes_periodicity_real}
     \label{fig:trav_unprod_nodes_periodicity_real}
   \end{subfigure}
+  \vspace{-0.5cm}
   \caption{Traversed Unproductive Nodes over update operations with GC period $T \in \{5s, 50s\}$.}
 \end{figure}
+
+Let us consider 
+\Cref{fig:trav_unprod_nodes_periodicity_synthetic,fig:trav_unprod_nodes_periodicity_real}.
+They show the number of traversed unproductive nodes for two different periods
+$T \in \{5s,50s\}$, with respect to update operations. We clearly see that GC with
+period $T = 5s$ has a smaller number of unproductive nodes over time, on average.
 
 \begin{figure}[h]
   \centering
@@ -2712,18 +2766,15 @@ explained previously.
     \includegraphics[width=8cm]{periodicity_unprod_nodes_real}
     \label{fig:periodicity_unprod_nodes_real}
   \end{subfigure}
+  \vspace{-0.5cm}
   \caption{Traversed Unproductive Nodes over GC period $T$.}
 \end{figure}
 
-Let us consider \Cref{fig:periodicity_unprod_nodes_synthetic,fig:periodicity_unprod_nodes_real}.
-We observe the number of traversed unproductive nodes increase sublinearly as period $T$ increases.
-%We infer that is is more beneficial to decrease period $T$ for lower values of $T$.
-%Say we decrease $T$ from 120 seconds to 100, which decrease the number
-%of traversed unproductive nodes from 2.5k to 2k, a 20\% decrease.
-%Decreasing $T$ from 40 to 20 seconds yields a decrease of traversed unproductive
-%nodes from 1.2k to 0.7k, almost 50\% less.
-
-\lipsum[1-3]
+\Cref{fig:periodicity_unprod_nodes_synthetic,fig:periodicity_unprod_nodes_real}
+depict the number of unproductive nodes with respect to $T$. We see that the
+number of unproductive nodes increases sublinearly as $T$ increases.
+The function converges because the index becomes more static over time, as
+explained previously.
 
 \subsection{Query-Time Pruning}
 
@@ -2796,31 +2847,68 @@ It is also worth mentioning what the performance penalty of QTP is when
 there are no unproductive nodes.
 The performance penalty occurs when the query executor has to compute if each
 node is volatile in order to detect unproductive nodes.
-\Cref{fig:query_runtime_qtp_cost_synthetic,fig:query_runtime_qtp_cost_real}
-compare the average query runtime over update operations, with QTP and without.
-The experiments last for 5 minutes and the volatility threshold is $\tau = 0$.
-Since $\tau = 0$, there are no unproductive nodes during the experiments.
-We observe that queries with QTP tend to require 60\% more time on average than
-without QTP and therefore queries without QTP perform better, when there are
-no unproductive nodes. Obviously, once we encounter unproductive nodes, queries
-with QTP perform better, as shown in \Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real}.
+
+%\Cref{fig:query_runtime_qtp_cost_synthetic,fig:query_runtime_qtp_cost_real}
+%compare the average query runtime over update operations, with QTP and without.
+%The experiments last for 5 minutes and the volatility threshold is $\tau = 0$.
+%Since $\tau = 0$, there are no unproductive nodes during the experiments.
+%We observe that queries with QTP tend to require 60\% more time on average than
+%without QTP and therefore queries without QTP perform better, when there are
+%no unproductive nodes. Obviously, once we encounter unproductive nodes, queries
+%with QTP perform better, as shown in \Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real}.
 
 \begin{figure}[H]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \caption{Synthetic}
     \includegraphics[width=8cm]{qtp_cost_synthetic}
-    \label{fig:query_runtime_qtp_cost_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
-    \caption{Real-World}
-    \includegraphics[width=8cm]{qtp_cost_real}
-    \label{fig:query_runtime_qtp_cost_real}
+    \begin{tikzpicture}[scale=0.65]
+        \fill[transparent] (-1,0) rectangle (0,5.5);
+        \filldraw[color=C0] (0,0) rectangle (1,2.40);
+        \filldraw[color=C1] (0,2.40) rectangle (1,2.56);
+        \filldraw[color=C2] (0,2.56) rectangle (1,4.01);
+        \filldraw[color=C3] (0,4.01) rectangle (1,4.31);
+        \filldraw[color=C4] (0,4.31) rectangle (1,5);
+        \fill[transparent] (0,5) rectangle (1,5.5);
+
+        \draw[dotted] (0.5,1.3) -- (5.5,0);
+        \node[align=left] at (6.7,0) {\footnotesize traversal};
+
+        \draw[dotted] (0.5,2.48) -- (5.5,1.25);
+        \node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
+        \draw[dotted] (0.5,3.285) -- (5.5,2.5);
+        \node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
+        \draw[dotted] (0.5,4.16) -- (5.5,4.5);
+        \node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
+        \draw[dotted] (0.5,4.66) -- (5.5,5.5);
+        \node[align=left] at (6.3,5.5) {\footnotesize write};
+       \draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
+       (1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
+       QTP overhead};
+   \end{tikzpicture}
   \end{subfigure}
-  \caption{QTP overhead.}
+  \caption[QTP overhead]{The overhead of various steps during QTP
+  are highlighted with different colors. A 20ms query spends on average 10ms 
+  (50\%) traversing, 0.5ms (2.5\%) checking the match property, 6ms (30\%) checking
+  for children, 0.5ms (2.5\%) checking for volatility and 3ms (15\%) writing. QTP
+  added a 9.5ms (+90\%) overhead.
+  }
+    \label{fig:qtp-overhead}
 \end{figure}
+
+\Cref{fig:qtp-overhead} depicts a cost breakdown of a QTP query. A 20ms query
+spends on average 10ms (50\%) traversing the index subtree, 0.5ms (2.5\%) checking
+the match property of visited nodes, 6ms (30\%) checking if the visited nodes
+have children, 0.5ms (2.5\%) checking if the visited nodes are volatile and 3ms
+(15\%) writing, that is pruning unproductive nodes and commiting the transaction.
+
+QTP added a 9.5ms overhead to a 11.5ms query, which corresponds to an additional 90\%
+runtime. The main overhead added by QTP is checking if the visited nodes have children.
+Checking the match property and checking if a node is volatile, are cheap operations
+because Oak caches node properties internally.
 
 \subsection{Comparison}
 

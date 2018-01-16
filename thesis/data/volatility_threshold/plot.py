@@ -78,6 +78,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     xlabel("Volatility Threshold $\\tau$")
     ylabel("Unproductive Nodes [$\\times 10^3$]")
     plot(taus, [median(data[tau]["trav_unprod"][995:1005]/1000) for tau in taus], linestyle="-", marker="o")
+    # plot(taus, [median(data[tau]["trav_unprod"]/1000) for tau in taus], linestyle="-", marker="o")
     ylim(ymax=40)
     tight_layout()
     savefig("tau_unprod_nodes_{}.pdf".format(dataset))

@@ -75,8 +75,10 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
 
     xlabel("Skew $s$")
     ylabel("Unproductive Nodes [$\\times 10^3$]")
-    plot(skews, [median(data[skew]["trav_unprod"][995:1005]/1000) for skew in skews], linestyle="-", marker="o")
-    ylim(ymax=4.5)
+    # plot(skews, [median(data[skew]["trav_unprod"][995:1005]/1000) for skew in skews], linestyle="-", marker="o")
+    # plot(skews, [median(data[skew]["trav_unprod"]/1000) for skew in skews], linestyle="-", marker="o")
+    plot(skews, [mean(data[skew]["trav_unprod"]/1000) for skew in skews], linestyle="-", marker="o")
+    ylim(ymax=5)
     tight_layout()
     savefig("skew_unprod_nodes_{}.pdf".format(dataset))
     clf()
