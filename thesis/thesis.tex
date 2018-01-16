@@ -2906,9 +2906,10 @@ have children, 0.5ms (2.5\%) checking if the visited nodes are volatile and 3ms
 (15\%) writing, that is pruning unproductive nodes and commiting the transaction.
 
 QTP added a 9.5ms overhead to a 11.5ms query, which corresponds to an additional 90\%
-runtime. The main overhead added by QTP is checking if the visited nodes have children.
-Checking the match property and checking if a node is volatile, are cheap operations
-because Oak caches node properties internally.
+runtime. Please note that a normal query would only take 11.5ms if there are no
+unproductive index nodes. The main overhead added by QTP is checking if the visited 
+nodes have children. Checking the match property and checking if a node is volatile, 
+are cheap operations because Oak caches node properties internally.
 
 \subsection{Comparison}
 
@@ -2917,6 +2918,45 @@ because Oak caches node properties internally.
 \subsection{Summary}
 
 \label{sec:summary}
+
+\Cref{sec:experimental-evaluation} focused on the experimental evaluation.
+We first conducted a series of experiments to test parameters that
+impact the production of unproductive nodes. Later on we benchmarked the
+query performance of periodic Garbage Collection and Query-Time pruning.
+
+In \Cref{sec:threshold}, we tested different volatility thresholds $\tau$
+and saw that a lower $\tau$ increases the number of unproductive nodes in
+index subtree. $\tau$ and unproductive nodes share a power law relationship.
+
+In \Cref{sec:sliding-window}, we investigated what the effect of the
+sliding window length $L$ is on unproductive index nodes. The results
+of the experiments suggest a linear relationship between $L$ and the
+number of unproductive nodes, but we expect a sublinear increase if
+the experiment is run longer.
+
+\Cref{sec:skew} focuses on the workload's skew $s$. We saw how the
+number of unproductive nodes drops rapidly for high values of $s$.
+The hotspot gets smaller and therefore we observe less unproductive nodes.
+
+In \Cref{sec:update-query-ratio}, we shift our attention to the ratio between
+queries and updates. We see that executing more updates with respect
+to the queries, the number of unproductive index nodes increases sublinearly.
+
+\Cref{sec:gc-experiment,sec:periodicity} benchmark periodic GC. We showed
+that queries are executed faster due to less unproductive index nodes.
+Running GC more often reduces the number of unproductive nodes in the index,
+but running GC too often steals CPU resources from query execution and
+adds a performance penalty to the queries. The system is busy garbabe
+collecting instead of answering queries.
+
+In \Cref{sec:qtp-experiment}, we test QTP, the second approach we
+proposed for cleaning unproductive nodes from the index. We saw that
+the number of unproductive nodes was near zero throughout the entire
+five-minute experiment. That was the case, because queries under
+QTP were cleaning the index continuoysly. We later analyzed the
+cost structure of a query under QTP. The average query runtime increased
+from 11.5ms to 20ms. The main overhead of QTP is checking if the visited
+nodes have children, which is done to determine if nodes are unproductive.
 
 \newpage\null\thispagestyle{empty}\newpage
 
