@@ -1455,21 +1455,11 @@ After we finish traversing all descendants $n$, we return the result set $r$.
   snapshot $G^6$ is committed by $T_6$ after finishing query execution.
 \end{example}
 
-\Cref{fig:java_qtp} shows the Java implementation of QTP in Oak. The algorithm
-takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
-\texttt{Root} and returns a lazy sequence of content nodes satisfying
-the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. By Calling
-\texttt{postOrder()} we get a sequence of nodes representing a
-postorder tree walk in the subtree rooted at \texttt{/i/k/v/m}. We remove any
-node that is not
-matching from the sequence using \texttt{filter()}. If a node has no children
-and is neither matching,
-nor volatile, it is unproductive and we prune it from the index.
 
-\vspace{1cm}
+%\vspace{1cm}
 
 \begin{figure}[H]
-  \scriptsize
+  \footnotesize
   \begin{framed}    
 \begin{minted}{java}
 /**
@@ -1496,7 +1486,6 @@ Iterable<Tree> QueryQTP(String k, String v, String m, Root root) {
 
         /* filter non-matching index nodes */
         filter((Tree n) -> {
-                
                 boolean isMatchingMemo = isMatching(n);
 
                 /* prune if no children, not matching and not volatile */
@@ -1513,12 +1502,27 @@ Iterable<Tree> QueryQTP(String k, String v, String m, Root root) {
             postOrder(root.getTree(queryNodePath))
         )
     );
-}
+} 
 \end{minted}
-  \end{framed}
+\vspace{-0.2cm}
+\end{framed}
+  \vspace{-0.2cm}
   \caption[QTP implemented in Java]{Query-Time Pruning implemented in Java.}
   \label{fig:java_qtp}
 \end{figure}
+
+\vspace{-0.2cm}
+
+\Cref{fig:java_qtp} shows the Java implementation of QTP in Oak. The algorithm
+takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
+\texttt{Root} and returns a lazy sequence of content nodes satisfying
+the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. By Calling
+\texttt{postOrder()} we get a sequence of nodes representing a
+postorder tree walk in the subtree rooted at \texttt{/i/k/v/m}. We remove any
+node that is not
+matching from the sequence using \texttt{filter()}. If a node has no children
+and is neither matching,
+nor volatile, it is unproductive and we prune it from the index.
 
 \newpage\null\thispagestyle{empty}\newpage
 
