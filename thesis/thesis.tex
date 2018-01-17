@@ -41,6 +41,7 @@
   {images/qtp_cost/},
   {images/cdf/},
   {images/period_runtime/},
+  {images/gc_vs_qtp/},
   {images/periodicity/}
 }
 
@@ -2915,6 +2916,86 @@ are cheap operations because Oak caches node properties internally.
 
 \label{sec:comparison}
 
+The previous Sections presented parameters affecting the rate of growth of
+unproductive nodes in the index subtree and also benchmarked the two proposed
+approaches, periodic GC and QTP. The current Section directly compares the
+two solutions and provides general outlines on choosing the most suitable
+approach.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \caption{Synthetic}
+    \includegraphics[width=8cm]{gc_vs_qtp_synthetic}
+    \label{fig:gc_vs_qtp_synthetic}
+  \end{subfigure}
+  \begin{subfigure}{0.49\linewidth}
+    \centering
+    \caption{Real-World}
+    \includegraphics[width=8cm]{gc_vs_qtp_real}
+    \label{fig:gc_vs_qtp_real}
+  \end{subfigure}
+  \vspace{-0.5cm}
+  \caption{Periodic GC vs. QTP}
+\end{figure}
+
+\Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} show the average query
+runtime over updates per query under GC and QTP. Less updates per query
+represent \textit{Online Transaction Proccesing} (OLTP) workloads, 
+whereas more updates per query represent
+\textit{Online Analytical Processing} (OLAP) workloads. 
+We observe that QTP outperforms GC for low
+updates per query. Queries occur often and the index is continuously cleaned by QTP.
+Since there are so many queries during a fixed interval, each query traverses
+a small number of unproductive nodes. The speedup caused by not traversing 
+many unproductive nodes is significantly greater than QTP's overhead 
+(\Cref{sec:qtp-experiment}).
+
+On the other hand, as queries become more sparse, periodic GC is preferred.
+When two consecutive queries under QTP are far apart, many unproductive nodes
+gather in the index subtree and when the latter query is run, it
+suffers from a hefty performance penalty from traversing many unproductive nodes.
+Say GC is executed between the two queries, then the latter query traverses
+considerably less unproductive nodes and is faster.
+
+The deciding factor, besides the workload type, is how fast unproductive nodes
+spawn in the index subtree, relative to the time between consecutive
+queries. Assume unproductive nodes rarely spawn. In that case, QTP
+should be more beneficial compared to GC on both OLTP and OLAP workloads
+because no matter how far queries are apart, unproductive nodes do
+not spawn fast enough so that queries take a notable performance hit.
+
+The other extreme is if unproductive nodes spawn incredibly often.
+In that case, running GC under both OLTP and OLAP workloads
+might be more beneficial, or let's say less expensive.
+Assume we spawn so many unproductive nodes over time, so that
+pruning an unproductive node with a query under QTP is useless
+and wastes time because it becomes unproductive again before
+the next query starts. In that scenario, GC is superior because
+queries only take a fraction of the performance penalty QTP imposes.
+
+The rate at which unproductive nodes spawn depends on the volatility
+threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
+(\Cref{sec:sliding-window}), workload skew $s$ (\Cref{sec:skew}) and
+update to query ratio (\Cref{sec:update-query-ratio}), amongst others.
+\Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} each have a data point
+on which the two functions (GC, QTP) intercept. For example, in
+\Cref{fig:gc_vs_qtp_synthetic}, when $\tau = 5, L = 30s, s = 1, T = 30s$ and
+we execute $70$ updates per query, we are indefferent choosing between GC
+and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for $25$ updates
+per query. We believe that the rate at which unproductive nodes spawn,
+controls the horizontal offset of the point on which we are indifferent
+between GC and QTP. If we spawn more unproductive nodes during a fixed
+interval, the point should move towards the left. Spawning more unproductive
+nodes over time imposes a higher overhead on queries under QTP.
+If we spawn less unproductive nodes, the point moves towards the right
+because queries under QTP benefit from traversing less unproductive nodes.
+The parameters mentioned above ($\tau, L, s, T$ and updates per query) 
+control the rate at which unproductive nodes
+spawn in the index subtree and therefore also impact our decision between
+periodic GC and QTP.
+
 \subsection{Summary}
 
 \label{sec:summary}
@@ -2958,7 +3039,12 @@ cost structure of a query under QTP. The average query runtime increased
 from 11.5ms to 20ms. The main overhead of QTP is checking if the visited
 nodes have children, which is done to determine if nodes are unproductive.
 
-\newpage\null\thispagestyle{empty}\newpage
+Finally, \Cref{sec:comparison} compares GC against QTP and explains when
+one approach is more beneficial than the other. The decision depends
+mainly on how fast unproductive nodes spawn in the index subtree and
+how often queries occur.
+
+\newpage
 
 \section{Conclusion}
 
@@ -2982,7 +3068,9 @@ and our evaluation shows that we significantly decrease the query runtime of WAP
 Our experimental evaluation also showed that volatility threshold $\tau$, sliding
 window of length $L$, the update to query ratio and skew $s$, impact the number
 of volatile nodes in the index subtree, which later on most likely become
-unproductive and slow down queries.
+unproductive and slow down queries. We then compare GC against QTP and conclude
+that deciding between one of the two depends on how fast unproductive nodes spawn
+and how often queries occur.
 
 It is still open how concurrency control affects the performance of the two mentioned
 algorithms. We believe QTP will take a bigger permormance hit in comparison to GC, since
