@@ -195,8 +195,8 @@ expensive structural index modifications. Since fewer nodes are
 inserted/deleted, the likelihood of conflicting index updates by concurrent
 transactions is reduced.
 
-Some Content Management Systems (CMS) make use of hierarchical databases. The Adobe
-Experience
+Some Content Management Systems (CMS) make use of hierarchical \cite{Hainaut2009-hierarchical} 
+databases. The Adobe Experience
 Manager,\footnote{http://www.adobe.com/marketing-cloud/experience-manager.html}
 Adobe's enterprise CMS, works with the hierarchical database system Apache
 Jackrabbit Oak (Oak). CMSs yield skewed, update-heavy and changing
@@ -272,7 +272,7 @@ database Apache Jackrabbit Oak.
 
 \label{sec:application_scenario}
 
-Depending on the data model, applications might use a hierarchical database
+Depending on the data model, applications might use a hierarchical \cite{Hainaut2009-hierarchical} database
 system such as Apache Jackrabbit Oak, called Oak. A content management system
 (CMS) might choose Oak because
 the database reflects the hierarchical structure of a webpage.
@@ -289,7 +289,7 @@ writing comments for example, creating an update-heavy workload. As time
 passes, new posts are created. Users are more likely to interact with recent
 posts than older ones, hence the workload changes over time.
 
-When a user submits a new post, a job is sent to the CMS for processing. % If the
+When a user submits a new post, a job \cite{Job} is sent to the CMS for processing. % If the
 % post has an image, the CMS needs to compress the image and
 % create a thumbnail. A job is created for processing the uploaded image.
 A background thread is periodically checking for pending
@@ -431,7 +431,8 @@ whether to remove a node or not from the index.
 Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
 workload to check whether a node $n$ is volatile. The workload on Oak instance
 $O_i$ is represented by a sequence $H_i = \langle \ldots, G^a, G^b, G^c
-\rangle$ of snapshots, called a \textit{history}. A snapshot represents an immutable
+\rangle$ of snapshots \cite{Hainaut2009-snapshot}, called a \textit{history}. 
+A snapshot represents an immutable
 committed tree of the database. Let $t_n$ be the current time and
 $t(G^b)$ be the point in time snapshot $G^b$ was committed, $N(G^a)$ is the
 set of nodes which are members of snapshot $G^a$. We use a superscript $a$
@@ -775,7 +776,7 @@ record the query runtime throughout the experiment and present the data below.
 \Cref{fig:query_runtime_synthetic,fig:query_runtime_real} show the 
 query runtime of the same query as time passes by for the synthetic and
 real-world dataset, respectively. 
-Each point corresponds to the moving median over 10 time points.
+Each point corresponds to the running median \cite{running-median} over 10 time points.
 We observe a sublinear increase of the runtime from $2 ms$ to $50 ms$
 after running the simulation for $5$ minutes
 on the synthetic dataset and an increase from $2 ms$ to $35 ms$ on the
@@ -816,7 +817,7 @@ explains the increase in query runtime in
 \Cref{fig:query_runtime_synthetic,fig:query_runtime_real}.
 We believe the index becomes \textit{static} over time.
 As time passes, more and more content nodes are randomly
-selected by the CMS workload and their corresponding index nodes become
+drawn by the CMS workload and their corresponding index nodes become
 volatile. After some time these nodes, most likely become unproductive and are
 not  being pruned from the index anymore.
 Therefore, the probability of picking a content node with no corresponding index
@@ -865,7 +866,7 @@ traversed unproductive nodes decreases.
 
 Additionally, we observe the functions of the unproductive and volatile index
 nodes having the shape of a cycloid. In \Cref{fig:trav_nodes_synthetic,fig:trav_nodes_real}, each
-cusp ($30 s, 60 s, \dots, 300 s$) represents a point in which the workload
+cusp \cite{cusp} ($30 s, 60 s, \dots, 300 s$) represents a point in which the workload
 changes during the experiment. When the workload changes, we initially see a
 steep decrease in volatile nodes. During that phase, more nodes cease to be
 volatile than become volatile. Nodes need to reach the threshold in order to
@@ -1005,7 +1006,7 @@ each index node $n$ causes naïve GC to have a quadratic time complexity.
 \end{figure}
 
 By applying a
-\textit{postorder tree walk} \cite{Cormen}, we can garbage collect the
+\textit{postorder tree walk} \cite{Cormen-postorder}, we can garbage collect the
 index subtree in linear time complexity. The postorder tree walk allows us to
 process a node $n$'s descendants before $n$. 
 When visiting node $n$ during a postorder tree walk, any unproductive descendant
@@ -1251,7 +1252,7 @@ void garbageCollect(Root root) {
 \end{figure}
 
 \Cref{fig:java_periodic_gc} shows the implementation of the periodic
-GC in Java inside Apache Jackrabbit Oak. Calling \texttt{postOrder()} returns a
+GC in Java \cite{Java} inside Apache Jackrabbit Oak. Calling \texttt{postOrder()} returns a
 lazy sequence of nodes
 which correspond to a postorder tree walk of the index subtree (cf.
 \Cref{fig:java_postorder} in the Appendix). Next, using \texttt{filter()} we
@@ -1672,15 +1673,16 @@ because we wanted to ensure the machine's limited CPU cooling performance will n
 We use two datasets in our experiments. Each dataset resembles the content
 subtree of an Oak instance. The \textit{synthetic} dataset is a complete binary
 tree of height 19, that is a binary tree in which all leaf nodes have depth 19
-\cite{Cormen}. It contains $2^{20} \approx 10^6$ nodes, of which 50\% are leaf
+\cite{Cormen-complete-kary-tree}. It contains $2^{20} \approx 10^6$ nodes, of which 50\% are leaf
 nodes. Each node has a mean depth and fanout of 18 and 2, respectively. The
 \textit{real-world} dataset is based on DELL's website (http://dell.com)
 which is built on top of Adobe's AEM that uses Oak.\footnote{https://wwwimages2.adobe.com/content/dam/acom/en/customer-success/pdfs/dell-case-study.pdf}
 It is sparser than the synthetic dataset and contains $13 \cdot 10^6$
 nodes, 65\% of which are leaf nodes. Each node has a mean depth and fanout of
 $13.68$ and exactly 1, respectively. The tree's nodes have a max depth and fanout of 24
-and 1729, respectively. Since the dataset is so sparse, there exist many nodes with a single child and few with many children, forming linked lists \cite{Cormen} of nodes
-sometimes. \Cref{fig:dataset} shows a sample subtree for each dataset.
+and 1729, respectively. Since the dataset is so sparse, there exist many nodes with 
+a single child and few with many children, forming linked lists \cite{Cormen-linked-list} 
+of nodes sometimes. \Cref{fig:dataset} shows a sample subtree for each dataset.
 
 \subsubsection{Workload}
 
@@ -1698,7 +1700,7 @@ execution more expensive because Oak has to traverse more nodes when answering
 queries, on average. We denote the set of nodes of the content subtree with
 depth greater than the mean depth as the \textit{lower content subtree}.
 
-In order to have skew, we incorporate the Zipf distribution. The Zipf
+In order to have skew, we incorporate the Zipf distribution \cite{zipf}. The Zipf
 distribution picks a small subset of nodes more frequent than others. 
 Let $N$ be the number of nodes inside the lower content subtree.
 We randomly and uniquely assign an integer $k \in [1, N]$ to each node in the
@@ -1715,7 +1717,7 @@ from the lower content subtree according to the Zipf distribution is:
 The $k$-th node corresponds to the node which is assigned integer $k$ in the mapping.
 Skewness $s$ of the Zipf distribution is parameterizable and we use $s=1$ by
 default in our experiments, unless otherwise noted. By having a smaller skew,
-the subset of nodes which is frequently selected, becomes bigger.
+the subset of nodes which is frequently drawn, becomes bigger.
 With $s=0$, the Zipf distribution corresponds to the uniform distribution
 and every node has equal probability to be drawn.
 In \Cref{sec:skew}, we make an experiment to determine skew's impact on
@@ -1856,13 +1858,13 @@ one matching index node at any instance of time.
   \end{subfigure}
 
   \caption[CMS Workloads visualized]{CMS Workloads visualized.
-  Red shaded nodes are the most frequently selected nodes.}
+  Red shaded nodes are the most frequently drawn nodes.}
   \label{fig:workload}
 \end{figure}
 
 \Cref{fig:workload} depicts heatmaps of a content subtree of Oak over time.
 These heatmaps show how often the designed workload selects specific nodes
-inside the content subtree. Red shaded nodes are the most frequently selected nodes.
+inside the content subtree. Red shaded nodes are the most frequently drawn nodes.
 
 % We paid a lot of attention to the way we simulate a changing workload during the
 % experiments. The goal was to design a function $f$, which given two integer
@@ -2600,7 +2602,7 @@ more nodes under the synthetic dataset, hence the query runtime increases.
 structure during query execution with periodic GC. Unproductive
 nodes increase until GC is run, after which they are completely removed again.
 Observing the Figures, the number of unproductive nodes does not always reach zero.
-That is because we use a moving median. The moving median removes outliers, and in
+That is because we use a running median. The running median removes outliers, and in
 our case also points which had zero unproductive nodes.
 
 The traversed volatile nodes have a cycloid pattern, as seen and explained in
@@ -2944,7 +2946,7 @@ approach.
 runtime over updates per query under GC and QTP. Less updates per query
 represent \textit{Online Transaction Proccesing} (OLTP) workloads, 
 whereas more updates per query represent
-\textit{Online Analytical Processing} (OLAP) workloads. 
+\textit{Online Analytical Processing} (OLAP) \cite{Hainaut2009-olap} workloads. 
 We observe that QTP outperforms GC for low
 updates per query. Queries occur often and the index is continuously cleaned by QTP.
 Since there are so many queries during a fixed interval, each query traverses
