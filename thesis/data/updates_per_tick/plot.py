@@ -54,15 +54,32 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
 
     xlabel("Time [min]")
     ylabel("Unproductive Nodes [$\\times 10^3$]")
-    # plot(data[1]["ticks"]/100, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1 update per query")
-    # plot(data[10]["ticks"]/100, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query")
+    # plot(data[1]["ticks"]/1000, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1  update per query")
+    # plot(data[10]["ticks"]/(1000/10), [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query") 
+    # plot(data[20]["ticks"]/(1000/20), [median(w) for w in sliding_window(data[20]["trav_unprod"]/1000,10)], label="20 updates per query")
     plot(data[1]["timestamps"]/60000, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1  update per query")
     plot(data[10]["timestamps"]/60000, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query") 
     plot(data[20]["timestamps"]/60000, [median(w) for w in sliding_window(data[20]["trav_unprod"]/1000,10)], label="20 updates per query")
+
     legend()
     ylim(ymax=12)
     tight_layout()
     savefig("trav_unprod_nodes_upt_{}.pdf".format(dataset))
+    clf()
+    
+    xlabel("Time [min]")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    # plot(data[1]["ticks"]/1000, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1  update per query")
+    # plot(data[10]["ticks"]/(1000/10), [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query") 
+    # plot(data[20]["ticks"]/(1000/20), [median(w) for w in sliding_window(data[20]["trav_unprod"]/1000,10)], label="20 updates per query")
+    plot(data[5]["timestamps"]/60000, [median(w)/1000 for w in sliding_window(data[5]["trav_unprod"],10)], label="38 updates per second")
+    plot(data[10]["timestamps"]/60000, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="46 updates per second") 
+    plot(data[40]["timestamps"]/60000, [median(w) for w in sliding_window(data[40]["trav_unprod"]/1000,10)], label="57 updates per second")
+
+    legend()
+    ylim(ymax=12)
+    tight_layout()
+    savefig("trav_unprod_nodes_ups_{}.pdf".format(dataset))
     clf()
 
     # first_tick = 250 
@@ -84,4 +101,17 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     ylim(ymax=6)
     tight_layout()
     savefig("upt_unprod_nodes_{}.pdf".format(dataset))
+    clf()
+
+    xlabel("Updates per Second")
+    ylabel("Unproductive Nodes [$\\times 10^3$]")
+    plot(
+            [(len(data[i]["timestamps"])*i/500) for i in upts],
+            [mean(data[i]["trav_unprod"])/1000 for i in upts],
+            linestyle="-",
+            marker="o"
+    )
+    ylim(ymax=5.5)
+    tight_layout()
+    savefig("updates_p_s_unprod_nodes_{}.pdf".format(dataset))
     clf()

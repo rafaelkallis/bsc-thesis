@@ -43,13 +43,13 @@ for filename in filenames:
         # trav_vol = np.array(list(map(float, trav_vol)))
         # trav_unprod = np.array(list(map(float, trav_unprod)))
 
-        data[dataset][func][upt] = mean(query_runtime)
+        data[dataset][func][upt] = query_runtime
 
         
 for dataset in ["synthetic", "real"]:
     for func in ["gc", "qtp"]:
         X = sorted(data[dataset][func].keys())
-        Y = [data[dataset][func][x] for x in X]
+        Y = [mean(data[dataset][func][x]) for x in X]
 
         plot(X,Y,label=func.upper(), linestyle="-",marker="o")
 
@@ -60,6 +60,22 @@ for dataset in ["synthetic", "real"]:
     tight_layout()
     savefig("gc_vs_qtp_{}.pdf".format(dataset))
     clf()
+    
+    for func in ["gc", "qtp"]:
+        keys = sorted(data[dataset][func].keys())
+        X = [1/(len(data[dataset][func][k])/500) for k in keys]
+        Y = [mean(data[dataset][func][k]) for k in keys]
+
+        plot(X,Y,label=func.upper(), linestyle="-",marker="o")
+
+    xlabel("Query Period")
+    ylabel("Avg. Query Runtime [ms]")
+    ylim(ymax=80)
+    legend()
+    tight_layout()
+    savefig("gc_vs_qtp_qps_{}.pdf".format(dataset))
+    clf()
+
         # data[upt] = {
             # "ticks": np.array(list(map(int, ticks))),
             # "timestamps": np.array(list(map(int, timestamps))),

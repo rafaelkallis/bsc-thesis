@@ -44,7 +44,7 @@ def percentile(perc):
 for dataset in ["synthetic", "real"]:
     xlabel("Update Operations [$\\times 10^3$]")
     ylabel("Avg. Query Runtime [ms]")
-    ylim(ymax=25)
+    # ylim(ymax=25)
     filename = max(glob("query_output*{}*".format(dataset)))
     with open(filename) as f:
             csv_reader = reader(f)

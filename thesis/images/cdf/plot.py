@@ -2,7 +2,7 @@
 
 from matplotlib import use
 use("Agg")
-from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, xscale, text, axhline, rc, tight_layout
+from matplotlib.pyplot import savefig, plot, xlabel, ylabel, clf, legend, ylim, xscale, text, axhline, rc, tight_layout,figure
 import numpy as np
 from csv import reader
 from glob import glob
@@ -44,26 +44,32 @@ s_label = {
         2: "2"
     }
 
-for s in skews:
-    plot(list(log_range(1,N_synthetic)),[zipf_cdf(k,N_synthetic,s) for k in log_range(1,N_synthetic)],label="$s = {}$".format(s_label[s]))
-
-xscale("log")
-legend()
-xlabel("Nodes")
-ylabel("Zipf CDF")
-axhline(0.8,linestyle=":")
-tight_layout()
-savefig("cdf_synthetic.pdf")
-clf()
+fig = figure(figsize=(6.4, 4), tight_layout=True)
+ax = fig.add_subplot(111)
 
 for s in skews:
-    plot(list(log_range(1,N_real)),[zipf_cdf(k,N_real,s) for k in log_range(1,N_real)],label="$s = {}$".format(s_label[s]))
+    ax.plot(list(log_range(1,N_synthetic)),[zipf_cdf(k,N_synthetic,s) for k in log_range(1,N_synthetic)],label="$s = {}$".format(s_label[s]))
 
-xscale("log")
-legend()
-xlabel("Nodes")
-ylabel("Zipf CDF")
-axhline(0.8,linestyle=":")
-tight_layout()
-savefig("cdf_real.pdf")
-clf()
+ax.set_xscale("log")
+ax.legend()
+ax.set_xlabel("Nodes")
+ax.set_ylabel("Zipf CDF")
+ax.axhline(0.8,linestyle=":")
+# tight_layout()
+fig.savefig("cdf_synthetic.pdf")
+# clf()
+
+fig = figure(figsize=(6.4, 4), tight_layout=True)
+ax = fig.add_subplot(111)
+
+for s in skews:
+    ax.plot(list(log_range(1,N_real)),[zipf_cdf(k,N_real,s) for k in log_range(1,N_real)],label="$s = {}$".format(s_label[s]))
+
+ax.set_xscale("log")
+ax.legend()
+ax.set_xlabel("Nodes")
+ax.set_ylabel("Zipf CDF")
+ax.axhline(0.8,linestyle=":")
+# tight_layout()
+fig.savefig("cdf_real.pdf")
+# clf()

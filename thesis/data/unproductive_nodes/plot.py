@@ -60,7 +60,8 @@ for dataset in ["synthetic", "real"]:
 
         xlabel("Update Operations [$\\times 10^3$]")
         ylabel("Avg. Query Runtime [ms]")
-        ylim(0, 50)
+        # ylim(0, 50)
+        ylim(ymax=50)
         # plot((ticks/100)[:-window+1], np.convolve(query_runtime, np.ones(window), "valid"),".")
         # plot(ticks/100, list(map(percentile(50), sliding_window(query_runtime, 10))))
         plot(ticks/100, [np.percentile(list(window), 50) for window in sliding_window(query_runtime,10)])
@@ -79,7 +80,8 @@ for dataset in ["synthetic", "real"]:
         plot(ticks/100, trav_index/1000, "C7", label="Total")
         plot(ticks/100, trav_vol/1000, "C0", label="Volatile")
         plot(ticks/100, trav_unprod/1000, "C1", label="Unproductive")
-        ylim(-.1, 11)
+        # ylim(-.1, 11)
+        ylim(ymax=11)
         for m, t in milestones:
            axvline(t, linewidth=0.5, alpha=0.5,linestyle=":")
            text(t-.35, 12.6, "{} min".format(int(m*100)), rotation=90, color="C0",alpha=0.5)
