@@ -477,7 +477,7 @@ $L$ over history $H_i$.
   \label{def:volatile_node}
 \end{definition}
 
-\vspace{-4mm}
+\vspace{-7mm}
 
 \begin{example}[Volatile Node]
   Consider the snapshots depicted in \Cref{fig:unproductive_nodes}. Assume volatility
@@ -831,8 +831,8 @@ explains the increase in query runtime in
 We believe the index becomes \textit{static} over time.
 As time passes, more and more content nodes are randomly
 drawn by the CMS workload and their corresponding index nodes become
-volatile. After some time these nodes, most likely become unproductive and are
-not  being pruned from the index anymore.
+volatile. After some time, these nodes most likely become unproductive and are
+not being pruned from the index anymore.
 Therefore, the probability of picking a content node with no corresponding index
 node (non-indexed)
 decreases over time. Since it becomes less and less likely for a non-indexed content node
@@ -1575,6 +1575,8 @@ circumstances one might use periodic GC over QTP, and vice versa.
 
 \subsubsection{Setup}
 
+\label{sec:setup}
+
 We use a volatility threshold $\tau = 5$ and sliding window of length $L = 30s$ as defaults,
 unless otherwise noted.
 All experiments are conducted on a 15'' Macbook Pro 2015 inside
@@ -1785,8 +1787,11 @@ dataset and 40k nodes (5.9\% of all nodes) on the real-world dataset.
 A CMS workload is also update-heavy. To simulate this, we execute many update 
 operations before
 executing a query operation. We fix the default update to query ratio to 10:1, i.e., 
-10 update operations are executed for each query operation. In
-\Cref{sec:update-query-ratio}, we investigate the effect of update operations per second.
+10 update operations are executed for each query operation. 
+Given our setup (see \Cref{sec:setup}), the ratio practically results in $46$ 
+update operations and $4.6$ query operations per second.
+In \Cref{sec:update-query-ratio}, we investigate the impact of update operations per second
+on the production rate of unproductive nodes.
 
 Additionally, the workload we design has to be changing. We periodically permute 
 the node mappings by reassigning a new random and unique integer $k \in [1,N]$ to each
@@ -1892,7 +1897,7 @@ one matching index node at any instance of time.
   \end{subfigure}
 
   \caption[CMS Workloads visualized]{CMS Workloads visualized.
-  Red shaded nodes are the most frequently drawn nodes.}
+  Red shaded nodes are frequently drawn nodes.}
   \label{fig:workload}
 \end{figure}
 
@@ -2253,9 +2258,9 @@ the number of unproductive nodes WAPI traverses during query execution for
 three distinct lengths $L \in \{10s,20s,30s\}$ of the sliding window w.r.t.\ update
 operations. As expected, the number of unproductive nodes
 increases the fastest for the longest sliding window length ($L = 30s$).
-In the long term,
+In the long-term,
 the number of unproductive nodes increases sublinearly w.r.t.\ time.
-We explained earlier that as time passes, the index becomes more static
+We explained earlier that as time passes, the index becomes more static 
 and the number of unproductive nodes converges towards the upper bound
 set by the number of content nodes.
 
@@ -2589,7 +2594,8 @@ as shown before.
 In addition, the increase we observe is linear.
 Increasing the number of update operations, should yield
 a proportional increase in volatile nodes which later on become
-unproductive.
+unproductive. Since the index becomes static as time passes (see \Cref{sec:query-runtime}),
+we expect the increase to become sublinear if we run the experiment longer.
 
 %That is the case, because during a fixed time interval, Oak can only
 %process a constant number of operations, be it updates or queries.
@@ -2988,7 +2994,7 @@ nodes have children. Checking the match property and checking if a node is volat
 are cheap operations because Oak caches node properties internally.
 Writing changes becomes a significant overhead when there are many
 unproductive nodes, e.g.\ when a query has not been executed for a long time.
-Altough QTP is adding an overhead, it is still faster than using no QTP
+Although QTP is adding an overhead, it is still faster than using no QTP
 in the long-term because of unproductive nodes (cf. \Cref{fig:query_runtime}).
 
 %\vspace{1.3cm}
@@ -3083,7 +3089,7 @@ were already cleaned up by the GC run.
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} each have a data point
 on which the two functions (GC, QTP) intercept. For example, in
 \Cref{fig:gc_vs_qtp_synthetic}, when $\tau = 5, L = 30s, s = 1, T = 30s$ and
-we execute a query every $1.1$ second, we are indefferent choosing between GC
+we execute a query every $1.1$ seconds, we are indefferent choosing between GC
 and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for a query period of $0.5$ seconds.
 We denote as \textit{query runtime equilibrium point}, the point on which queries
 under GC take, on average, as long as queries under QTP, given $\tau, L, s, T$
@@ -3111,11 +3117,18 @@ The rate at which unproductive nodes are produced depends on the volatility
 threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
 (\Cref{sec:sliding-window}), workload skew $s$ (\Cref{sec:skew}) and
 the number of updates per second (\Cref{sec:update-query-ratio}), as far as we know.
-We conjecture that the rate at which unproductive nodes are produced,
+We conjecture that an increase in the number of traversed unproductive nodes
+of a query under QTP, increases QTP's overhead superlinearly, the write overhead
+in particular. If that is true, increasing the production rate would cause more harm
+on queries under QTP compared to GC. That would also explain why we see
+a steeper slope on QTP compared to GC, with respect to the query period 
+(cf.\ \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real}).
+If that is the case, the rate at which unproductive nodes are produced,
 controls the horizontal offset (x-coordinate) of the equilibrium point.
 If we produce more unproductive nodes during a fixed
 interval, the equilibrium point might move towards the left. Producing more unproductive
-nodes over time might impose a higher overhead on queries under QTP.
+nodes over time might impose a higher overhead on queries under QTP since
+an increase in unproductive nodes increases QTP's overhead superlinearly.
 If we produce fewer unproductive nodes, the equilibrium point might move towards the right
 because queries under QTP benefit from traversing fewer unproductive nodes.
 
