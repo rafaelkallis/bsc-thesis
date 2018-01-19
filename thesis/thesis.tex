@@ -145,7 +145,7 @@ Collection or Query-Time Pruning are applied.
 
 Der ``workload-aware property index'' ist ein hierarchischer Index, der sich an
 die jüngste Transaktionslast der Datenbank anpasst, indem er volatile
-Indexknoten, d.h.\ Knoten die häufig eingefügt oder gelöscht werden, nicht löscht
+Indexknoten (d.h.\ Knoten die häufig eingefügt oder gelöscht werden) nicht löscht
 um die Schreibleistung zu erhöhen. Wenn sich die Arbeitslast ändert, sind
 diese Knoten nicht mehr volatil und werden unproduktiv, falls sie und ihre
 Nachkommen weder zu einer Abfrage beitragen noch volatil sind.
@@ -157,7 +157,7 @@ bereinigen. Wir implementieren
 unsere Techniken in Apache Jackrabbit Oak und bieten eine umfangreiche
 experimentelle Auswertung, um die Algorithmen unter hoher Last zu testen und
 zeigen, dass der Datenbankdurchsatz erheblich zunimmt, wenn periodische
-Indexreinigung oder Abfragezeitbereinigung benutzt wird.
+Indexreinigung oder Abfragezeitbereinigung benutzt werden.
 
 \newpage
 \thispagestyle{empty}
