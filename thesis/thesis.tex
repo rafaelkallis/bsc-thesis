@@ -1551,7 +1551,7 @@ The goal of our experimental evaluation is to evaluate and
 compare GC and QTP under different parametrizations and workloads.
 In \Cref{sec:unproductive-nodes-experiment} we
 see how the parameters volatility threshold $\tau$, sliding window length $L$,
-workload skew $s$ and update to query ratio, impact the number of unproductive
+workload skew $s$ and update operations per second, impact the number of unproductive
 nodes in the index subtree.
 These parameters directly impact the number of volatile nodes and therefore can affect
 the production of unproductive nodes in the index.
@@ -1786,8 +1786,7 @@ A CMS workload is also update-heavy. To simulate this, we execute many update
 operations before
 executing a query operation. We fix the default update to query ratio to 10:1, i.e., 
 10 update operations are executed for each query operation. In
-\Cref{sec:update-query-ratio}, we evaluate and compare GC and QTP under various
-update to query ratios.
+\Cref{sec:update-query-ratio}, we investigate the effect of update operations per second.
 
 Additionally, the workload we design has to be changing. We periodically permute 
 the node mappings by reassigning a new random and unique integer $k \in [1,N]$ to each
@@ -2525,46 +2524,46 @@ workload is so skewed. From there on, we see a sublinear rate of convergence.
 %We conjecture that the low sparsity in the synthetic dataset is responsible for the
 %observed phenomenon.
 
-\subsubsection{Update to Query Ratio}
+\subsubsection{Update Operations per Second }
 
 \label{sec:update-query-ratio}
 
 One of our initial assumptions was that Oak's workload is update heavy, amongst others.
 To emphasize the implications of such an update heavy workload, we conduct the following
-experiment. Oak is benchmarked with different update to query ratios,
-that is the number of updates executed between two consecutive queries,
-in order to show the effect of such a workload
-on unproductive nodes. 
+experiment. Oak is benchmarked with different update operations per second,
+in order to show the effect of such a workload on unproductive nodes. 
 
 \begin{figure}[h]
   \centering
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Synthetic}
-    \includegraphics[width=8cm]{trav_unprod_nodes_upt_synthetic}
+    \includegraphics[width=8cm]{trav_unprod_nodes_ups_synthetic}
     \label{fig:trav_unprod_nodes_upt_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Real-World}
-    \includegraphics[width=8cm]{trav_unprod_nodes_upt_real}
+    \includegraphics[width=8cm]{trav_unprod_nodes_ups_real}
     \label{fig:trav_unprod_nodes_upt_real}
   \end{subfigure}
   \vspace{-0.65cm}
-  \caption[Unproductive Nodes over time for 1, 10 and 20 updates per query]{
-  Unproductive Nodes over time for 1, 10 and 20 updates per query.}
+  \caption[Unproductive Nodes over time for 38, 46 and 57 updates per second]{
+  Unproductive Nodes over time for 38, 46 and 57 updates per second.}
 \end{figure}
 
 
 \Cref{fig:trav_unprod_nodes_upt_synthetic,fig:trav_unprod_nodes_upt_real} show
 the number of traversed unproductive nodes over time. We run the simulation for
-three update to query ratios: 1, 10 and 20 updates per query. An increase
+workloads having 38, 46 and 57 updates per second, respectively.
+An increase
 in time yields an increase in traversed unproductive nodes, an observation
 depicted in \Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real}, too.
 The latter Figures show the number of traversed unproductive nodes over updates
-per query.
+per second.
 A node becomes volatile if it is updated $\tau$ times during a sliding window of length $L$.
-If we increase the number of updates, the node is more likely to become volatile.
+If we increase the number of updates during a fixed interval, the node is more likely 
+to become volatile.
 If the number of volatile nodes increases, there is an increase in unproductive nodes, too,
 as shown before.
 
@@ -2573,31 +2572,35 @@ as shown before.
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Synthetic}
-    \includegraphics[width=8cm]{upt_unprod_nodes_synthetic}
+    \includegraphics[width=8cm]{updates_p_s_unprod_nodes_synthetic}
     \label{fig:upt_unprod_nodes_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Real-World}
-    \includegraphics[width=8cm]{upt_unprod_nodes_real}
+    \includegraphics[width=8cm]{updates_p_s_unprod_nodes_real}
     \label{fig:upt_unprod_nodes_real}
   \end{subfigure}
   \vspace{-0.65cm}
-  \caption[Unproductive Nodes over updates per query]{
-  Unproductive Nodes over updates per query.}
+  \caption[Unproductive Nodes over updates per second]{
+  Unproductive Nodes over updates per second.}
 \end{figure}
 
-In addition, the increase we observe is sublinear. 
-That is the case, because during a fixed time interval, Oak can only
-process a constant number of operations, be it updates or queries.
-Assume each update and query operation requires 10 time units, abbreviated t.u.,
-for proccessing. Given a time interval of 10 t.u., it will make no significant
-difference if we execute 10 updates per query in comparison to 100 updates
-per query. Oak still can execute only 10 updates during a 10 t.u.\ interval.
-On the other hand, executing only 1 update per query, will make a noticeable
-difference. In that case, Oak executes 5 queries and 5 updates during the 10
-t.u.\ interval. Executing fewer update operations during a fixed time interval
-implies that fewer nodes become volatile, and later on, unproductive.
+In addition, the increase we observe is linear.
+Increasing the number of update operations, should yield
+a proportional increase in volatile nodes which later on become
+unproductive.
+
+%That is the case, because during a fixed time interval, Oak can only
+%process a constant number of operations, be it updates or queries.
+%Assume each update and query operation requires 10 time units, abbreviated t.u.,
+%for proccessing. Given a time interval of 10 t.u., it will make no significant
+%difference if we execute 10 updates per query in comparison to 100 updates
+%per query. Oak still can execute only 10 updates during a 10 t.u.\ interval.
+%On the other hand, executing only 1 update per query, will make a noticeable
+%difference. In that case, Oak executes 5 queries and 5 updates during the 10
+%t.u.\ interval. Executing fewer update operations during a fixed time interval
+%implies that fewer nodes become volatile, and later on, unproductive.
 
 %As mentioned in the previous Sections,
 %since the number of unproductive nodes has an upper bound set by the number
@@ -3046,13 +3049,13 @@ approach.
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Synthetic}
-    \includegraphics[width=8cm]{gc_vs_qtp_synthetic}
+    \includegraphics[width=8cm]{gc_vs_qtp_qps_synthetic}
     \label{fig:gc_vs_qtp_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Real-World}
-    \includegraphics[width=8cm]{gc_vs_qtp_real}
+    \includegraphics[width=8cm]{gc_vs_qtp_qps_real}
     \label{fig:gc_vs_qtp_real}
   \end{subfigure}
   \vspace{-0.5cm}
@@ -3060,9 +3063,10 @@ approach.
 \end{figure}
 
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} show the average query
-runtime over the update-query ratio under GC and QTP.
-We observe that QTP outperforms GC for low
-updates per query. Queries occur often and the index is continuously cleaned by QTP.
+runtime over the query period, that is the average time in between two consecutive
+queries, under GC and QTP.
+We observe that QTP outperforms GC for a low query period. 
+Queries occur often and the index is continuously cleaned by QTP.
 Since there are so many queries during a fixed interval, each query traverses
 a small number of unproductive nodes. The speedup gained by not continuously traversing 
 many unproductive nodes is significantly greater than QTP's overhead 
@@ -3079,11 +3083,11 @@ were already cleaned up by the GC run.
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} each have a data point
 on which the two functions (GC, QTP) intercept. For example, in
 \Cref{fig:gc_vs_qtp_synthetic}, when $\tau = 5, L = 30s, s = 1, T = 30s$ and
-we execute $70$ updates per query, we are indefferent choosing between GC
-and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for $25$ updates
-per query. We denote as \textit{query runtime equilibrium point}, the point on which queries
+we execute a query every $1.1$ second, we are indefferent choosing between GC
+and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for a query period of $0.5$ seconds.
+We denote as \textit{query runtime equilibrium point}, the point on which queries
 under GC take, on average, as long as queries under QTP, given $\tau, L, s, T$
-and the update-query ratio.
+and the query period.
 
 The query performance under GC and QTP also depends
 on the production rate of unproductive nodes
@@ -3106,9 +3110,9 @@ since QTP has a large write overhead with many unproductive nodes.
 The rate at which unproductive nodes are produced depends on the volatility
 threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
 (\Cref{sec:sliding-window}), workload skew $s$ (\Cref{sec:skew}) and
-update to query ratio (\Cref{sec:update-query-ratio}), amongst others.
+the number of updates per second (\Cref{sec:update-query-ratio}), as far as we know.
 We conjecture that the rate at which unproductive nodes are produced,
-controls the horizontal offset of the equilibrium point.
+controls the horizontal offset (x-coordinate) of the equilibrium point.
 If we produce more unproductive nodes during a fixed
 interval, the equilibrium point might move towards the left. Producing more unproductive
 nodes over time might impose a higher overhead on queries under QTP.
@@ -3143,11 +3147,9 @@ Our main findings with respect to the production rate of unproductive nodes are:
         values of $s$. The hotspot gets smaller and therefore we observe 
         fewer unproductive nodes (\Cref{sec:skew}).
 
-    \item A greater update-query ratio increases the production rate of
-        unproductive nodes sublinearly.
-        We observe no noticeable difference in the production rate of
-        unproductive nodes for workloads with more than 20 updates per query
-        (\Cref{sec:update-query-ratio}).
+    \item More update operations per second increase the production rate of
+        unproductive nodes linearly. If the experiment is run longer, we expect
+        to see a sublinear increase (\Cref{sec:update-query-ratio}).
 
 \end{itemize}
 
@@ -3178,10 +3180,10 @@ performance significantly . We present our main findings below:
         it is still significantly faster than using no QTP in the long-term
         because of uproductive nodes (\Cref{sec:qtp-experiment}).
 
-    \item GC outperforms QTP under workloads with high update-query ratios,
-        depending on period $T$. Otherwise, QTP is the method of preference,
+    \item QTP outperforms GC under workloads with frequent queries,
+        depending on period $T$. Otherwise, GC is the method of preference,
         given the circumstances of our experiment. We conjecture that GC might
-        also outperform QTP under workloads with a high unproductive node
+        outperform QTP under workloads with a high unproductive node
         production rate (\Cref{sec:comparison}).
 
 \end{itemize}
@@ -3216,7 +3218,7 @@ We extend WAPI by implementing periodic GC and QTP in Apache Jackrabbit Oak
 and our evaluation shows that both approaches significantly decrease the query runtime of WAPI.
 
 Our experimental evaluation also showed that volatility threshold $\tau$, sliding
-window of length $L$, the update to query ratio and skew $s$, impact the number
+window of length $L$, skew $s$ and the number of update operations per second, impact the number
 of volatile nodes in the index subtree, which later on most likely become
 unproductive and slow down queries. We then compare GC against QTP and conclude
 that deciding between one of the two depends on how fast unproductive nodes emerge 

@@ -68,7 +68,7 @@ for dataset in ["synthetic", "real"]:
 
         plot(X,Y,label=func.upper(), linestyle="-",marker="o")
 
-    xlabel("Query Period")
+    xlabel("Query Period [s]")
     ylabel("Avg. Query Runtime [ms]")
     ylim(ymax=80)
     legend()
