@@ -1302,7 +1302,7 @@ avoiding the cost of explicitly traversing the index in comparison to GC.
 
 Frequent queries also benefit from QTP. If a query is executed for the first
 time, QTP cleans all unproductive nodes traversed during query execution.
-If the query is executed a second time shortly thereafter and  no new nodes
+If the query is executed a second time shortly thereafter and no new nodes
 become unproductive in the meantime, the query executor encounters no
 unproductive nodes anymore and therefore the query is answered faster.
 
@@ -1702,10 +1702,10 @@ nodes. Each node has a mean depth and fanout of 18 and 2, respectively. The
 which is built on top of Adobe's AEM that uses Oak.\footnote{https://wwwimages2.adobe.com/content/dam/acom/en/customer-success/pdfs/dell-case-study.pdf}
 It is sparser than the synthetic dataset and contains $13 \cdot 10^6$
 nodes, 65\% of which are leaf nodes. Each node has a mean depth and fanout of
-$13.68$ and approximately 1, respectively. The tree's nodes have a max depth and fanout of 24
+$13.68$ and $2.89$, respectively. The tree's nodes have a max depth and fanout of 24
 and 1729, respectively. Since the dataset is so sparse, there exist many nodes with 
-a single child and few with many children, forming linked lists (called "chains")
-of nodes sometimes. \Cref{fig:dataset} shows a sample subtree for each dataset.
+a single child and few with many children, forming linked lists (called ``chains'')
+sometimes. \Cref{fig:dataset} shows a sample subtree for each dataset.
 
 \vspace{-0.2cm}
 
@@ -1724,7 +1724,7 @@ depth greater than the mean depth as the \textit{lower content subtree}.
 The workload is only allowed to draw nodes from the lower content subtree.
 Doing so, we increase the number of nodes in the index subtree and make
 query execution more expensive.
-Assume the workload repeatedly draws a leaf $n$ and
+Assume the workload repeatedly draws a leaf node $n$ and
 executes update operations on it until its corresponding index node
 becomes volatile and therefore remains in the index. If the workload
 then randomly draws an ancestor of $n$, no nodes are added to the index.
@@ -2101,7 +2101,7 @@ We see the two variables sharing a power law relationship. We believe the
 workload's skew to be responsible for the power law relationship. 
 At $\tau = 0$, any node drawn by the workload becomes volatile. This is why we
 see so many unproductive nodes. At $\tau = 2$, we observe a sudden drop in 
-unproductive nodes. Thit is the case because content nodes have to be drawn twice in order
+unproductive nodes. This is the case because content nodes have to be drawn twice in order
 to become unproductive, and since the workload is skewed, only a few nodes are
 drawn twice. For even larger values, the function flattens out. Since the workload
 is skewed, only a handful of nodes are drawn enough times by the workload to become volatile.
@@ -2683,7 +2683,7 @@ nodes increase until GC is run, after which they are completely removed again.
 It is evident when observing the Figures that the number of unproductive nodes
 does not always drop to zero.
 %Observing the Figures, the number of unproductive nodes does not always reach zero.
-Thit is the case because we use a running median \cite{running-median}.
+This is the case because we use a running median \cite{running-median}.
 The running median removes outliers, and in
 our case also points which had zero unproductive nodes.
 
