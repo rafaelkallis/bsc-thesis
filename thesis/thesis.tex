@@ -184,7 +184,7 @@ structural index updates over a small subset of nodes to the index.
 Informally, a frequently added or removed node is called \textit{volatile}.
 Volatile nodes decrease index update performance due to two reasons. First,
 frequent structural index modifications are expensive since they cause many disk
-accesses. Second, frequent structural index modifications also increase the
+accesses. \\ Second, frequent structural index modifications also increase the
 likelihood of conflicting index updates by concurrent transactions. Conflicting
 index updates further decrease update performance since concurrency control
 protocols need to resolve the conflict.
@@ -707,7 +707,7 @@ over time \cite{KW17}.
   therefore the volatility count is $vol(\texttt{/i/pub/now/a/b/d}) =
   vol(\texttt{/i/pub/now/a/b}) = 0$. Since the threshold is $\tau = 1$, the nodes are
   not volatile. In addition,
-  they are not matching either, therefore they are unproductive (cf.
+  they are not matching either and therefore they are unproductive (cf.
   \Cref{def:unproductive-node}). Index node
   \texttt{/i/pub/now/a} in snapshot $G^3$ has
   two volatile descendants (\texttt{/i/pub/now/a/c/e}, \texttt{/i/pub/now/a/c}) 
@@ -761,13 +761,13 @@ volatile.
 
 \label{sec:query-runtime}
 
-In this section we study and quantify the impact of unproductive nodes on
+In this Section we study and quantify the impact of unproductive nodes on
 query runtime. During query execution, traversing an unproductive node is
 useless, because neither the node itself nor any of its descendants are matching
 and therefore cannot contribute a query match. We hypothesize that unproductive nodes
 significantly slow down queries under a CMS workload.
 An index under a CMS workload (see \Cref{sec:application_scenario}) is dominated
-by unproductive nodes, that is unproductive nodes constitute a large percentage
+by unproductive nodes, meaning that unproductive nodes constitute a large percentage
 of all index nodes.
 
 % We summarize the statements above into the following hypotheses:
@@ -853,7 +853,7 @@ content node, the corresponding index node's volatility count increments.
 We infer that it is less
 likely for an unproductive node to become volatile than a non-indexed one.
 Our experimental evaluation suggests that the number of
-unproductive nodes increases over time. Therefore it becomes less likely for any
+unproductive nodes increases over time. Therefore, it becomes less likely for any
 node to become volatile over time. This explains the downward trend of
 volatile nodes over time.
 
@@ -919,21 +919,21 @@ unproductive nodes in the index.
 show the ratio of 1) volatile over total and 2) unproductive over total index nodes,
 over the accumulated number of update operations for each dataset. 
 These Figures quantify how
-strongly unproductive nodes dominate the total traversed nodes. After 5 minutes,
+strongly unproductive nodes dominate the total traversed nodes. After five minutes,
 unproductive nodes account for over $80\%$ of the traversed nodes whilst
 less than $20\%$ are volatile on the synthetic dataset.
 Similarly, on the real-world dataset, we observe $90\%$ traversed unproductive and $10\%$
 traversed volatile index nodes.
 
 Concluding, the experiments strongly support our hypothesis. The query runtime
-increases by an order of magnitude after 5 minutes. Also, unproductive
+increases by an order of magnitude after five minutes. Also, unproductive
 nodes, which dominate the index, are accountable for the increase in query runtime. 
 
 \newpage
 
 \section{Cleaning Unproductive Nodes}
 
-In the previous section, we saw how unproductive index nodes slow down query
+In the previous Section, we saw how unproductive index nodes slow down query
 execution. To prevent unproductive nodes from accumulating in the index, we
 need strategies to clean up the index. In the following two subsections, we suggest two
 different approaches for dealing with unproductive nodes. We will empirically
@@ -1015,7 +1015,7 @@ each index node $n$ causes naïve GC to have a quadratic time complexity.
   \end{forest}
   \caption[Worst case scenario during naïve GC]{Worst case scenario during naïve
     Garbage Collection. All internal nodes have a single child. The leaf node
-    is matching, therefore no node is unproductive.}
+    is matching, thus no node is unproductive.}
   \label{fig:worst-case}
 \end{figure}
 
@@ -1530,8 +1530,8 @@ Iterable<Tree> QueryQTP(String k, String v, String m, Root root) {
 \Cref{fig:java_qtp} shows the Java implementation of QTP in Oak. The algorithm
 takes a property \texttt{k}, value \texttt{v}, path \texttt{m}, a
 \texttt{Root} and returns a lazy sequence of content nodes satisfying
-the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. By Calling
-\texttt{postOrder()} we get a sequence of nodes representing a
+the CAS query $Q(\texttt{k},\texttt{v},\texttt{m})$. Calling
+\texttt{postOrder()}, we get a sequence of nodes representing a
 postorder tree walk in the subtree rooted at \texttt{/i/k/v/m}. We remove any
 node that is not
 matching from the sequence using \texttt{filter()}. If a node has no children
@@ -1557,7 +1557,7 @@ These parameters directly impact the number of volatile nodes and therefore can 
 the production of unproductive nodes in the index.
 In \Cref{sec:gc-experiment}, we evaluate the query performance under GC and in
 \Cref{sec:periodicity} we investigate how GC period $T$ affects GC's performance.
-The experimental methodolody used on GC is also applied on QTP in \Cref{sec:qtp-experiment}.
+The experimental methodology used on GC is also applied on QTP in \Cref{sec:qtp-experiment}.
 Lastly, \Cref{sec:comparison} compares GC and QTP directly and suggests under which
 circumstances one might use periodic GC over QTP, and vice versa.
 %side and list their differences in \Cref{sec:gc-qtp-performance}. Next, we
@@ -1695,7 +1695,7 @@ because we wanted to ensure the machine's limited CPU cooling performance will n
 
 We use two datasets in our experiments. Each dataset resembles the content
 subtree of an Oak instance. The \textit{synthetic} dataset is a complete binary
-tree of height 19, that is a binary tree in which all leaf nodes have depth 19
+tree of height 19, i.e.\ a binary tree in which all leaf nodes have depth 19
 \cite{Cormen}. It contains $2^{20} \approx 10^6$ nodes, of which 50\% are leaf
 nodes. Each node has a mean depth and fanout of 18 and 2, respectively. The
 \textit{real-world} dataset is based on DELL's website (http://dell.com)
@@ -1796,8 +1796,8 @@ on the production rate of unproductive nodes.
 Additionally, the workload we design has to be changing. We periodically permute 
 the node mappings by reassigning a new random and unique integer $k \in [1,N]$ to each
 node from the lower content subtree in order to change the hotspots of the simulation,
-that is the subset of nodes which are frequently updated.
-We change the hotspot by default every 30 seconds. During a 5 minute
+i.e.\ the subset of nodes which are frequently updated.
+We change the hotspot by default every 30 seconds. During a five-minute
 experiment we expect 10 different workloads.
 
 Lastly, the workload has to simulate a job-queuing system. An update operation
@@ -1931,7 +1931,7 @@ inside the content subtree. Red shaded nodes are the most frequently drawn nodes
 \label{sec:threshold}
 
 Volatility threshold $\tau$ determines after how many insertions/deletions of an index node
-it becomes volatile (see \Cref{def:volatile_node}). In this section, we study the impact of
+it becomes volatile (see \Cref{def:volatile_node}). In this Section, we study the impact of
 volatility threshold $\tau$ on unproductive nodes, which directly affect query runtime.
 
 We hypothesize that an increase in $\tau$ yields a decrease to the number of
@@ -2065,10 +2065,10 @@ runtime in the CMS workload.
 
 \Cref{fig:trav_unprod_nodes_taus_synthetic,fig:trav_unprod_nodes_taus_real}
 show the increase in unproductive index nodes for different
-thresholds $\tau \in \{1,5,10\}$ over the course of a five minute experiment.
-We observe lower thresholds $\tau$ yielding a steeper slope.
+volatility thresholds $\tau \in \{1,5,10\}$ over the course of a five-minute experiment.
+We observe a lower $\tau$ yields a steeper slope.
 A lower volatility threshold increases the likelihood of a node
-becoming volatile. The amount of volatile nodes also affect the number of
+becoming volatile. The number of volatile nodes also affects the number of
 unproductive nodes, since volatile nodes eventually stop being frequently
 updated when the workload changes and become unproductive. 
 The increase in unproductive nodes in the index
@@ -2077,14 +2077,14 @@ query execution.
 
 The Figures show that unproductive nodes increase linearly as update operations
 increase. We expect the increase to be sublinear for longer experiments.
-As time passes by, the index becomes more static (see \Cref{sec:query-runtime}), 
+As time passes, the index becomes more static (see \Cref{sec:query-runtime}), 
 because more volatile/unproductive
 index nodes are retained and fewer nodes are pruned. As a result, fewer nodes
 become volatile as the experiment progresses.
 The number of traversed unproductive nodes is upper-bounded by the number 
 of content nodes.
-This is the case, because the index subtree for a given property-value pair
-(e.g.\ ``pub'' = ``now'') can not have
+This is the case because the index subtree for a given property-value pair
+(e.g.\ ``pub'' = ``now'') cannot have
 more nodes than the content subtree, because the index subtree is a subset
 of the content subtree.
 Eventually, we will reach the upper bound.
@@ -2094,17 +2094,17 @@ number of traversed unproductive nodes during query execution over a range of
 thresholds. We observe a decrease in unproductive nodes while increasing
 threshold $\tau$. 
 As suggested earlier, a lower volatility threshold
-increases the amount of volatile nodes in the index and consequently also
+increases the number of volatile nodes in the index and consequently also
 increases the number of unproductive nodes. 
 
 We see the two variables sharing a power law relationship. We believe the
 workload's skew to be responsible for the power law relationship. 
-At $\tau = 0$, any node drawn by the workload becomes volatile. That is why we
+At $\tau = 0$, any node drawn by the workload becomes volatile. This is why we
 see so many unproductive nodes. At $\tau = 2$, we observe a sudden drop in 
-unproductive nodes. That is because content nodes have to be drawn twice in order
+unproductive nodes. Thit is the case because content nodes have to be drawn twice in order
 to become unproductive, and since the workload is skewed, only a few nodes are
 drawn twice. For even larger values, the function flattens out. Since the workload
-is skewed, only a handful of nodes are drawn enough by the workload to become volatile.
+is skewed, only a handful of nodes are drawn enough times by the workload to become volatile.
 
 The query executor has to traverse $5k$ unproductive index nodes when Oak has a
 threshold of $\tau = 5$. By increasing the threshold to $\tau = 6$, the average
@@ -2115,7 +2115,7 @@ between traversed unproductive nodes and $\tau$.
 
 Summarizing, all observations verify our hypotheses.
 Increasing volatility threshold $\tau$ decreases the number of unproductive
-nodes traversed which decreases query runtime. Increasing the volatility
+nodes traversed, which decreases query runtime. Increasing the volatility
 threshold causes fewer nodes to become volatile. Since we create fewer volatile
 nodes, we also reduce the number of unproductive nodes. Less unproductive
 nodes yield lower WAPI query runtimes. 
@@ -2128,8 +2128,8 @@ The Sliding Window Length $L$ determines the length of the recent workload that 
 considers to compute an index node's volatility count (cf. \Cref{def:volatile_node}).
 Greater values of $L$
 allow WAPI to count more updates and therefore increase the chances of a node
-becoming volatile. In this section, we study
-the effect of the sliding window on the number unproductive nodes.
+becoming volatile. In this Section, we study
+the effect of the sliding window on the number of unproductive nodes.
 
 We hypothesize that an increase in $L$ yields an increase to the number of
 traversed unproductive nodes during query execution. If $L$ increases, it is
@@ -2271,14 +2271,14 @@ cause a sublinear increase to the number of unproductive nodes traversed
 by WAPI during query execution. Since the index becomes more static 
 as explained earlier, the function converges towards the upper bound. 
 The Figures seem to suggest a linear relationship
-between the two variables. That is because the number of content nodes is greater
+between the two variables. This is the case because the number of content nodes is greater
 by two orders of magnitude compared to the number of unproductive nodes we can
 produce during the entire five-minute experiment. We expect to see the function 
 converge if we run the experiment for a significantly longer duration of time.
 
-Concluding, we see sliding window of length $L$ to be affecting the rate of growth of
+Concluding, sliding window length $L$ affects the rate of growth of
 unproductive nodes.
-Increasing $L$ does increase the likelihood of an index node to become volatile
+Increasing $L$ increases the likelihood of an index node becoming volatile
 and later unproductive.
 
 \begin{figure}[H]
@@ -2376,7 +2376,7 @@ which are frequently drawn by the skewed workload as \textit{hotspot}.
 Nodes inside the hotspot most likely become volatile and later on unproductive.
 We use the Zipf distribution to model a skewed workload (see \Cref{sec:workload}).
 If skew $s$ increases, the hotspot becomes smaller 
-but the hotspot's member nodes are drawn more frequent.
+but the hotspot's member nodes are drawn more frequently.
 
 
 We expect skew $s$ to affect the number of unproductive nodes WAPI traverses during
@@ -2387,10 +2387,10 @@ the size of the hotspot and therefore reduces
 the number of volatile nodes, hence fewer nodes become unproductive.
 
 \Cref{fig:skew} visualizes workloads with different skew values for the
-reader's convenience. In the uniform workload, that is the workload with no skew ($s=0$),
-each node is equaly likely to be drawn. The workload with skew $s=1$ has a hotspot
-and nodes in the hotspot are drawn more frequent than other nodes. The workload
-with high skew ($s>1$) has an even smaller hotspot but member nodes are drawn more frequent.
+reader's convenience. In the uniform workload, i.e. the workload with no skew ($s=0$),
+each node is equally likely to be drawn. The workload with skew $s=1$ has a hotspot
+and nodes in the hotspot are drawn more frequently than other nodes. The workload
+with high skew ($s>1$) has an even smaller hotspot, but member nodes are drawn more frequently.
 
 %\begin{figure}[h]
   %\centering
@@ -2496,10 +2496,10 @@ than a workload with $s = \frac{3}{2}$.
 perspective by showing the traversed unproductive nodes w.r.t.\ skew $s$. 
 We observe that the number of unproductive nodes maximizes when $s = 1$. When the
 workload draws nodes with little to no skew ($s < 1$), update operations are
-spread (almost) uniformly amongst nodes. As a result, fewer nodes become volatile,
+spread (almost) uniformly amongst nodes. As a result, fewer nodes become volatile
 and later on unproductive.
 We see a sudden drop in unproductive nodes when skew is $s = 2$. 
-The hotspot reaches a point where it loses a significant amount of nodes because the 
+The hotspot reaches a point where it loses a significant number of nodes because the 
 workload is so skewed. From there on, we see a sublinear rate of convergence. 
 %When $s \to \infty$,
 %the hotspot only has a single member which gets exclusively updated, as proven below:
@@ -2560,11 +2560,10 @@ in order to show the effect of such a workload on unproductive nodes.
 
 \Cref{fig:trav_unprod_nodes_upt_synthetic,fig:trav_unprod_nodes_upt_real} show
 the number of traversed unproductive nodes over time. We run the simulation for
-workloads having 38, 46 and 57 updates per second, respectively.
-An increase
-in time yields an increase in traversed unproductive nodes, an observation
-depicted in \Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real}, too.
-The latter Figures show the number of traversed unproductive nodes over updates
+workloads having 38, 46 and 57 updates per second respectively.
+An increase in time yields an increase in traversed unproductive nodes, an observation
+depicted in \Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real}, as well.
+These Figures show the number of traversed unproductive nodes over updates
 per second.
 A node becomes volatile if it is updated $\tau$ times during a sliding window of length $L$.
 If we increase the number of updates during a fixed interval, the node is more likely 
@@ -2644,7 +2643,7 @@ resulting decrease in query runtime when applying periodic GC on Oak. The
 garbage collector is run every 30 seconds. We observe the query runtime
 increase during the first minute of the simulation. 
 When GC is run for the first time (at 30 seconds), it does not encounter
-any unproducitve nodes because with $L=30s$ no volatile node has yet
+any unproductive nodes because with $L=30s$ no volatile node has yet
 ceased to be volatile. Afterwards, every succeeding GC encounters
 and prunes unproductive nodes. The pruned nodes are made visible by the
 sawtooth pattern depicted in the Figure. 
@@ -2681,8 +2680,11 @@ more nodes under the synthetic dataset, hence the query runtime increases.
 \Cref{fig:trav_nodes_GC_synthetic,fig:trav_nodes_GC_real} visualize the index
 structure during query execution with periodic GC. Unproductive
 nodes increase until GC is run, after which they are completely removed again.
-Observing the Figures, the number of unproductive nodes does not always reach zero.
-That is because we use a running median. The running median removes outliers, and in
+It is evident when observing the Figures that the number of unproductive nodes
+does not always drop to zero.
+%Observing the Figures, the number of unproductive nodes does not always reach zero.
+Thit is the case because we use a running median \cite{running-median}.
+The running median removes outliers, and in
 our case also points which had zero unproductive nodes.
 
 The volatile nodes also have a cycloid pattern.
@@ -2723,7 +2725,7 @@ the percentage of volatile nodes is higher compared to the synthetic dataset.
 
 \label{sec:periodicity}
 
-In this section we discuss the performance impact of GC period $T$. Oak can run
+In this Section we discuss the performance impact of GC period $T$. Oak can run
 GC arbitrary many times. Given our setup, we would like to find out what the
 optimal period of GC is. We run GC under varying period and compare
 the results.
@@ -2898,7 +2900,7 @@ period $T = 5s$ has a smaller number of unproductive nodes over time, on average
 
 \label{sec:qtp-experiment}
 
-In this section, we evaluate Oak's query performance under Query-Time
+In this Section, we evaluate Oak's query performance under Query-Time
 Pruning. We record the average query runtime and the number of volatile
 and unproductive index nodes, similar to \Cref{sec:gc-experiment}.
 
@@ -2943,7 +2945,7 @@ and unproductive index nodes, similar to \Cref{sec:gc-experiment}.
 \Cref{fig:query_runtime_QTP_synthetic,fig:query_runtime_QTP_real} depict the
 resulting decrease in query runtime when applying QTP on Oak. We see the runtime
 rise during the first 30 seconds and then see the runtime fluctuate around
-15ms for the synthetic and 10ms for the real-world dataset..
+15ms for the synthetic and 10ms for the real-world dataset.
 We believe that traversing volatile nodes dominates query runtime. 
 
 \Cref{fig:trav_nodes_QTP_synthetic,fig:trav_nodes_QTP_real} show the composition
@@ -2986,7 +2988,7 @@ Assuming we use \Cref{algo:query_qtp_wapi}, a 20ms query spends on
 average 10ms (50\%) traversing the index subtree, 0.5ms (2.5\%) checking
 the match property of visited nodes, 6ms (30\%) checking if the visited nodes
 have children, 0.5ms (2.5\%) checking if the visited nodes are volatile and 3ms
-(15\%) writing, that is pruning unproductive nodes and commiting the transaction.
+(15\%) writing, i.e.\ pruning unproductive nodes and committing the transaction.
 
 QTP added a 9.5ms overhead to a 11.5ms query, which corresponds to an additional 90\%
 runtime. The main overhead added by QTP in this experiment is checking if the visited 
@@ -3069,7 +3071,7 @@ approach.
 \end{figure}
 
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} show the average query
-runtime over the query period, that is the average time in between two consecutive
+runtime over the query period, i.e.\ the average time in between two consecutive
 queries, under GC and QTP.
 We observe that QTP outperforms GC for a low query period. 
 Queries occur often and the index is continuously cleaned by QTP.
@@ -3078,7 +3080,7 @@ a small number of unproductive nodes. The speedup gained by not continuously tra
 many unproductive nodes is significantly greater than QTP's overhead 
 (\Cref{sec:qtp-experiment}).
 
-On the other hand, as queries become more unfrequent, periodic GC is preferred.
+On the other hand, as queries become more infrequent, periodic GC is preferred.
 When two consecutive queries under QTP are far apart, many unproductive nodes
 gather in the index subtree and when the latter query is run, it
 suffers from a hefty performance penalty from traversing many unproductive nodes.
@@ -3089,7 +3091,7 @@ were already cleaned up by the GC run.
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} each have a data point
 on which the two functions (GC, QTP) intercept. For example, in
 \Cref{fig:gc_vs_qtp_synthetic}, when $\tau = 5, L = 30s, s = 1, T = 30s$ and
-we execute a query every $1.1$ seconds, we are indefferent choosing between GC
+we execute a query every $1.1$ seconds, we are indifferent choosing between GC
 and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for a query period of $0.5$ seconds.
 We denote as \textit{query runtime equilibrium point}, the point on which queries
 under GC take, on average, as long as queries under QTP, given $\tau, L, s, T$
@@ -3113,24 +3115,26 @@ the next query starts. In that scenario, GC is superior (depending on $T$)
 because queries only take a fraction of the performance penalty QTP imposes,
 since QTP has a large write overhead with many unproductive nodes.
 
-The rate at which unproductive nodes are produced depends on the volatility
-threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
-(\Cref{sec:sliding-window}), workload skew $s$ (\Cref{sec:skew}) and
-the number of updates per second (\Cref{sec:update-query-ratio}), as far as we know.
-We conjecture that an increase in the number of traversed unproductive nodes
-of a query under QTP, increases QTP's overhead superlinearly, the write overhead
-in particular. If that is true, increasing the production rate would cause more harm
-on queries under QTP compared to GC. That would also explain why we see
-a steeper slope on QTP compared to GC, with respect to the query period 
+%The rate at which unproductive nodes are produced depends on the volatility
+%threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
+%(\Cref{sec:sliding-window}), workload skew $s$ (\Cref{sec:skew}) and
+%the number of updates per second (\Cref{sec:update-query-ratio}), as far as we know.
+%We conjecture that an increase in the number of traversed unproductive nodes
+%of a query under QTP increases QTP's cost superlinearly, and its write cost
+%in particular. If this is the case, increasing the production rate harms
+%queries under QTP more compared to GC. 
+We conjecture that the cost of a query under QTP increases at a higher rate
+compared to GC if the number of traversed unproductive nodes increases.
+This would also explain why the slope on QTP is steeper compared to GC, 
+with respect to the query period 
 (cf.\ \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real}).
-If that is the case, the rate at which unproductive nodes are produced,
-controls the horizontal offset (x-coordinate) of the equilibrium point.
+If this is the case, the rate at which unproductive nodes are produced
+impacts the horizontal offset (x-coordinate) of the equilibrium point.
 If we produce more unproductive nodes during a fixed
-interval, the equilibrium point might move towards the left. Producing more unproductive
-nodes over time might impose a higher overhead on queries under QTP since
-an increase in unproductive nodes increases QTP's overhead superlinearly.
-If we produce fewer unproductive nodes, the equilibrium point might move towards the right
-because queries under QTP benefit from traversing fewer unproductive nodes.
+interval, the equilibrium point might move towards the left. 
+Under such circumstances, if queries are faster under QTP and we increase the unproductive node production rate,
+the queries might then suddenly run faster on GC.
+%and therefore make GC more beneficial for 
 
 \newpage
 
@@ -3168,7 +3172,7 @@ Our main findings with respect to the production rate of unproductive nodes are:
 
 We then evaluated and compared GC and QTP. Both approaches reduced the
 number of unproductive index nodes and increased Oak's query
-performance significantly . We present our main findings below:
+performance significantly. We present our main findings below:
 
 \begin{itemize}
     \item Queries under GC are executed faster due to fewer unproductive
@@ -3187,11 +3191,11 @@ performance significantly . We present our main findings below:
         sawtooth pattern for GC. This results in more stable query runtimes.
         We later analyzed the
         cost structure of a query under QTP. The average query runtime increased
-        from 11.5ms to 20ms. The main overhead of QTP in this experiment is 
+        from 11.5ms to 20ms. The main overhead of QTP in this experiment was 
         checking if visited nodes have children, which is done to 
         determine unproductive nodes. Although QTP is adding an overhead,
         it is still significantly faster than using no QTP in the long-term
-        because of uproductive nodes (\Cref{sec:qtp-experiment}).
+        because of unproductive nodes (\Cref{sec:qtp-experiment}).
 
     \item QTP outperforms GC under workloads with frequent queries,
         depending on period $T$. Otherwise, GC is the method of preference,
@@ -3212,7 +3216,7 @@ performance significantly . We present our main findings below:
 \section{Conclusion}
 
 We proposed two algorithms to detect and prune unproductive nodes in a workload-aware
-hierarchical index (WAPI). Unproductive nodes are an unwanted byproduct of
+hierarchical index (WAPI). Unproductive nodes are an unwanted by-product of
 WAPI's decision to not prune volatile nodes. They do not contain any data
 and are therefore uselessly traversed during query execution.
 By pruning these unproductive nodes, we are able to improve the
@@ -3234,11 +3238,10 @@ Our experimental evaluation also showed that volatility threshold $\tau$, slidin
 window of length $L$, skew $s$ and the number of update operations per second, impact the number
 of volatile nodes in the index subtree, which later on most likely become
 unproductive and slow down queries. We then compare GC against QTP and conclude
-that deciding between one of the two depends on how fast unproductive nodes emerge 
-and how often queries occur.
+that deciding between one of the two approaches depends, amongst others, on how often queries occur.
 
 It is still open how concurrency control affects the performance of the two mentioned
-algorithms. We believe QTP will take a bigger permormance hit in comparison to GC, since
+algorithms. We believe QTP will take a bigger performance hit in comparison to GC, since
 QTP continuously prunes and updates the index causing more index conflicts under
 concurrent transactions than GC with its periodic updates. 
 We also do not know how much the query performance under QTP is affected when the
