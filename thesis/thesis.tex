@@ -2685,7 +2685,7 @@ does not always drop to zero.
 %Observing the Figures, the number of unproductive nodes does not always reach zero.
 This is the case because we use a running median \cite{running-median}.
 The running median removes outliers, and in
-our case also points which had zero unproductive nodes.
+our case also data points which had zero unproductive nodes.
 
 The volatile nodes also have a cycloid pattern.
 The cycloid pattern, as seen and explained in
@@ -2727,7 +2727,7 @@ the percentage of volatile nodes is higher compared to the synthetic dataset.
 
 In this Section we discuss the performance impact of GC period $T$. Oak can run
 GC arbitrary many times. Given our setup, we would like to find out what the
-optimal period of GC is. We run GC under varying period and compare
+optimal period of GC is. We run GC under a varying period and compare
 the results.
 
 We expect the number of unproductive nodes to decrease as we run GC more often,
@@ -3102,7 +3102,7 @@ on the production rate of unproductive nodes
 in the index subtree.
 %, relative to the time in between consecutive queries. 
 Assume we produce an extremely low number of unproductive nodes
-over time. In that case, QTP should be more beneficial compared to GC 
+over time. In this case, QTP should be more beneficial compared to GC 
 because no matter how far queries are apart, unproductive nodes
 are not produced fast enough so that queries take a notable performance hit.
 
@@ -3111,9 +3111,8 @@ In that case, running GC might be more beneficial, or at least less expensive.
 Assume we produce so many unproductive nodes over time, so that
 pruning an unproductive node with a query under QTP is useless
 and wastes time because it becomes unproductive again before
-the next query starts. In that scenario, GC is superior (depending on $T$) 
-because queries only take a fraction of the performance penalty QTP imposes,
-since QTP has a large write overhead with many unproductive nodes.
+the next query starts. In this scenario, GC is superior (depending on $T$) 
+because queries under GC do not take the performance penalty QTP imposes,
 
 %The rate at which unproductive nodes are produced depends on the volatility
 %threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
