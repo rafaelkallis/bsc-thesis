@@ -2535,7 +2535,7 @@ workload is so skewed. From there on, we see a sublinear rate of convergence.
 
 One of our initial assumptions was that Oak's workload is update heavy, amongst others.
 To emphasize the implications of such an update heavy workload, we conduct the following
-experiment. Oak is benchmarked with different update operations per second,
+experiment. Oak is benchmarked with different number of update operations per second,
 in order to show the effect of such a workload on unproductive nodes. 
 
 \begin{figure}[h]
@@ -2553,21 +2553,22 @@ in order to show the effect of such a workload on unproductive nodes.
     \label{fig:trav_unprod_nodes_upt_real}
   \end{subfigure}
   \vspace{-0.65cm}
-  \caption[Unproductive Nodes over time for 38, 46 and 57 updates per second]{
-  Unproductive Nodes over time for 38, 46 and 57 updates per second.}
+  \caption[Unproductive Nodes over time for 40, 50 and 60 updates per second]{
+  Unproductive Nodes over time for 40, 50 and 60 updates per second.}
 \end{figure}
 
 
 \Cref{fig:trav_unprod_nodes_upt_synthetic,fig:trav_unprod_nodes_upt_real} show
 the number of traversed unproductive nodes over time. We run the simulation for
-workloads having 38, 46 and 57 updates per second respectively.
-An increase in time yields an increase in traversed unproductive nodes, an observation
+workloads having 40, 50 and 60 updates per second respectively.
+An increase in the number of updates per second
+yields an increase in traversed unproductive nodes, an observation
 depicted in \Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real}, as well.
 These Figures show the number of traversed unproductive nodes over updates
 per second.
 A node becomes volatile if it is updated $\tau$ times during a sliding window of length $L$.
 If we increase the number of updates during a fixed interval, the node is more likely 
-to become volatile.
+to reach threshold $\tau$ and become volatile.
 If the number of volatile nodes increases, there is an increase in unproductive nodes, too,
 as shown before.
 
@@ -2590,7 +2591,8 @@ as shown before.
   Unproductive Nodes over updates per second.}
 \end{figure}
 
-In addition, the increase we observe is linear.
+In addition, the increase we observe in 
+\Cref{fig:upt_unprod_nodes_synthetic,fig:upt_unprod_nodes_real} is linear.
 Increasing the number of update operations, should yield
 a proportional increase in volatile nodes which later on become
 unproductive. Since the index becomes static as time passes (see \Cref{sec:query-runtime}),
@@ -3106,13 +3108,14 @@ over time. In this case, QTP should be more beneficial compared to GC
 because no matter how far queries are apart, unproductive nodes
 are not produced fast enough so that queries take a notable performance hit.
 
-The other extreme is if unproductive nodes spawn extremely frequently.
+The other extreme is if we produce significantly many unproductive nodes.
 In that case, running GC might be more beneficial, or at least less expensive.
 Assume we produce so many unproductive nodes over time, so that
 pruning an unproductive node with a query under QTP is useless
-and wastes time because it becomes unproductive again before
+and wastes time, because it becomes unproductive again before
 the next query starts. In this scenario, GC is superior (depending on $T$) 
 because queries under GC do not take the performance penalty QTP imposes,
+for checking a node's productiveness and possibly deleting it.
 
 %The rate at which unproductive nodes are produced depends on the volatility
 %threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
@@ -3128,10 +3131,11 @@ This would also explain why the slope on QTP is steeper compared to GC,
 with respect to the query period 
 (cf.\ \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real}).
 If this is the case, the rate at which unproductive nodes are produced
-impacts the horizontal offset (x-coordinate) of the equilibrium point.
+impacts the position of the equilibrium point.
 If we produce more unproductive nodes during a fixed
-interval, the equilibrium point might move towards the left. 
-Under such circumstances, if queries are faster under QTP and we increase the unproductive node production rate,
+interval, the equilibrium point might move towards the left.
+Under such circumstances, if queries are faster under QTP and we increase the 
+unproductive node production rate,
 the queries might then suddenly run faster on GC.
 %and therefore make GC more beneficial for 
 

@@ -72,9 +72,9 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     # plot(data[1]["ticks"]/1000, [median(w) for w in sliding_window(data[1]["trav_unprod"]/1000,10)], label="1  update per query")
     # plot(data[10]["ticks"]/(1000/10), [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="10 updates per query") 
     # plot(data[20]["ticks"]/(1000/20), [median(w) for w in sliding_window(data[20]["trav_unprod"]/1000,10)], label="20 updates per query")
-    plot(data[5]["timestamps"]/60000, [median(w)/1000 for w in sliding_window(data[5]["trav_unprod"],10)], label="38 updates per second")
-    plot(data[10]["timestamps"]/60000, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="46 updates per second") 
-    plot(data[40]["timestamps"]/60000, [median(w) for w in sliding_window(data[40]["trav_unprod"]/1000,10)], label="57 updates per second")
+    plot(data[5]["timestamps"]/60000, [median(w)/1000 for w in sliding_window(data[5]["trav_unprod"],10)], label="40 updates per second")
+    plot(data[10]["timestamps"]/60000, [median(w) for w in sliding_window(data[10]["trav_unprod"]/1000,10)], label="50 updates per second") 
+    plot(data[40]["timestamps"]/60000, [median(w) for w in sliding_window(data[40]["trav_unprod"]/1000,10)], label="60 updates per second")
 
     legend()
     ylim(ymax=12)
