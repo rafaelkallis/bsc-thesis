@@ -3059,13 +3059,13 @@ approach.
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Synthetic}
-    \includegraphics[width=8cm]{gc_vs_qtp_qps_synthetic}
+    \includegraphics[width=8cm]{gc_vs_qtp_synthetic}
     \label{fig:gc_vs_qtp_synthetic}
   \end{subfigure}
   \begin{subfigure}{0.49\linewidth}
     \centering
     \caption{Real-World}
-    \includegraphics[width=8cm]{gc_vs_qtp_qps_real}
+    \includegraphics[width=8cm]{gc_vs_qtp_real}
     \label{fig:gc_vs_qtp_real}
   \end{subfigure}
   \vspace{-0.5cm}
@@ -3073,16 +3073,17 @@ approach.
 \end{figure}
 
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} show the average query
-runtime over the query period, i.e.\ the average time in between two consecutive
-queries, under GC and QTP.
-We observe that QTP outperforms GC for a low query period. 
-Queries occur often and the index is continuously cleaned by QTP.
+runtime over the update-query ratio, i.e.\ the average number of executed
+updates in between consecutive queries, under GC and QTP.
+We observe that QTP outperforms GC for a low update-query ratio. 
+The number of updates decreases, queries occur often and the index is continuously cleaned by QTP.
 Since there are so many queries during a fixed interval, each query traverses
 a small number of unproductive nodes. The speedup gained by not continuously traversing 
 many unproductive nodes is significantly greater than QTP's overhead 
 (\Cref{sec:qtp-experiment}).
 
-On the other hand, as queries become more infrequent, periodic GC is preferred.
+On the other hand, as queries become more infrequent and updates more frequent, 
+periodic GC is preferred.
 When two consecutive queries under QTP are far apart, many unproductive nodes
 gather in the index subtree and when the latter query is run, it
 suffers from a hefty performance penalty from traversing many unproductive nodes.
@@ -3093,8 +3094,9 @@ were already cleaned up by the GC run.
 \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real} each have a data point
 on which the two functions (GC, QTP) intercept. For example, in
 \Cref{fig:gc_vs_qtp_synthetic}, when $\tau = 5, L = 30s, s = 1, T = 30s$ and
-we execute a query every $1.1$ seconds, we are indifferent choosing between GC
-and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for a query period of $0.5$ seconds.
+we execute 75 updates for every executed query, we are indifferent choosing between GC
+and QTP. The same holds in \Cref{fig:gc_vs_qtp_real} for an update-query ratio of 25:1,
+i.e.\ 75 updates per query.
 We denote as \textit{query runtime equilibrium point}, the point on which queries
 under GC take, on average, as long as queries under QTP, given $\tau, L, s, T$
 and the query period.
@@ -3115,7 +3117,7 @@ pruning an unproductive node with a query under QTP is useless
 and wastes time, because it becomes unproductive again before
 the next query starts. In this scenario, GC is superior (depending on $T$) 
 because queries under GC do not take the performance penalty QTP imposes,
-for checking a node's productiveness and possibly deleting it.
+i.e.\ checking a node's productiveness and possibly deleting it.
 
 %The rate at which unproductive nodes are produced depends on the volatility
 %threshold $\tau$ (\Cref{sec:threshold}), sliding window length $L$
@@ -3125,18 +3127,18 @@ for checking a node's productiveness and possibly deleting it.
 %of a query under QTP increases QTP's cost superlinearly, and its write cost
 %in particular. If this is the case, increasing the production rate harms
 %queries under QTP more compared to GC. 
-We conjecture that the cost of a query under QTP increases at a higher rate
-compared to GC if the number of traversed unproductive nodes increases.
-This would also explain why the slope on QTP is steeper compared to GC, 
-with respect to the query period 
-(cf.\ \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real}).
-If this is the case, the rate at which unproductive nodes are produced
-impacts the position of the equilibrium point.
-If we produce more unproductive nodes during a fixed
-interval, the equilibrium point might move towards the left.
-Under such circumstances, if queries are faster under QTP and we increase the 
-unproductive node production rate,
-the queries might then suddenly run faster on GC.
+%We conjecture that the cost of a query under QTP increases at a higher rate
+%compared to GC if the number of traversed unproductive nodes increases.
+%This would also explain why the slope on QTP is steeper compared to GC, 
+%with respect to the query period 
+%(cf.\ \Cref{fig:gc_vs_qtp_synthetic,fig:gc_vs_qtp_real}).
+%If this is the case, the rate at which unproductive nodes are produced
+%impacts the position of the equilibrium point.
+%If we produce more unproductive nodes during a fixed
+%interval, the equilibrium point might move towards the left.
+%Under such circumstances, if queries are faster under QTP and we increase the 
+%unproductive node production rate,
+%the queries might then suddenly run faster on GC.
 %and therefore make GC more beneficial for 
 
 \newpage
@@ -3200,11 +3202,16 @@ performance significantly. We present our main findings below:
         it is still significantly faster than using no QTP in the long-term
         because of unproductive nodes (\Cref{sec:qtp-experiment}).
 
-    \item QTP outperforms GC under workloads with frequent queries,
-        depending on period $T$. Otherwise, GC is the method of preference,
-        given the circumstances of our experiment. We conjecture that GC might
-        outperform QTP under workloads with a high unproductive node
-        production rate (\Cref{sec:comparison}).
+    \item GC outperforms QTP under workloads with a high update-query ratio,
+        i.e.\ the number of
+        update operations over the number of query operations during
+        a fixed time interval,
+        depending on GC period $T$. Otherwise, QTP is the method of preference
+        %, given the circumstances of our experiment.
+        %We conjecture that GC might
+        %outperform QTP under workloads with a high unproductive node
+        %production rate 
+        (\Cref{sec:comparison}).
 
 \end{itemize}
         %Depending on the production rate of unproductive nodes and how often
@@ -3238,10 +3245,11 @@ We extend WAPI by implementing periodic GC and QTP in Apache Jackrabbit Oak
 and our evaluation shows that both approaches significantly decrease the query runtime of WAPI.
 
 Our experimental evaluation also showed that volatility threshold $\tau$, sliding
-window of length $L$, skew $s$ and the number of update operations per second, impact the number
+window length $L$, skew $s$ and the number of update operations per second, impact the number
 of volatile nodes in the index subtree, which later on most likely become
 unproductive and slow down queries. We then compare GC against QTP and conclude
-that deciding between one of the two approaches depends, amongst others, on how often queries occur.
+that deciding between one of the two approaches depends, amongst others, on the update-query
+ratio, i.e.\ how often updates occur with respect to queries.
 
 It is still open how concurrency control affects the performance of the two mentioned
 algorithms. We believe QTP will take a bigger performance hit in comparison to GC, since
@@ -3251,8 +3259,9 @@ We also do not know how much the query performance under QTP is affected when th
 query filter changes more often and frequent queries do not benefit
 from QTP anymore.
 An analysis of the impact of the unproductive node production rate on the
-query runtime equilibrium point would also be of importance. We conjecture that
-GC outperforms QTP under a high unproductive node production rate.
+query runtime equilibrium point would also be of importance. 
+%We conjecture that
+%GC outperforms QTP under a high unproductive node production rate.
 Furthermore, we did not investigate what the benefits and caveats
 are of running both periodic GC and QTP simultaneously on the database system.
 
