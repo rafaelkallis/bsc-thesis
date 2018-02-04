@@ -82,4 +82,5 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     ylim(ymax=40)
     tight_layout()
     savefig("tau_unprod_nodes_{}.pdf".format(dataset))
+    savefig("tau_unprod_nodes_{}.eps".format(dataset))
     clf()

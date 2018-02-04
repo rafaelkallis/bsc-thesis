@@ -81,4 +81,5 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     ylim(ymax=5)
     tight_layout()
     savefig("skew_unprod_nodes_{}.pdf".format(dataset))
+    savefig("skew_unprod_nodes_{}.eps".format(dataset))
     clf()
