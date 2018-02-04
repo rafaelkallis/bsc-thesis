@@ -73,6 +73,7 @@ for dataset in ["synthetic", "real"]:
             tight_layout()
             subplots_adjust(top=.85)
             savefig("query_runtime_{}_{}.pdf".format(gc_type, dataset))
+            savefig("query_runtime_{}_{}.eps".format(gc_type, dataset))
             clf()
 
             xlabel("Update Operations [$\\times 10^3$]")
@@ -88,4 +89,5 @@ for dataset in ["synthetic", "real"]:
             tight_layout()
             subplots_adjust(top=.85)
             savefig("trav_nodes_{}_{}.pdf".format(gc_type, dataset))
+            savefig("trav_nodes_{}_{}.eps".format(gc_type, dataset))
             clf()

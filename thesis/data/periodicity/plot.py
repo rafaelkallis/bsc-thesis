@@ -50,6 +50,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     legend()
     ylim(ymax=30)
     savefig("query_runtime_periodicity_{}.pdf".format(dataset))
+    savefig("query_runtime_periodicity_{}.eps".format(dataset))
     clf()
 
     xlabel("Update Operations [$\\times 10^3$]")
@@ -60,6 +61,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     ylim(ymax=3)
     tight_layout()
     savefig("trav_unprod_nodes_periodicity_{}.pdf".format(dataset))
+    savefig("trav_unprod_nodes_periodicity_{}.eps".format(dataset))
     clf()
 
     first_tick = 250 

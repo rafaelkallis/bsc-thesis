@@ -15,7 +15,13 @@
 \usepackage{framed}
 \usepackage[vlined]{algorithm2e}
 
-%\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{decorations.pathreplacing}
+
+\definecolor{C0}{RGB}{31,119,180}
+\definecolor{C1}{RGB}{255,127,14}
+\definecolor{C2}{RGB}{44,192,44}
+\definecolor{C3}{RGB}{214,39,40}
+\definecolor{C4}{RGB}{148,103,189}
 
 \title{An Adaptive Index for Hierarchical Database Systems}
 \titlegraphic{\includegraphics[height=.8cm]{IFIlogo.eps}}
@@ -942,7 +948,21 @@
     \end{figure}
 }
 \frame{
-    \frametitle{Impact on Query Runtime}
+    \frametitle{Workload simulation}
+    \begin{itemize}
+        \item Zipf distribution
+        \item Changes every 30 seconds
+        \item 10 update operations per query operation
+        \item Update operation: add and remove an index node
+    \end{itemize}
+}
+\frame{
+    \centering
+    \large
+    Impact of Unproductive Nodes on Query Runtime
+}
+\frame{
+    \frametitle{Impact of Unproductive Nodes on Query Runtime}
     \begin{figure}
         \begin{subfigure}{0.45\textwidth}
             \centering
@@ -954,7 +974,12 @@
         \end{subfigure}
     \end{figure}
 }
-\subsection{Volatility Threshold $\tau$}
+\subsection{Unproductive Nodes}
+\frame{
+    \centering
+    \large
+    Volatility threshold $\tau$
+}
 \frame{
     \frametitle{Volatility threshold $\tau$} 
     \centering
@@ -962,13 +987,20 @@
 }
 \frame{
     \frametitle{Volatility threshold $\tau$} 
+    \centering{
+        \includegraphics[height=2.5cm]{tau.eps}
+    }
     \begin{itemize}
         \item $\tau$ increases $\implies$ nodes are less likely to become volatile
         \item Fewer volatile nodes $\implies$ fewer unproductive nodes
         \item Power law relationship between \#unproductive nodes and $\tau$
     \end{itemize}
 }
-\subsection{Workload Skew $s$}
+\frame{
+    \centering
+    \large
+    Workload skew $s$
+}
 \frame{
     \frametitle{Workload skew $s$}
     \centering
@@ -976,12 +1008,170 @@
 }
 \frame{
     \frametitle{Workload skew $s$} 
+    \centering{
+        \includegraphics[height=2.5cm]{skew.eps}
+    }
     \begin{itemize}
         \item very high $s$ $\implies$ very small hotspot
         \item very small $s$ (uniform) $\implies$ no hotspot
         \item very small/no hotspot $\implies$ nodes are less likely to become volatile
             and later on unproductive
     \end{itemize}
+}
+\subsection{Periodic Garbage Collection}
+\frame{
+    \centering
+    \large
+    Periodic Garbage Collection
+}
+\frame{
+    \frametitle{Periodic GC}
+    \begin{figure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime_GC.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes_GC.eps}
+        \end{subfigure}
+    \end{figure}
+}
+\frame{
+    \frametitle{GC period $T$}
+    \begin{figure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime_T.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes_T.eps}
+        \end{subfigure}
+    \end{figure}
+
+}
+\subsection{Query-Time Pruning}
+\frame{
+    \centering
+    \large
+   Query-Time Pruning 
+}
+\frame{
+    \frametitle{QTP}
+    \begin{figure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime_QTP.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes_QTP.eps}
+        \end{subfigure}
+    \end{figure}
+}
+\frame{
+    \frametitle{QTP}
+    \begin{figure}[H]
+        \centering
+        \begin{subfigure}{0.49\linewidth}
+            \centering
+            \includegraphics[width=6cm]{qtp_cost.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.49\linewidth}
+            \centering
+            \begin{tikzpicture}[scale=0.52]
+                \fill[transparent] (-1,0) rectangle (0,5.5);
+                \filldraw[color=C0] (0,0) rectangle (1,2.40);
+                \filldraw[color=C1] (0,2.40) rectangle (1,2.56);
+                \filldraw[color=C2] (0,2.56) rectangle (1,4.01);
+                \filldraw[color=C3] (0,4.01) rectangle (1,4.31);
+                \filldraw[color=C4] (0,4.31) rectangle (1,5);
+                \fill[transparent] (0,5) rectangle (1,5.5);
+
+                \draw[dotted] (0.5,1.3) -- (5.5,0);
+                \node[align=left] at (6.7,0) {\footnotesize traversal};
+
+                \draw[dotted] (0.5,2.48) -- (5.5,1.25);
+                \node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
+                \draw[dotted] (0.5,3.285) -- (5.5,2.5);
+                \node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
+                \draw[dotted] (0.5,4.16) -- (5.5,4.5);
+                \node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
+                \draw[dotted] (0.5,4.66) -- (5.5,5.5);
+                \node[align=left] at (6.3,5.5) {\footnotesize write};
+                \draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
+                (1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
+                QTP overhead};
+            \end{tikzpicture}
+        \end{subfigure}
+    \end{figure}
+}
+\frame{
+    \frametitle{QTP}
+    \begin{figure}[H]
+        \centering
+        \begin{subfigure}{0.49\linewidth}
+            \begin{algorithm}[H]
+                \tiny{
+                    \TitleOfAlgo{QueryQTP}
+                    \DontPrintSemicolon
+                    \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ (=
+                        $\texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$) a
+                    content node's path.}
+                    \KwResult{A set of nodes satisfying $Q(k,v,m)$}
+                    $r \longleftarrow \emptyset$\;
+                    \For{node $n \in
+                        desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
+                        \uIf{$matching(n)$}{
+                            $r \longleftarrow r \cup \{ *n \}$\;
+                        }
+                        \ElseIf{$chd(n) = \emptyset \land \neg volatile(n)$}{
+                            delete node $n$
+                        }
+                    }
+                    \Return{r}\;
+                }
+            \end{algorithm}
+        \end{subfigure}
+        \begin{subfigure}{0.49\linewidth}
+            \centering
+            \begin{tikzpicture}[scale=0.5]
+                \fill[transparent] (-1,0) rectangle (0,5.5);
+                \filldraw[color=C0] (0,0) rectangle (1,2.40);
+                \filldraw[color=C1] (0,2.40) rectangle (1,2.56);
+                \filldraw[color=C2] (0,2.56) rectangle (1,4.01);
+                \filldraw[color=C3] (0,4.01) rectangle (1,4.31);
+                \filldraw[color=C4] (0,4.31) rectangle (1,5);
+                \fill[transparent] (0,5) rectangle (1,5.5);
+
+                \draw[dotted] (0.5,1.3) -- (5.5,0);
+                \node[align=left] at (6.7,0) {\footnotesize traversal};
+
+                \draw[dotted] (0.5,2.48) -- (5.5,1.25);
+                \node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
+                \draw[dotted] (0.5,3.285) -- (5.5,2.5);
+                \node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
+                \draw[dotted] (0.5,4.16) -- (5.5,4.5);
+                \node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
+                \draw[dotted] (0.5,4.66) -- (5.5,5.5);
+                \node[align=left] at (6.3,5.5) {\footnotesize write};
+                \draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
+                (1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
+                QTP overhead};
+            \end{tikzpicture}
+        \end{subfigure}
+    \end{figure}
+}
+\subsection{Comparison}
+\frame{
+    \centering
+    \Large
+    Periodic GC vs.\ QTP
+}
+\frame{
+    \centering
+    \includegraphics[width=7cm]{gc_vs_qtp.eps}
 }
 %\subsection{Subsection 1}
 %\frame{

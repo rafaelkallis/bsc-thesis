@@ -59,6 +59,7 @@ for dataset in ["synthetic", "real"]:
     legend()
     tight_layout()
     savefig("gc_vs_qtp_{}.pdf".format(dataset))
+    savefig("gc_vs_qtp_{}.eps".format(dataset))
     clf()
     
     for func in ["gc", "qtp"]:

@@ -106,7 +106,8 @@ for dataset in ["synthetic", "real"]:
                         ))
 
 
-    legend()
+    # legend()
     tight_layout()
     savefig("qtp_cost_{}.pdf".format(dataset))
+    savefig("qtp_cost_{}.eps".format(dataset))
     clf()

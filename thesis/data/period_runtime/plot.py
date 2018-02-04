@@ -47,10 +47,19 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
 
     xlabel("GC Period $T$ [s]")
     ylabel("Avg. Query Runtime [ms]")
-#    plot(periods, [median(data[p]["query_runtime"][995:1005]) for p in periods], linestyle="-", marker="o")
     plot(periods/1000, [median(data[p]["query_runtime"]) for p in periods], linestyle="-", marker="o")
     ylim(ymax=20)
     tight_layout()
     savefig("periodicity_query_runtime_{}.pdf".format(dataset))
+    savefig("periodicity_query_runtime_{}.eps".format(dataset))
+    clf()
+
+    xlabel("GC Period $T$ [s]")
+    ylabel("Unproductive Nodes [$\\times 10^2$]")
+    plot(periods/1000, [median(data[p]["trav_unprod"])/100 for p in periods], linestyle="-", marker="o")
+    # ylim(ymax=20)
+    tight_layout()
+    savefig("periodicity_trav_unprod_{}.pdf".format(dataset))
+    savefig("periodicity_trav_unprod_{}.eps".format(dataset))
     clf()
 
