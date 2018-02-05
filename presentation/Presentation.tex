@@ -16,6 +16,12 @@
 \usepackage[vlined]{algorithm2e}
 
 \usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{shapes.geometric, arrows,positioning}
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=1cm, minimum height=.33cm,text centered, draw=black, fill=red!30]
+\tikzstyle{process} = [rectangle, minimum width=1cm, minimum height=.33cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{decision} = [diamond, text centered, aspect=2.5, draw=black, fill=green!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
 
 \definecolor{C0}{RGB}{31,119,180}
 \definecolor{C1}{RGB}{255,127,14}
@@ -25,7 +31,13 @@
 
 \beamertemplatenavigationsymbolsempty 
 
-\title{An Adaptive Index for Hierarchical \\ Database Systems}
+\graphicspath{
+    {images/}
+}
+
+
+
+\title{An Adaptive Index for Hierarchical\\ Database Systems}
 \titlegraphic{\includegraphics[height=.8cm]{IFIlogo.eps}}
 \author{Rafael Kallis}
 \institute{BSc Thesis}
@@ -958,6 +970,7 @@
         \item Update operation: add and remove an index node
     \end{itemize}
 }
+\subsection{Unproductive Nodes}
 \frame{
     \centering
     \large
@@ -976,7 +989,6 @@
         \end{subfigure}
     \end{figure}
 }
-\subsection{Unproductive Nodes}
 \frame{
     \centering
     \large
@@ -1041,6 +1053,7 @@
 }
 \frame{
     \frametitle{GC period $T$}
+    \centering
     \begin{figure}
         \begin{subfigure}{0.45\textwidth}
             \centering
@@ -1052,6 +1065,8 @@
         \end{subfigure}
     \end{figure}
 
+    \scriptsize
+    Optimal GC period $T_{GC}^*$: period with the smallest query runtime
 }
 \subsection{Query-Time Pruning}
 \frame{
@@ -1172,6 +1187,46 @@
     Periodic GC vs.\ QTP
 }
 \frame{
+    \frametitle{GC vs.\ QTP, simple model}
+    \centering
+    \includegraphics[width=7cm]{model_empty.eps}
+}
+\frame{
+    \frametitle{GC vs.\ QTP, simple model}
+    \centering
+    \includegraphics[width=7cm]{model_gc.eps}
+}
+\frame{
+    \frametitle{GC vs.\ QTP, simple model}
+    \centering
+    \includegraphics[width=7cm]{model_gc_qtp.eps}
+}
+\frame{
+    \frametitle{GC vs.\ QTP, simple model}
+    \centering
+    \includegraphics[width=7cm]{model_gc_qtp_equilibrium.eps}
+}
+\frame{
+    \frametitle{GC vs.\ QTP, simple model}
+    \centering
+    \begin{figure}
+        \begin{subfigure}{0.49\textwidth}
+            \includegraphics[height=3.8cm]{model_gc_qtp_equilibrium.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.49\textwidth}
+            \includegraphics[height=3.8cm]{model_gc_qtp_saw.eps}
+        \end{subfigure}
+    \end{figure}
+    
+    \footnotesize
+    Queries traverse on average the same number of unproductive nodes when using GC or QTP iff
+    the query period $T_Q$ is half the GC period $T_{GC}$, i.e.,
+
+    \large
+    $$ u_{GC} = u_{QTP} \iff T_Q = 2 \cdot T_{GC} $$
+}
+\frame{
+    \frametitle{GC vs.\ QTP}
     \centering
     \includegraphics[width=7cm]{gc_vs_qtp.eps}
 }
@@ -1188,6 +1243,59 @@
 %}
 
 \section{Conclusion}
+\subsection{Summary}
+\frame{
+    \centering
+    \Large
+    Conclusion
+}
+\frame{
+    \frametitle{Unproductive Nodes}
+    \begin{itemize}
+        \item greater volatility threshold $\tau$ $\implies$ fewer unproductive nodes
+        \item greater sliding window length $L$ $\implies$ more unproductive nodes
+        \item (very) high/low workload skew $s$ $\implies$ fewer unproductive nodes
+        \item more updates per second $\implies$ more unproductive nodes
+    \end{itemize}
+}
+\frame{
+    \frametitle{GC}
+    \begin{itemize}
+        \item Fewer unproductive nodes $\implies$ faster queries
+        \item Sawtooth pattern
+        \item Slows down system if run too often
+    \end{itemize}
+}
+\frame{
+    \frametitle{QTP}
+    \begin{itemize}
+        \item Faster and more stable than GC when queries are frequent
+        \item Adds overhead to queries
+        \item Overhead negligible in the long-term
+    \end{itemize}
+}
+\frame{
+    \begin{figure}
+        \centering
+        \begin{tikzpicture}[node distance=1.2cm]
+            \node (start) [startstop] {Start};
+            \node (GCperiod) [process, below of=start] {Find optimal GC period $T_{GC}^*$};
+            \node (Qperiod) [process, below of=GCperiod] {Find query period $T_Q$};
+            \node (dec) [decision, below of=Qperiod, node distance=1.7cm] {$T_Q > 2 \cdot T_{GC}^*$};
+            \node (GC) [process, left of=dec, node distance=4cm] {Pick GC};
+            \node (QTP) [process, right of=dec, node distance=4cm] {Pick QTP};
+            \node (stop) [startstop, below of=dec, node distance=1.5cm] {Stop};
+
+            \draw [arrow] (start) -- (GCperiod);
+            \draw [arrow] (GCperiod) -- (Qperiod);
+            \draw [arrow] (Qperiod) -- (dec);
+            \draw [arrow] (dec) -- node [anchor=south,near start] {Yes} (GC);
+            \draw [arrow] (dec) -- node [anchor=south,near start] {No} (QTP);
+            \draw [arrow] (GC) |- (stop);
+            \draw [arrow] (QTP) |- (stop);
+        \end{tikzpicture}
+    \end{figure}
+}
 \subsection{References}
 \frame{
     \frametitle{References}
