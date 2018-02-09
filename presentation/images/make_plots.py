@@ -20,17 +20,17 @@ fig.tight_layout()
 fig.savefig("model_empty.eps")
 
 ax.plot([0,10],[5,5],label="GC")
-ax.legend()
+ax.legend(loc="upper left")
 fig.tight_layout()
 fig.savefig("model_gc.eps")
 
 ax.plot([0,10],[0,10],label="QTP")
-ax.legend()
+ax.legend(loc="upper left")
 fig.tight_layout()
 fig.savefig("model_gc_qtp.eps")
 
 ax.plot([5.1,5.5],[4.8,4],"k-",linewidth=.5, alpha=.8)
-ax.text(5.6,3.3, "$2 \\cdot T_{GC}$", alpha=.8)
+ax.text(5.6,3.3, "$\\frac{T_{GC}}{2}$", alpha=.8)
 fig.savefig("model_gc_qtp_equilibrium.eps")
 
 X = np.arange(0,5,.001)
