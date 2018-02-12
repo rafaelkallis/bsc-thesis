@@ -13,6 +13,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{framed}
+\usepackage{pgfplots}
 \usepackage[vlined]{algorithm2e}
 
 \usetikzlibrary{decorations.pathreplacing}
@@ -58,21 +59,26 @@
     \end{Large}
     
     \begin{itemize}
-        \item Detects frequently updated nodes
+        \item Detects volatile, i.e.\ frequently updated, nodes
         \item Stops pruning such volatile nodes
         \item Significantly improves update throughput
     \end{itemize}
 }
 \frame{
     \begin{Large}
-        Unproductive Nodes are an unwanted byproduct:
+        Unproductive nodes are an unwanted byproduct:
     \end{Large}
 
     \begin{itemize}
         \item When the workload changes, volatile nodes cease to be volatile
-        \item They waste space and slow down queries
         \item They do not contribute to a query match and contain no data
+        \item They waste space and slow down queries over time
     \end{itemize}
+
+    \begin{figure}
+        \centering
+        \includegraphics[height=3.8cm]{query_runtime.eps}
+    \end{figure}
 }
 \frame{
     \begin{Large}
@@ -81,27 +87,1027 @@
 
     \begin{itemize}
         \item Design and implement two solutions in order to mitigate unproductive nodes
-        \item Analyze the factors impacting the production of unproductive nodes
+        \item Analyze factors impacting the production of unproductive nodes
         \item Empirically evaluate and compare our two solutions
     \end{itemize}
 }
 \subsection{CMS Workload}
 \frame{
-    \begin{large}
-        A Content Management System's (CMS) workload is:
-    \end{large}
-    
-    \begin{itemize}
-        \item skewed
-        \item update-heavy
-        \item changing
-    \end{itemize}
-
-    %CMSs frequently use a job-queuing system that has the noted characteristics.
+    \centering
+    \Large
+    Background
 }
 \frame{
-    Skewed workload: small subset of nodes gets frequently updated
-    \vspace{1cm}
+    \centering
+    Hierarchical database for an e-commerce platform
+
+    \footnotesize
+    \begin{figure}
+        \begin{forest}
+            [
+            [index]
+            [products
+            [consumer
+            [$\alpha$]
+            [$\beta$]
+            ]
+            [enterprise
+            [$\gamma$]
+            ]
+            ]
+            ]
+        \end{forest}
+    \end{figure}
+}
+\frame{
+    \centering
+    HTML pre-rendering 
+
+    \footnotesize
+    \begin{figure}
+        \begin{forest}
+            [
+            [index
+            [render
+            [now
+            [consumer
+            [$\alpha$ \\ render:now, align=center, base=bottom]
+            ]
+            ]
+            ]
+            ]
+            [products
+            [consumer
+            [$\alpha$ \\ render:now, align=center, base=bottom]
+            [$\beta$]
+            ]
+            [enterprise
+            [$\gamma$]
+            ]
+            ]
+            ]
+        \end{forest}
+    \end{figure}
+}
+%\frame{
+    %\begin{large}
+        %A Content Management System's (CMS) workload is:
+    %\end{large}
+    
+    %\begin{itemize}
+        %\item skewed
+        %\item update-heavy
+        %\item changing
+    %\end{itemize}
+
+    %%CMSs frequently use a job-queuing system that has the noted characteristics.
+%}
+%\frame{
+    %Skewed workload: small subset of nodes gets frequently updated
+    %\vspace{1cm}
+    %\begin{figure}
+        %\centering
+        %\begin{subfigure}{0.30\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=YellowOrange
+                %[,circle,draw,fill=YellowOrange
+                %[,circle,draw,fill=YellowOrange
+                %]
+                %[,circle,draw,fill=YellowOrange
+                %[,circle,draw,fill=YellowOrange]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=YellowOrange
+                %[,phantom]
+                %[,circle,draw,fill=YellowOrange
+                %[,circle,draw,fill=YellowOrange]
+                %[,circle,draw,fill=YellowOrange]
+                %]
+                %]
+                %]
+            %\end{forest}
+
+            %No skew
+        %\end{subfigure}
+        %\begin{subfigure}{0.30\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Orange]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=Orange
+                %[,phantom]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Red]
+                %[,circle,draw,fill=Orange]
+                %]
+                %]
+                %]
+            %\end{forest}
+
+            %Normal skew
+        %\end{subfigure}
+        %\begin{subfigure}{0.30\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,phantom]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Red]
+                %[,circle,draw,fill=Red]
+                %]
+                %]
+                %]
+            %\end{forest}
+
+            %High skew
+        %\end{subfigure}
+    %\end{figure}
+%}
+%\frame{
+    %Changing workload: as time passes, hotspots change
+    %\vspace{1cm}
+    %\begin{figure}
+        %\centering
+        %\begin{subfigure}{0.20\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Orange
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Red]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,phantom]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow]
+                %[,circle,draw,fill=Yellow]
+                %]
+                %[,circle,draw,fill=Orange]
+                %]
+                %]
+                %]
+            %\end{forest}
+        %\end{subfigure}
+        %\begin{subfigure}{0.10\textwidth}
+            %\centering
+            %$\longrightarrow$
+        %\end{subfigure}
+        %\begin{subfigure}{0.20\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=Orange
+                %[,phantom]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Orange]
+                %[,circle,draw,fill=Red]
+                %]
+                %[,circle,draw,fill=Orange]
+                %]
+                %]
+                %]
+            %\end{forest}
+        %\end{subfigure}
+        %\begin{subfigure}{0.10\textwidth}
+            %\centering
+            %$\longrightarrow$
+        %\end{subfigure}
+        %\begin{subfigure}{0.20\textwidth}
+            %\centering
+            %\scriptsize
+            %\begin{forest}
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Orange
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Yellow]
+                %[,phantom]
+                %]
+                %]
+                %[,circle,draw,fill=Yellow
+                %[,phantom]
+                %[,circle,draw,fill=Yellow
+                %[,circle,draw,fill=Red
+                %[,circle,draw,fill=Orange]
+                %[,circle,draw,fill=Yellow]
+                %]
+                %[,circle,draw,fill=Yellow]
+                %]
+                %]
+                %]
+            %\end{forest}
+        %\end{subfigure}
+    %\end{figure}
+%}
+%\frame{
+    %\large
+    %CMSs usually use a job-queuing system that has the noted characteristics
+%}
+\subsection{Workload-Aware Property Index}
+\frame{
+    \centering
+    \Large
+   Workload-Aware Property Index 
+}
+\frame{
+    \frametitle{Hierarchical Database with WAPI}
+    \begin{figure}
+        \centering
+        \scriptsize
+        \begin{forest}
+            [
+            [index
+            [render
+            [now
+            [products
+            [consumer
+            [$\alpha$ \\ render:now, align=center, base=bottom, name=i_node] {
+                \draw[<-,gray] (.north west)--++(-2em,1em)
+                node[anchor=east]{\textit{Matching Node}};
+            }
+            ]
+            [,phantom]
+            ]
+            ]
+            ]
+            ] {
+                \draw[<-,gray] (.south west)--++(-3em, -1em)
+                node[anchor=east]{\textit{Index Subtree Root}};
+            }
+            [products
+            [consumer
+            [$\alpha$ \\ render:now, align=center, base=bottom, name=c_node]
+            [$\beta$]
+            ]
+            [enterprise
+            [$\gamma$]
+            ]
+            ] {
+                \draw[<-,gray] (.south east)--++(3.5em, -1em)
+                node[anchor=west]{\textit{Content Subtree Root}};
+            }
+            ]
+            \draw[->,dotted] (i_node) to[out=east, in=south] node[gray,midway,right]{\textit{corresponding content node}} (c_node);
+        \end{forest}
+    \end{figure}
+}
+\frame{
+    We denote node $n$'s property $k$ as $n[k]$ and node $n$'s descendants as
+    $desc(n)$.
+
+    \begin{definition}[CAS Query]
+        Given node $m$, property $k$ and value $v$, a CAS query
+        $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e.,
+        $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
+    \end{definition}
+}
+%\frame{
+    %Volatility is the measure which is used by the WAPI in order to distinguish
+    %whether to remove a node or not from the index.
+    %Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
+    %workload to check whether a node $n$ is volatile.
+%}
+%\frame{
+    %\begin{definition}[Volatility Count]
+        %The volatility count $vol(n)$ of index node $n$ on database instance $O_i$, is the number of
+        %times node $n$ was added or removed from snapshots contained in a Sliding
+        %Window of Length $L$ over history $H_i$, i.e.,
+        %\vspace{3mm}
+        %\begin{align*}
+            %vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_n-L+1, t_n] \land \exists G^a[ \\
+                %\qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
+            %\qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
+        %\end{align*}
+    %\end{definition}
+%}
+\frame{
+    \begin{definition}[Volatile Node]
+        Index node $n$ is volatile iff $n$'s volatility count is greater or equal than 
+        the volatility threshold $\tau$, i.e.,
+        \vspace{3mm}
+        $$ volatile(n) \iff vol(n) \geq \tau $$
+    \end{definition}
+
+    \centering
+    \footnotesize
+    \begin{itemize}
+        \item volatility count $vol(n)$ is the number of insertions and deletions of $n$ inside
+            a sliding window.
+    \end{itemize}
+}
+\frame{
+    \frametitle{Index nodes becoming volatile}
+    \begin{figure}
+        \begin{subfigure}{0.2\textwidth}
+            \centering 
+            \tiny
+            \begin{forest}
+                [
+                [$i$
+                [,phantom]
+                ]
+                [,phantom]
+                [,phantom]
+                [$p$
+                [$c$
+                [$\alpha$]
+                [$\beta$]
+                ] 
+                [,phantom]
+                [$e$
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+
+            \vspace{21mm}
+        \end{subfigure}
+        \begin{subfigure}{.05\textwidth}
+            \centering
+            $\longrightarrow$
+        \end{subfigure}
+        \begin{subfigure}{.3\textwidth}
+            \centering
+            \tiny
+            \begin{forest}
+                [
+                [$i$
+                [rend, color=RoyalBlue
+                [now, color=RoyalBlue
+                [$p$, color=RoyalBlue
+                [$c$, color=RoyalBlue
+                [$\alpha$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [$p$
+                [$c$
+                [$\alpha$ \\ rend:now, align=center, base=bottom]
+                [$\beta$]
+                ]
+                [$e$
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+        \begin{subfigure}{.05\textwidth}
+            \centering
+            $\longrightarrow$
+        \end{subfigure}
+        \begin{subfigure}{0.3\textwidth}
+            \centering 
+            \tiny
+            \begin{forest}
+                [
+                [$i$
+                [rend, color=RoyalBlue
+                [now, color=RoyalBlue
+                [$p$, color=RoyalBlue
+                [$c$, color=RoyalBlue
+                [$\alpha$, color=RoyalBlue]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [$p$
+                [$c$
+                [$\alpha$]
+                [$\beta$]
+                ]
+                [$e$
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+
+            \vspace{3mm}
+        \end{subfigure}
+    \end{figure}
+
+    \tiny
+    \textcolor{RoyalBlue}{volatile}
+}
+\section{Unproductive Nodes}
+\subsection{Introduction}
+\frame{
+    \centering
+    \Large
+    Unproductive Nodes
+}
+%\frame{
+    %\begin{itemize}
+        %\item When nodes are volatile, their volatility count has to be at least $\tau$
+        %\item Time passes and the database workload changes
+        %\item Insertions and deletions that increased the volatility count drop out of the sliding window
+        %\item If the volatility count drops below threshold $\tau$, the node ceases to be volatile
+        %\item If the same holds for the node's descendants, we call the node and its descendants unproductive
+    %\end{itemize}
+%}
+\frame{
+    \frametitle{Index nodes becoming unproductive}
+    \begin{figure}
+        \begin{subfigure}{0.35\textwidth}
+            \centering 
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend, color=RoyalBlue
+                [now, color=RoyalBlue
+                [p, color=RoyalBlue
+                [c, color=RoyalBlue
+                [$\alpha$, color=RoyalBlue]
+                ]
+                [,phantom]
+                [,phantom]
+                ]
+                ]
+                ]
+                ]
+                [p
+                [c
+                [$\alpha$]
+                [$\beta$]
+                ]
+                [,phantom]
+                [e
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+        \begin{subfigure}{.1\textwidth}
+            \centering
+            $\longrightarrow$
+        \end{subfigure}
+        \begin{subfigure}{.35\textwidth}
+            \centering
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend
+                [now
+                [p
+                [c, color=Orange
+                [$\alpha$, color=Orange]
+                ]
+                [e, color=RoyalBlue
+                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [,phantom]
+                [p
+                [c
+                [$\alpha$]
+                [$\beta$]
+                ]
+                [e
+                [$\gamma$ \\ rend:now, align=center, base=bottom]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+    \end{figure}
+
+    \tiny
+    \textcolor{RoyalBlue}{volatile}
+
+    \textcolor{Orange}{unproductive}
+}
+\frame{
+    \begin{definition}[Unproductive Node]
+        Index node $n$ is unproductive iff $n$, and any descendant of
+        $n$, is neither matching, nor volatile, i.e.,
+        \begin{align*}
+            unproductive(n) \iff \forall m (m \in (\{n\} \cup desc(n)) \implies \\
+            (\neg matching(m) \land \neg volatile(m)))
+        \end{align*}
+    \end{definition}
+}
+\frame{
+    \centering
+    \scriptsize
+    \begin{forest}
+        [
+        [i
+        [rend
+        [now
+        [p
+        [c, color=Orange
+        [$\alpha$, color=Orange]
+        ]
+        [e, color=RoyalBlue
+        [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+        ]
+        ]
+        ]
+        ]
+        ]
+        [,phantom]
+        [p
+        [c
+        [$\alpha$]
+        [$\beta$]
+        ]
+        [e
+        [$\gamma$ \\ rend:now, align=center, base=bottom]
+        ]
+        ]
+        ]
+    \end{forest}
+
+    $$ unproductive(n) \iff \forall m (m \in (\{n\} \cup desc(n)) \implies (\neg matching(m) \land \neg volatile(m))) $$
+
+    \raggedright
+    \tiny
+    \textcolor{RoyalBlue}{volatile}
+
+    \textcolor{Orange}{unproductive}
+}
+\frame{
+    The number of unproductive nodes depends on: 
+    \begin{itemize}
+        \item Volatility threshold $\tau$
+        \item Sliding window length $L$
+        \item Workload skew $s$
+        \item Update operations per second
+    \end{itemize}
+}
+\frame{
+    Unproductive index node cleaning, we propose:
+    \begin{itemize}
+        \item Periodic Garbage Collection (GC)
+        \item Query-Time Pruning (QTP)
+    \end{itemize}
+}
+\subsection{Periodic Garbage Collection}
+\frame{
+    \centering
+    \large
+    Periodic Garbage Collection (GC)
+}
+\frame{
+    \frametitle{Periodic GC}
+    Main idea:
+
+    \begin{itemize}
+        \item Background process
+        \item Periodically traverse the whole index subtree
+        \item Prune any visited unproductive node
+    \end{itemize}
+}
+%\frame{
+    %\frametitle{Periodic GC}
+    %\begin{algorithm}[H]
+        %\TitleOfAlgo{GarbageCollect}
+        %\DontPrintSemicolon
+        %\For{node $n \in desc(\texttt{/i})$ in postorder tree walk}{
+            %\If{$chd(n) = \emptyset \land \neg matching(n) \land \neg volatile(n)$}{
+                %delete node $n$\;
+            %}
+        %}
+    %\end{algorithm}
+%}
+\frame{
+    \frametitle{Periodic GC}
+    \begin{figure}
+        \begin{subfigure}{0.35\textwidth}
+            \centering
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend
+                [now
+                [p
+                [c, color=Orange
+                [$\alpha$, color=Orange]
+                ]
+                [e, color=RoyalBlue
+                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [,phantom]
+                [p
+                [c
+                [$\alpha$]
+                [$\beta$]
+                ]
+                [e
+                [$\gamma$ \\ rend:now, align=center, base=bottom]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+        \begin{subfigure}{0.1\textwidth}
+            \centering
+            $\longrightarrow$
+        \end{subfigure}
+        \begin{subfigure}{0.35\textwidth}
+            \centering
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend
+                [now
+                [p
+                [,phantom]
+                [,phantom]
+                [e, color=RoyalBlue
+                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [,phantom]
+                [p
+                [c
+                [$\alpha$]
+                [$\beta$]
+                ]
+                [e
+                [$\gamma$ \\ rend:now, align=center, base=bottom]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+    \end{figure}    
+    
+    \raggedright
+    \tiny
+    \textcolor{RoyalBlue}{volatile}
+
+    \textcolor{Orange}{unproductive}
+}
+\subsection{Query-Time Pruning}
+\frame{
+    \centering
+    \large
+    Query-Time Pruning (QTP)
+}
+\frame{
+    \frametitle{Query-Time Pruning}
+    Main idea:
+
+    \begin{itemize}
+        \item Prune unproductive nodes during query execution
+        \item Piggybacking on query execution
+        \item Adds overhead on query runtime
+        \item Avoids unnecessary full index traversals
+        \item We traverse a part of the index subtree and prune any visited unproductive node
+    \end{itemize}
+}
+%\frame{
+    %\frametitle{Query-Time Pruning}
+    %\begin{algorithm}[H]
+        %\TitleOfAlgo{QueryQTP}
+        %\DontPrintSemicolon
+        %\KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ (=
+            %$\texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$) a
+        %content node's path.}
+        %\KwResult{A set of nodes satisfying $Q(k,v,m)$}
+        %$r \longleftarrow \emptyset$\;
+        %\For{node $n \in
+            %desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
+            %\uIf{$matching(n)$}{
+                %$r \longleftarrow r \cup \{ *n \}$\;
+            %}
+            %\ElseIf{$chd(n) = \emptyset \land \neg volatile(n)$}{
+                %delete node $n$
+            %}
+        %}
+        %\Return{r}\;
+    %\end{algorithm}
+%}
+\frame{
+    \frametitle{Query-Time Pruning}
+    \vspace{-1cm}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.40\textwidth}
+            \centering 
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend
+                [now
+                [p
+                [c, tikz={\node [draw,red,inner sep=0,fit to=tree]{};}
+                [$\alpha$ \\ rend:now, align=center, base=bottom]
+                [$\beta$ \\ \vspace{-1mm}, color=Orange, align=center, base=bottom]
+                ]
+                [e, color=Orange
+                [$\gamma$, color=Orange]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [p
+                [c
+                [$\alpha$ \\ rend:now, align=center, base=bottom]
+                [$\beta$ \\ \vspace{-1mm}, align=center, base=bottom]
+                ]
+                [e
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+        \begin{subfigure}{0.1\textwidth}
+            \centering
+            $\longrightarrow$
+        \end{subfigure}
+        \begin{subfigure}{0.40\textwidth}
+            \centering 
+            \tiny
+            \begin{forest}
+                [
+                [i
+                [rend
+                [now
+                [p
+                [c
+                [$\alpha$ \\ rend:now, align=center, base=bottom]
+                [,phantom]
+                [,phantom]
+                ]
+                [e, color=Orange
+                [$\gamma$, color=Orange]
+                ]
+                ]
+                ]
+                ]
+                ]
+                [p
+                [c
+                [$\alpha$ \\ rend:now, align=center, base=bottom]
+                [$\beta$ \\ \vspace{-1mm}, align=center, base=bottom]
+                ]
+                [e
+                [$\gamma$]
+                ]
+                ]
+                ]
+            \end{forest}
+        \end{subfigure}
+    \end{figure}
+    \centering
+    \footnotesize
+    $Q(\texttt{render},\texttt{now},\texttt{/products/consumer})$
+
+    \raggedright
+    \tiny
+    \textcolor{Orange}{unproductive}
+}
+\section{Experimental Evaluation}
+\frame{
+    \centering
+    \large
+    Experimental Evaluation
+}
+\frame{
+    \centering
+    Experiments are run on the hierarchical database system \\
+    Apache Jackrabbit Oak
+
+    \begin{figure}
+        \includegraphics[height=2cm]{oak_logo.png}
+    \end{figure}
+}
+\frame{
+    \frametitle{Datasets}
+    \begin{itemize}
+        \item Datasets resemble the content subtree
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \hspace{-1cm}
+        \begin{subfigure}{0.59\linewidth}
+            \centering
+            \caption{Synthetic}
+            \tiny
+            \begin{forest}
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw] 
+                ]
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw]
+                ]
+                ]    
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw] 
+                ]
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw]
+                ]
+                ] 
+                ]
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw] 
+                ]
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw]
+                ]
+                ]
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw] 
+                ]
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw]
+                ]
+                ]  
+                ]
+                ]
+            \end{forest}
+
+            \centering
+            \footnotesize
+            $2^{20} \approx 10^6$ nodes
+        \end{subfigure}
+        \begin{subfigure}{0.39\linewidth}
+            \centering
+            \caption{Dell}
+            \tiny
+            \begin{forest}
+                [,circle,draw
+                [,phantom]
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw
+                [,circle,draw]
+                ]
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw
+                [,circle,draw]
+                ]
+                ]
+                ]
+                [,phantom]
+                [,phantom]
+                [,phantom]
+                [,circle,draw]
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw]
+                [,circle,draw]
+                ]
+                [,circle,draw
+                [,circle,draw]
+                ]
+                ]
+                ]
+                ]
+            \end{forest}
+
+            \centering
+            \footnotesize
+            $ 13 \cdot 10^6$ nodes
+        \end{subfigure}
+    \end{figure}
+}
+\frame{
+    \frametitle{Workload simulation}
+    \begin{itemize}
+        \item Zipf distribution
+        \item Workload changes every 30 seconds
+        \item 10 update operations per query operation
+        \item Update operation: add and remove a property which triggers an index update
+    \end{itemize}
+}
+\subsection{Unproductive Nodes}
+\frame{
+    \centering
+    \large
+    Impact of Unproductive Nodes on Query Runtime
+}
+\frame{
+    \frametitle{Impact of Unproductive Nodes on Query Runtime}
+    \begin{figure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes.eps}
+        \end{subfigure}
+    \end{figure}
+    \begin{itemize}
+        \item Query runtime increases by an order of magnitude after five minutes
+    \end{itemize}
+}
+\frame{
+    \centering
+    \large
+    Volatility threshold $\tau$
+}
+\frame{
+    \frametitle{Volatility threshold $\tau$} 
+    \centering
+    \includegraphics[height=5cm]{tau.eps}
+}
+\frame{
+    \frametitle{Volatility threshold $\tau$} 
+    \centering{
+        \includegraphics[height=4cm]{tau.eps}
+    }
+    \begin{itemize}
+        \item $\tau \nearrow \quad \implies \text{volatile nodes} \searrow$
+        \item volatile nodes $\searrow \quad \implies \text{unproductive nodes} \searrow$
+        \item Power law relationship between \#unproductive nodes and $\tau$
+    \end{itemize}
+}
+\frame{
+    \centering
+    \large
+    Workload skew $s$
+}
+\frame{
+    \frametitle{Workload skew $s$}
     \begin{figure}
         \centering
         \begin{subfigure}{0.30\textwidth}
@@ -181,840 +1187,7 @@
         \end{subfigure}
     \end{figure}
 }
-\frame{
-    Changing workload: as time passes, hotspots change
-    \vspace{1cm}
-    \begin{figure}
-        \centering
-        \begin{subfigure}{0.20\textwidth}
-            \centering
-            \scriptsize
-            \begin{forest}
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Orange
-                ]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Red]
-                [,phantom]
-                ]
-                ]
-                [,circle,draw,fill=Yellow
-                [,phantom]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow]
-                [,circle,draw,fill=Yellow]
-                ]
-                [,circle,draw,fill=Orange]
-                ]
-                ]
-                ]
-            \end{forest}
-        \end{subfigure}
-        \begin{subfigure}{0.10\textwidth}
-            \centering
-            $\longrightarrow$
-        \end{subfigure}
-        \begin{subfigure}{0.20\textwidth}
-            \centering
-            \scriptsize
-            \begin{forest}
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                ]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow]
-                [,phantom]
-                ]
-                ]
-                [,circle,draw,fill=Orange
-                [,phantom]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Orange]
-                [,circle,draw,fill=Red]
-                ]
-                [,circle,draw,fill=Orange]
-                ]
-                ]
-                ]
-            \end{forest}
-        \end{subfigure}
-        \begin{subfigure}{0.10\textwidth}
-            \centering
-            $\longrightarrow$
-        \end{subfigure}
-        \begin{subfigure}{0.20\textwidth}
-            \centering
-            \scriptsize
-            \begin{forest}
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Orange
-                ]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Yellow]
-                [,phantom]
-                ]
-                ]
-                [,circle,draw,fill=Yellow
-                [,phantom]
-                [,circle,draw,fill=Yellow
-                [,circle,draw,fill=Red
-                [,circle,draw,fill=Orange]
-                [,circle,draw,fill=Yellow]
-                ]
-                [,circle,draw,fill=Yellow]
-                ]
-                ]
-                ]
-            \end{forest}
-        \end{subfigure}
-    \end{figure}
-}
-\frame{
-    \large
-    CMSs usually use a job-queuing system that has the noted characteristics
-}
-\subsection{Workload-Aware Property Index}
-\frame{
-    \centering
-    \Large
-   Workload-Aware Property Index 
-}
-\frame{
-    \frametitle{Hierarchical Database with WAPI}
-    \vspace{-5mm}
-    \begin{figure}[t]
-        \centering
-        \scriptsize
-        \begin{forest}
-            [
-            [$\lambda:i$
-            [$\lambda:\text{pub}$
-            [$\lambda:\text{now}$
-            [$\lambda:a$
-            [$\lambda:b$
-            [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=i_node] {
-                \draw[<-,gray] (.north west)--++(-5em,1em)
-                node[anchor=east]{\textit{Matching Node}};
-            }
-            ]
-            [,phantom]
-            ]
-            ]
-            ]
-            ] {
-                \draw[<-,gray] (.south west)--++(-5em, -1em)
-                node[anchor=east]{\textit{Index Subtree Root}};
-            }
-            [$\lambda:a$
-            [$\lambda:b$
-            [$\lambda:d$ \\ $\text{pub}:\text{now}$, align=center, base=bottom, name=c_node]
-            ]
-            [$\lambda:c$
-            [$\lambda:e$]
-            ]
-            ] {
-                \draw[<-,gray] (.south east)--++(5em, -1em)
-                node[anchor=west]{\textit{Content Subtree Root}};
-            }
-            ]
-            \draw[->,dotted] (i_node) to[out=east, in=south] node[gray,midway,right]{\textit{corresponding content node}} (c_node);
-        \end{forest}
-    \end{figure}
-}
-\frame{
-    We mostly executes content-and-structure (CAS) queries.
-    We denote node $n$'s property $k$ as $n[k]$ and node $n$'s descendants as
-    $desc(n)$.
 
-    \begin{definition}[CAS Query]
-        Given node $m$, property $k$ and value $v$, a CAS query
-        $Q(k,v,m)$ returns all descendants of $m$ which have $k$ set to $v$, i.e.,
-        $$ Q(k,v,m) = \{ n | n \in desc(m) \land n[k] = v\} $$
-        \label{def:cas-query}
-    \end{definition}
-}
-\frame{
-    Volatility is the measure which is used by the WAPI in order to distinguish
-    whether to remove a node or not from the index.
-    Wellenzohn et al.~\cite{KW17} propose to look at the recent transactional
-    workload to check whether a node $n$ is volatile.
-}
-\frame{
-    \begin{definition}[Volatility Count]
-        The volatility count $vol(n)$ of index node $n$ on database instance $O_i$, is the number of
-        times node $n$ was added or removed from snapshots contained in a Sliding
-        Window of Length $L$ over history $H_i$, i.e.,
-        \vspace{3mm}
-        \begin{align*}
-            vol(n) = | \{ G^b | G^b \in H_i \land t(G^b) \in [t_n-L+1, t_n] \land \exists G^a[ \\
-                \qquad G^a = pre(G^b) \land ([n^a \notin N(G^a) \land n^b \in N(G^b)]\lor \\
-            \qquad [n^a \in N(G^a) \land n^b \notin N(G^b)] )]\} |
-        \end{align*}
-    \end{definition}
-}
-\frame{
-    \begin{definition}[Volatile Node]
-        Index node $n$ is volatile iff $n$'s volatility count is greater or equal than 
-        the volatility threshold $\tau$, i.e.,
-        \vspace{3mm}
-        $$ volatile(n) \iff vol(n) \geq \tau $$
-    \end{definition}
-}
-\frame{
-    \frametitle{Index nodes becoming volatile}
-    \begin{figure}
-        \vspace{-1cm}
-        \begin{large}
-            $$ G^0 \xrightarrow{\quad T_1 \quad} G^1 \xrightarrow{\quad T_2 \quad} G^2 $$
-        \end{large}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [,phantom]
-                        ]
-                        [,phantom]
-                        [,phantom]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$]
-                        ] 
-                        [,phantom]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-
-                    \vspace{21mm}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^0$
-
-            $t(G^0) = t$ }
-        \end{subfigure}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub, color=RoyalBlue
-                        [$\lambda$:now, color=RoyalBlue
-                        [$\lambda$:$a$, color=RoyalBlue
-                        [$\lambda$:$b$, color=RoyalBlue
-                        [$\lambda$:$d$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
-                        ]
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        ]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^1$
-
-            $t(G^1) = t+1$ }
-        \end{subfigure}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub, color=RoyalBlue
-                        [$\lambda$:now, color=RoyalBlue
-                        [$\lambda$:$a$, color=RoyalBlue
-                        [$\lambda$:$b$, color=RoyalBlue
-                        [$\lambda$:$d$, color=RoyalBlue]
-                        ]
-                        [,phantom]
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$]
-                        ]
-                        [,phantom]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-
-                    \vspace{3mm}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^2$
-
-            $t(G^2) = t+2$ }
-        \end{subfigure}
-    \end{figure}
-    \footnotesize
-    $\tau = 1, L = 2$
-}
-\section{Unproductive Nodes}
-\subsection{Introduction}
-\frame{
-    \centering
-    \Large
-    Unproductive Nodes
-}
-\frame{
-    \begin{itemize}
-        \item When nodes are volatile, their volatility count has to be at least $\tau$
-        \item Time passes and the database workload changes
-        \item Insertions and deletions that increased the volatility count drop out of the sliding window
-        \item If the volatility count drops below threshold $\tau$, the node ceases to be volatile
-        \item If the same holds for the node's descendants, we call the node and its descendants unproductive
-    \end{itemize}
-}
-\frame{
-    \frametitle{Index nodes becoming unproductive}
-    \begin{figure}
-        \vspace{-1cm}
-        \begin{large}
-            $$ G^1 \xrightarrow{\quad T_2 \quad} G^2
-            \xrightarrow{\quad T_3 \quad} G^3  $$
-        \end{large}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub, color=RoyalBlue
-                        [$\lambda$:now, color=RoyalBlue
-                        [$\lambda$:$a$, color=RoyalBlue
-                        [$\lambda$:$b$, color=RoyalBlue
-                        [$\lambda$:$d$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
-                        ]
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        ]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^1$
-
-            $t(G^1) = t+1$ }
-        \end{subfigure}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub, color=RoyalBlue
-                        [$\lambda$:now, color=RoyalBlue
-                        [$\lambda$:$a$, color=RoyalBlue
-                        [$\lambda$:$b$, color=RoyalBlue
-                        [$\lambda$:$d$, color=RoyalBlue]
-                        ]
-                        [,phantom]
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$]
-                        ]
-                        [,phantom]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-
-                    \vspace{3mm}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^2$
-
-            $t(G^2) = t+2$ }
-        \end{subfigure}
-        \begin{subfigure}{0.3\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub
-                        [$\lambda$:now
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$, color=Orange
-                        [$\lambda$:$d$, color=Orange]
-                        ]
-                        [$\lambda$:$c$, color=RoyalBlue
-                        [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [,phantom]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$]
-                        ]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-                } \footnotesize{ Snapshot $G^3$
-
-            $t(G^3) = t+3$ }
-        \end{subfigure}
-    \end{figure}
-    \footnotesize
-    $\tau = 1, L = 2$
-}
-\frame{
-    Variables impacting unproductive node production rate:
-    \begin{itemize}
-        \item Volatility threshold $\tau$
-        \item Sliding window length $L$
-        \item Workload skew $s$
-        \item Update tx per second
-    \end{itemize}
-}
-\frame{
-    Unproductive index node cleaning, we propose:
-    \begin{itemize}
-        \item Periodic Garbage Collection (GC)
-        \item Query-Time Pruning (QTP)
-    \end{itemize}
-}
-\subsection{Periodic Garbage Collection}
-\frame{
-    \centering
-    \large
-    Periodic Garbage Collection (GC)
-}
-\frame{
-    \frametitle{Periodic GC}
-    Main idea:
-
-    \begin{itemize}
-        \item Background process
-        \item Periodically traverse index subtree
-        \item Prune any visited unproductive node
-    \end{itemize}
-}
-\frame{
-    \frametitle{Periodic GC}
-    \begin{algorithm}[H]
-        \TitleOfAlgo{GarbageCollect}
-        \DontPrintSemicolon
-        \For{node $n \in desc(\texttt{/i})$ in postorder tree walk}{
-            \If{$chd(n) = \emptyset \land \neg matching(n) \land \neg volatile(n)$}{
-                delete node $n$\;
-            }
-        }
-    \end{algorithm}
-}
-\frame{
-    \frametitle{Periodic GC}
-    \vspace{-1cm}
-    \begin{figure}[H]
-        \centering
-        \begin{large}
-            $$ G^3 \xrightarrow{\quad T_4 \quad} G^4$$
-        \end{large}
-        \begin{subfigure}{0.30\textwidth}
-            \centering
-            \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub
-                        [$\lambda$:now
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$, color=Orange
-                        [$\lambda$:$d$, color=Orange]
-                        ]
-                        [$\lambda$:$c$, color=RoyalBlue
-                        [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [,phantom]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$]
-                        ]
-                        [$\lambda$:$c$
-                        [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-            }
-            \footnotesize{
-                Snapshot $G^3$
-
-                $t(G^3) = t + 3$
-            }
-        \end{subfigure}
-        \begin{subfigure}{0.30\textwidth}
-            \centering
-            \tiny
-            \begin{framed} 
-                \begin{forest}
-                    [
-                    [$\lambda$:$i$
-                    [$\lambda$:pub
-                    [$\lambda$:now
-                    [$\lambda$:$a$
-                    [,phantom]
-                    [,phantom]
-                    [$\lambda$:$c$, color=RoyalBlue
-                    [$\lambda$:$e$ \\ pub:now, color=RoyalBlue, align=center, base=bottom]
-                    ]
-                    ]
-                    ]
-                    ]
-                    ]
-                    [$\lambda$:$a$
-                    [$\lambda$:$b$
-                    [$\lambda$:$d$]
-                    ]
-                    [$\lambda$:$c$
-                    [$\lambda$:$e$ \\ pub:now, align=center, base=bottom]
-                    ]
-                    ]
-                    ]
-                \end{forest}
-            \end{framed}
-            \footnotesize{
-                Snapshot $G^4$
-
-                $t(G^4) = t + 4$
-            }
-        \end{subfigure}
-    \end{figure}
-    \footnotesize
-    $\tau = 1, L = 2$
-}
-\subsection{Query-Time Pruning}
-\frame{
-    \centering
-    \large
-    Query-Time Pruning (QTP)
-}
-\frame{
-    \frametitle{Query-Time Pruning}
-    Main idea:
-
-    \begin{itemize}
-        \item Prune unproductive nodes during query execution
-        \item Piggypacking on query execution
-        \item Adds overhead on query runtime
-    \end{itemize}
-}
-\frame{
-    \frametitle{Query-Time Pruning}
-    \begin{algorithm}[H]
-        \TitleOfAlgo{QueryQTP}
-        \DontPrintSemicolon
-        \KwData{Query $Q(k, v, m)$, where $k$ is a property, $v$ a value and $m$ (=
-            $\texttt{/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d$) a
-        content node's path.}
-        \KwResult{A set of nodes satisfying $Q(k,v,m)$}
-        $r \longleftarrow \emptyset$\;
-        \For{node $n \in
-            desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
-            \uIf{$matching(n)$}{
-                $r \longleftarrow r \cup \{ *n \}$\;
-            }
-            \ElseIf{$chd(n) = \emptyset \land \neg volatile(n)$}{
-                delete node $n$
-            }
-        }
-        \Return{r}\;
-    \end{algorithm}
-}
-\frame{
-    \frametitle{Query-Time Pruning}
-    \vspace{-1cm}
-    \begin{figure}[H]
-        \centering
-        \begin{large}
-            $$ G^5 \xrightarrow{\quad T_6 \quad} G^6$$
-        \end{large}
-        \begin{subfigure}{0.40\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub
-                        [$\lambda$:now
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        [$\lambda$:$e$ \\ \vspace{-1mm}, color=Orange, align=center, base=bottom]
-                        ]
-                        [$\lambda$:$c$, color=Orange
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        [$\lambda$:$e$ \\ \vspace{-1mm}, align=center, base=bottom]
-                        ]
-                        [$\lambda$:$c$
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-            } \footnotesize{ Snapshot $G^5$ }
-        \end{subfigure}
-        \begin{subfigure}{0.40\textwidth}
-            \centering \tiny{
-                \begin{framed}
-                    \begin{forest}
-                        [
-                        [$\lambda$:$i$
-                        [$\lambda$:pub
-                        [$\lambda$:now
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        [,phantom]
-                        ]
-                        [$\lambda$:$c$, color=Orange
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                        ]
-                        ]
-                        [$\lambda$:$a$
-                        [$\lambda$:$b$
-                        [$\lambda$:$d$ \\ pub:now, align=center, base=bottom]
-                        [$\lambda$:$e$ \\ \vspace{-1mm}, align=center, base=bottom]
-                        ]
-                        [$\lambda$:$c$
-                        [,phantom]
-                        ]
-                        ]
-                        ]
-                    \end{forest}
-                \end{framed}
-            } \footnotesize{ Snapshot $G^6$ }
-        \end{subfigure}
-    \end{figure}
-    \footnotesize
-    $\tau = 1, L = 2, Q(\texttt{pub},\texttt{now},\texttt{/a/b})$
-}
-\section{Experimental Evaluation}
-\frame{
-    \centering
-    \large
-    Experimental Evaluation
-}
-\frame{
-    \frametitle{Datasets}
-    \begin{figure}
-        \centering
-        \hspace{-1cm}
-        \begin{subfigure}{0.59\linewidth}
-            \centering
-            \caption{Synthetic}
-            \tiny
-            \begin{forest}
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw] 
-                ]
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw]
-                ]
-                ]    
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw] 
-                ]
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw]
-                ]
-                ] 
-                ]
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw] 
-                ]
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw]
-                ]
-                ]
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw] 
-                ]
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw]
-                ]
-                ]  
-                ]
-                ]
-            \end{forest}
-        \end{subfigure}
-        \begin{subfigure}{0.39\linewidth}
-            \centering
-            \caption{Dell}
-            \tiny
-            \begin{forest}
-                [,circle,draw
-                [,phantom]
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw
-                [,circle,draw]
-                ]
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw
-                [,circle,draw]
-                ]
-                ]
-                ]
-                [,phantom]
-                [,phantom]
-                [,phantom]
-                [,circle,draw]
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw]
-                [,circle,draw]
-                ]
-                [,circle,draw
-                [,circle,draw]
-                ]
-                ]
-                ]
-                ]
-            \end{forest}
-        \end{subfigure}
-    \end{figure}
-}
-\frame{
-    \frametitle{Workload simulation}
-    \begin{itemize}
-        \item Zipf distribution
-        \item Changes every 30 seconds
-        \item 10 update operations per query operation
-        \item Update operation: add and remove an index node
-    \end{itemize}
-}
-\subsection{Unproductive Nodes}
-\frame{
-    \centering
-    \large
-    Impact of Unproductive Nodes on Query Runtime
-}
-\frame{
-    \frametitle{Impact of Unproductive Nodes on Query Runtime}
-    \begin{figure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{query_runtime.eps}
-        \end{subfigure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{unprod_nodes.eps}
-        \end{subfigure}
-    \end{figure}
-}
-\frame{
-    \centering
-    \large
-    Volatility threshold $\tau$
-}
-\frame{
-    \frametitle{Volatility threshold $\tau$} 
-    \centering
-    \includegraphics[height=5cm]{tau.eps}
-}
-\frame{
-    \frametitle{Volatility threshold $\tau$} 
-    \centering{
-        \includegraphics[height=2.5cm]{tau.eps}
-    }
-    \begin{itemize}
-        \item $\tau$ increases $\implies$ nodes are less likely to become volatile
-        \item Fewer volatile nodes $\implies$ fewer unproductive nodes
-        \item Power law relationship between \#unproductive nodes and $\tau$
-    \end{itemize}
-}
-\frame{
-    \centering
-    \large
-    Workload skew $s$
-}
 \frame{
     \frametitle{Workload skew $s$}
     \centering
@@ -1023,13 +1196,11 @@
 \frame{
     \frametitle{Workload skew $s$} 
     \centering{
-        \includegraphics[height=2.5cm]{skew.eps}
+        \includegraphics[height=4cm]{skew.eps}
     }
     \begin{itemize}
-        \item very high $s$ $\implies$ very small hotspot
-        \item very small $s$ (uniform) $\implies$ no hotspot
-        \item very small/no hotspot $\implies$ nodes are less likely to become volatile
-            and later on unproductive
+        \item $s > 1$ $\implies$ small hotspot $\implies$ few unproductive nodes
+        \item $s < 1$ (uniform) $\implies$ no hotspot $\implies$ no unproductive nodes
     \end{itemize}
 }
 \subsection{Periodic Garbage Collection}
@@ -1066,7 +1237,10 @@
     \end{figure}
 
     \scriptsize
-    Optimal GC period $T_{GC}^*$: period with the smallest query runtime
+    \begin{itemize}
+        \item Optimal GC period $T_{GC}^*$: period with the smallest query runtime
+        \item Too small $T_{GC}$ $\implies$ GC steals resources from query executor
+    \end{itemize}
 }
 \subsection{Query-Time Pruning}
 \frame{
@@ -1088,42 +1262,68 @@
     \end{figure}
 }
 \frame{
-    \frametitle{QTP}
-    \begin{figure}[H]
-        \centering
-        \begin{subfigure}{0.49\linewidth}
+    \begin{figure}
+        \rotatebox{90}{GC}
+        \begin{subfigure}{0.45\textwidth}
             \centering
-            \includegraphics[width=6cm]{qtp_cost.eps}
+            \includegraphics[height=3.8cm]{query_runtime_GC.eps}
         \end{subfigure}
-        \begin{subfigure}{0.49\linewidth}
+        \begin{subfigure}{0.45\textwidth}
             \centering
-            \begin{tikzpicture}[scale=0.52]
-                \fill[transparent] (-1,0) rectangle (0,5.5);
-                \filldraw[color=C0] (0,0) rectangle (1,2.40);
-                \filldraw[color=C1] (0,2.40) rectangle (1,2.56);
-                \filldraw[color=C2] (0,2.56) rectangle (1,4.01);
-                \filldraw[color=C3] (0,4.01) rectangle (1,4.31);
-                \filldraw[color=C4] (0,4.31) rectangle (1,5);
-                \fill[transparent] (0,5) rectangle (1,5.5);
-
-                \draw[dotted] (0.5,1.3) -- (5.5,0);
-                \node[align=left] at (6.7,0) {\footnotesize traversal};
-
-                \draw[dotted] (0.5,2.48) -- (5.5,1.25);
-                \node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
-                \draw[dotted] (0.5,3.285) -- (5.5,2.5);
-                \node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
-                \draw[dotted] (0.5,4.16) -- (5.5,4.5);
-                \node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
-                \draw[dotted] (0.5,4.66) -- (5.5,5.5);
-                \node[align=left] at (6.3,5.5) {\footnotesize write};
-                \draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
-                (1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
-                QTP overhead};
-            \end{tikzpicture}
+            \includegraphics[height=3.8cm]{unprod_nodes_GC.eps}
+        \end{subfigure}
+    \end{figure}
+    \vspace{-.5cm}
+    \begin{figure}
+        \rotatebox{90}{QTP}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime_QTP.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes_QTP.eps}
         \end{subfigure}
     \end{figure}
 }
+
+%\frame{
+    %\frametitle{QTP}
+    %\begin{figure}[H]
+        %\centering
+        %\begin{subfigure}{0.49\linewidth}
+            %\centering
+            %\includegraphics[width=6cm]{qtp_cost.eps}
+        %\end{subfigure}
+        %\begin{subfigure}{0.49\linewidth}
+            %\centering
+            %\begin{tikzpicture}[scale=0.52]
+                %\fill[transparent] (-1,0) rectangle (0,5.5);
+                %\filldraw[color=C0] (0,0) rectangle (1,2.40);
+                %\filldraw[color=C1] (0,2.40) rectangle (1,2.56);
+                %\filldraw[color=C2] (0,2.56) rectangle (1,4.01);
+                %\filldraw[color=C3] (0,4.01) rectangle (1,4.31);
+                %\filldraw[color=C4] (0,4.31) rectangle (1,5);
+                %\fill[transparent] (0,5) rectangle (1,5.5);
+
+                %\draw[dotted] (0.5,1.3) -- (5.5,0);
+                %\node[align=left] at (6.7,0) {\footnotesize traversal};
+
+                %\draw[dotted] (0.5,2.48) -- (5.5,1.25);
+                %\node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
+                %\draw[dotted] (0.5,3.285) -- (5.5,2.5);
+                %\node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
+                %\draw[dotted] (0.5,4.16) -- (5.5,4.5);
+                %\node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
+                %\draw[dotted] (0.5,4.66) -- (5.5,5.5);
+                %\node[align=left] at (6.3,5.5) {\footnotesize write};
+                %\draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
+                %(1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
+                %QTP overhead};
+            %\end{tikzpicture}
+        %\end{subfigure}
+    %\end{figure}
+%}
 \frame{
     \frametitle{QTP}
     \begin{figure}[H]
@@ -1140,11 +1340,11 @@
                     $r \longleftarrow \emptyset$\;
                     \For{node $n \in
                         desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
-                        \uIf{$matching(n)$}{
+                            \uIf{\textcolor{C0}{$matching(n)$}}{
                             $r \longleftarrow r \cup \{ *n \}$\;
                         }
-                        \ElseIf{$chd(n) = \emptyset \land \neg volatile(n)$}{
-                            delete node $n$
+                        \ElseIf{\textcolor{C0}{$children(n)$}$ = \emptyset \land \neg $\textcolor{C0}{$volatile(n)$}}{
+                            \textcolor{C0}{delete} node $n$
                         }
                     }
                     \Return{r}\;
@@ -1153,30 +1353,50 @@
         \end{subfigure}
         \begin{subfigure}{0.49\linewidth}
             \centering
-            \begin{tikzpicture}[scale=0.5]
-                \fill[transparent] (-1,0) rectangle (0,5.5);
-                \filldraw[color=C0] (0,0) rectangle (1,2.40);
-                \filldraw[color=C1] (0,2.40) rectangle (1,2.56);
-                \filldraw[color=C2] (0,2.56) rectangle (1,4.01);
-                \filldraw[color=C3] (0,4.01) rectangle (1,4.31);
-                \filldraw[color=C4] (0,4.31) rectangle (1,5);
-                \fill[transparent] (0,5) rectangle (1,5.5);
-
-                \draw[dotted] (0.5,1.3) -- (5.5,0);
-                \node[align=left] at (6.7,0) {\footnotesize traversal};
-
-                \draw[dotted] (0.5,2.48) -- (5.5,1.25);
-                \node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
-                \draw[dotted] (0.5,3.285) -- (5.5,2.5);
-                \node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
-                \draw[dotted] (0.5,4.16) -- (5.5,4.5);
-                \node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
-                \draw[dotted] (0.5,4.66) -- (5.5,5.5);
-                \node[align=left] at (6.3,5.5) {\footnotesize write};
-                \draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
-                (1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
-                QTP overhead};
+            CPU time [ms]
+            \begin{tikzpicture}[scale=.6]
+                \begin{axis}[
+                    %xlabel = CPU time [$\mu$s],
+                    xbar,
+                    y axis line style = { opacity = 0  },
+                    axis x line       = none,
+                    %tickwidth         = 0pt,
+                    %enlarge y limits  = 0.2,
+                    %enlarge x limits  = 0.02,
+                    symbolic y coords = {volatile,delete,children,matching,traversal},
+                    nodes near coords,
+                    ]
+                    \addplot coordinates { 
+                            (0.5,volatile) (3,delete)
+                            (6,children) (0.5,matching)
+                            (10,traversal) 
+                        };
+                \end{axis}
             \end{tikzpicture}
+            %\begin{tikzpicture}[scale=0.5]
+            %\fill[transparent] (-1,0) rectangle (0,5.5);
+            %\filldraw[color=C0] (0,0) rectangle (1,2.40);
+                %\filldraw[color=C1] (0,2.40) rectangle (1,2.56);
+                %\filldraw[color=C2] (0,2.56) rectangle (1,4.01);
+                %\filldraw[color=C3] (0,4.01) rectangle (1,4.31);
+                %\filldraw[color=C4] (0,4.31) rectangle (1,5);
+                %\fill[transparent] (0,5) rectangle (1,5.5);
+
+                %\draw[dotted] (0.5,1.3) -- (5.5,0);
+                %\node[align=left] at (6.7,0) {\footnotesize traversal};
+
+                %\draw[dotted] (0.5,2.48) -- (5.5,1.25);
+                %\node[align=left] at (7.1,1.25) {\footnotesize matching(n)};
+                %\draw[dotted] (0.5,3.285) -- (5.5,2.5);
+                %\node[align=left] at (7,2.5) {\footnotesize chd(n) = $\emptyset$};
+                %\draw[dotted] (0.5,4.16) -- (5.5,4.5);
+                %\node[align=left] at (6.9,4.5) {\footnotesize volatile(n)};
+                %\draw[dotted] (0.5,4.66) -- (5.5,5.5);
+                %\node[align=left] at (6.3,5.5) {\footnotesize write};
+                %\draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=4pt},yshift=0pt]
+                %(1.1,2.56) -- (1.1,5.0) node [black,midway,xshift=1.8cm] {\footnotesize
+                %QTP overhead};
+            %\end{tikzpicture}
         \end{subfigure}
     \end{figure}
 }
@@ -1187,49 +1407,87 @@
     Periodic GC vs.\ QTP
 }
 \frame{
-    \frametitle{GC vs.\ QTP, simple model}
-    \centering
-    \includegraphics[width=7cm]{model_empty.eps}
+    Simple model:
+
+    \begin{itemize}
+        \item assume constant rate of growth of unproductive nodes
+    \end{itemize}
 }
 \frame{
-    \frametitle{GC vs.\ QTP, simple model}
+    \frametitle{Simple Model}
+    \begin{itemize}
+        \item production rate of unproductive nodes \\
+            $r = \frac{u}{s}$ ($u$ unproductive nodes per second)
+    \end{itemize}
+
     \centering
-    \includegraphics[width=7cm]{model_gc.eps}
+    \includegraphics[width=7cm]{model_time.eps}
 }
 \frame{
-    \frametitle{GC vs.\ QTP, simple model}
+    \frametitle{Simple Model, GC}
+    \begin{itemize}
+        \item production rate $r = \frac{u}{s}$
+        \item GC period $T_{GC} = 2s$
+    \end{itemize}
+
     \centering
-    \includegraphics[width=7cm]{model_gc_qtp.eps}
+    \includegraphics[width=7cm]{model_time.eps}
 }
 \frame{
-    \frametitle{GC vs.\ QTP, simple model}
+    \frametitle{Simple Model, GC vs.\ QTP}
+    \begin{itemize}
+        \item production rate $r = \frac{u}{s}$
+        \item GC period $T_{GC} = 2s$
+    \end{itemize}
+
     \centering
-    \includegraphics[width=7cm]{model_gc_qtp_equilibrium.eps}
+    \includegraphics[width=7cm]{model_period.eps}
 }
 \frame{
-    \frametitle{GC vs.\ QTP, simple model}
+    \frametitle{Simple Model, GC vs.\ QTP}
+    \begin{itemize}
+        \item production rate $r = \frac{u}{s}, r' = \frac{2 u}{s}$
+        \item GC period $T_{GC} = 2s$
+    \end{itemize}
+
+    \centering
+    \includegraphics[width=7cm]{model_period.eps}
+    }
+
+%\frame{
+    %\frametitle{GC vs.\ QTP, simple model}
+    %\centering
+    %\includegraphics[width=7cm]{model_gc.eps}
+%}
+%\frame{
+    %\frametitle{GC vs.\ QTP, simple model}
+    %\centering
+    %\includegraphics[width=7cm]{model_gc_qtp.eps}
+%}
+%\frame{
+    %\frametitle{GC vs.\ QTP, simple model}
+    %\centering
+    %\includegraphics[width=7cm]{model_gc_qtp_equilibrium.eps}
+%}
+\frame{
+    \frametitle{Simple Model, GC vs.\ QTP}
     \centering
     \begin{figure}
-        \begin{subfigure}{0.49\textwidth}
-            \includegraphics[height=3.8cm]{model_gc_qtp_equilibrium.eps}
-        \end{subfigure}
-        \begin{subfigure}{0.49\textwidth}
-            \includegraphics[height=3.8cm]{model_gc_qtp_saw.eps}
-        \end{subfigure}
+        \includegraphics[height=5cm]{model_gc_qtp_equilibrium.eps}
     \end{figure}
-    
-    \footnotesize
-    Queries traverse on average the same number of unproductive nodes when using GC or QTP iff
-    the query period $T_Q$ is half the GC period $T_{GC}$, i.e.,
 
-    \large
-    $$ u_{GC} = u_{QTP} \iff T_Q = \frac{T_{GC}}{2} $$
+    \footnotesize
+    Queries traverse on average the same number of unproductive nodes under GC or QTP when
+    the query period $T_Q$ is half the GC period $T_{GC}$
+
+    %\large
+    %$$ u_{GC} = u_{QTP} \iff T_Q = \frac{T_{GC}}{2} $$
 }
-\frame{
-    \frametitle{GC vs.\ QTP}
-    \centering
-    \includegraphics[width=7cm]{gc_vs_qtp.eps}
-}
+%\frame{
+    %\frametitle{GC vs.\ QTP}
+    %\centering
+    %\includegraphics[width=7cm]{gc_vs_qtp.eps}
+%}
 %\subsection{Subsection 1}
 %\frame{
     %\frametitle{frame title}
@@ -1252,22 +1510,22 @@
 \frame{
     \frametitle{Unproductive Nodes}
     \begin{itemize}
-        \item greater volatility threshold $\tau$ $\implies$ fewer unproductive nodes
-        \item greater sliding window length $L$ $\implies$ more unproductive nodes
-        \item (very) high/low workload skew $s$ $\implies$ fewer unproductive nodes
-        \item more updates per second $\implies$ more unproductive nodes
+        \item volatility threshold $\tau \nearrow \enspace \implies$ unproductive nodes $\searrow$
+        \item sliding window length $L \nearrow \enspace \implies$ unproductive nodes $\nearrow$
+        \item workload skew $s \uparrow \downarrow \enspace \implies$ unproductive nodes $\searrow$
+        \item update operations per second $ \nearrow \enspace \implies$ unproductive nodes $\nearrow$
     \end{itemize}
 }
 \frame{
-    \frametitle{GC}
+    \frametitle{GC \& QTP}
+    GC
     \begin{itemize}
-        \item Fewer unproductive nodes $\implies$ faster queries
+        \item Periodically cleans nodes 
         \item Sawtooth pattern
         \item Slows down system if run too often
     \end{itemize}
-}
-\frame{
-    \frametitle{QTP}
+
+    QTP
     \begin{itemize}
         \item Faster and more stable than GC when queries are frequent
         \item Adds overhead to queries
@@ -1310,11 +1568,11 @@
         \item Unproductive node production rate
     \end{itemize}
 }   
-\subsection{References}
-\frame{
-    \frametitle{References}
-    \scriptsize
-    \bibliography{bib}
-}
+%\subsection{References}
+%\frame{
+    %\frametitle{References}
+    %\scriptsize
+    %\bibliography{bib}
+%}
 
 \end{document}

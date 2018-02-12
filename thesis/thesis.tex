@@ -686,8 +686,8 @@ over time \cite{KW17}.
   Index node $n$ is unproductive iff $n$, and any descendant of
   $n$, is neither matching (see \Cref{def:matching_node}) nor volatile (see
   \Cref{def:volatile_node}), i.e.,
-  $$ unproductive(n) \iff \forall  m (m \in (\{n\} \cup desc(n)) \land
-  \neg matching(m) \land \neg volatile(m))$$
+  $$ unproductive(n) \iff \forall  m (m \in (\{n\} \cup desc(n)) \implies
+  (\neg matching(m) \land \neg volatile(m))) $$
   \label{def:unproductive-node}
 \end{definition}
 

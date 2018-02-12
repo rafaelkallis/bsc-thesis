@@ -45,7 +45,7 @@ for filename in filenames:
 for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     periods = np.array(sorted(list(data.keys())))
 
-    xlabel("GC Period $T$ [s]")
+    xlabel("GC Period $T_{GC}$ [s]")
     ylabel("Avg. Query Runtime [ms]")
     plot(periods/1000, [median(data[p]["query_runtime"]) for p in periods], linestyle="-", marker="o")
     ylim(ymax=20)
@@ -54,7 +54,7 @@ for dataset, data in [("synthetic", data_synthetic), ("real", data_real)]:
     savefig("periodicity_query_runtime_{}.eps".format(dataset))
     clf()
 
-    xlabel("GC Period $T$ [s]")
+    xlabel("GC Period $T_{GC}$ [s]")
     ylabel("Unproductive Nodes [$\\times 10^2$]")
     plot(periods/1000, [median(data[p]["trav_unprod"])/100 for p in periods], linestyle="-", marker="o")
     # ylim(ymax=20)
