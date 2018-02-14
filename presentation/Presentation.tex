@@ -54,13 +54,20 @@
 \section{Introduction}
 \subsection{Abstract \& Outline}
 \frame{
+  \begin{itemize}
+    \item Skewed and update-heavy workloads trigger repeated structural index updates over a small subset of nodes to the index
+    \item Informally, a frequently added or removed node is called volatile
+    \item Volatile nodes decrease index update performance
+  \end{itemize}
+}
+\frame{
     \begin{Large}
         The Workload-Aware Property Index (WAPI):
     \end{Large}
     
     \begin{itemize}
-        \item Detects volatile, i.e.\ frequently updated, nodes
-        \item Stops pruning such volatile nodes
+        \item Detects such volatile nodes
+        \item Stops pruning volatile nodes
         \item Significantly improves update throughput
     \end{itemize}
 }
@@ -91,11 +98,11 @@
         \item Empirically evaluate and compare our two solutions
     \end{itemize}
 }
-\subsection{CMS Workload}
+\subsection{Example}
 \frame{
     \centering
     \Large
-    Background
+    Example: e-commerce platform
 }
 \frame{
     \centering
@@ -106,6 +113,8 @@
         \begin{forest}
             [
             [index]
+            [,phantom]
+            [,phantom]
             [products
             [consumer
             [$\alpha$]
@@ -125,6 +134,30 @@
 
     \footnotesize
     \begin{figure}
+      \begin{subfigure}{.4\textwidth}
+        \begin{forest}
+          [
+          [index]
+          [,phantom]
+          [,phantom]
+          [products
+          [consumer
+          [$\alpha$]
+          [$\beta$]
+          ]
+          [enterprise
+          [$\gamma$]
+          ]
+          ]
+          ]
+        \end{forest}
+        \vspace{2cm}
+      \end{subfigure}
+      \begin{subfigure}{.1\textwidth}
+        \centering
+        $\longrightarrow$
+      \end{subfigure}
+      \begin{subfigure}{.4\textwidth}
         \begin{forest}
             [
             [index
@@ -147,6 +180,7 @@
             ]
             ]
         \end{forest}
+      \end{subfigure}
     \end{figure}
 }
 %\frame{
@@ -429,7 +463,7 @@
     \centering
     \footnotesize
     \begin{itemize}
-        \item volatility count $vol(n)$ is the number of insertions and deletions of $n$ inside
+        \item volatility count $vol(n)$ is the number of insertions and deletions of node $n$ inside
             a sliding window.
     \end{itemize}
 }
@@ -563,8 +597,8 @@
                 [c, color=RoyalBlue
                 [$\alpha$, color=RoyalBlue]
                 ]
-                [,phantom]
-                [,phantom]
+                %[,phantom]
+                %[,phantom]
                 ]
                 ]
                 ]
@@ -592,15 +626,15 @@
             \begin{forest}
                 [
                 [i
-                [rend
-                [now
-                [p
+                [rend, color=Orange
+                [now, color=Orange
+                [p, color=Orange
                 [c, color=Orange
                 [$\alpha$, color=Orange]
                 ]
-                [e, color=RoyalBlue
-                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
-                ]
+                %[e, color=RoyalBlue
+                %[$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                %]
                 ]
                 ]
                 ]
@@ -612,13 +646,18 @@
                 [$\beta$]
                 ]
                 [e
-                [$\gamma$ \\ rend:now, align=center, base=bottom]
+                [$\gamma$]
                 ]
                 ]
                 ]
             \end{forest}
         \end{subfigure}
     \end{figure}
+
+    \begin{center}
+      \footnotesize
+      Volatile nodes might cease to be volatile and become unproductive
+    \end{center}
 
     \tiny
     \textcolor{RoyalBlue}{volatile}
@@ -647,8 +686,8 @@
         [c, color=Orange
         [$\alpha$, color=Orange]
         ]
-        [e, color=RoyalBlue
-        [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+        [e
+        [$\gamma$ \\ rend:now, align=center, base=bottom]
         ]
         ]
         ]
@@ -734,8 +773,8 @@
                 [c, color=Orange
                 [$\alpha$, color=Orange]
                 ]
-                [e, color=RoyalBlue
-                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                [e
+                [$\gamma$ \\ rend:now, align=center, base=bottom]
                 ]
                 ]
                 ]
@@ -769,8 +808,8 @@
                 [p
                 [,phantom]
                 [,phantom]
-                [e, color=RoyalBlue
-                [$\gamma$ \\ rend:now, color=RoyalBlue, align=center, base=bottom]
+                [e
+                [$\gamma$ \\ rend:now, align=center, base=bottom]
                 ]
                 ]
                 ]
@@ -794,8 +833,6 @@
     \raggedright
     \tiny
     \textcolor{RoyalBlue}{volatile}
-
-    \textcolor{Orange}{unproductive}
 }
 \subsection{Query-Time Pruning}
 \frame{
@@ -1055,7 +1092,7 @@
         \item Zipf distribution
         \item Workload changes every 30 seconds
         \item 10 update operations per query operation
-        \item Update operation: add and remove a property which triggers an index update
+        \item Update operation: add or remove a property triggering index updates
     \end{itemize}
 }
 \subsection{Unproductive Nodes}
@@ -1134,6 +1171,8 @@
             \end{forest}
 
             No skew
+
+            $s = 0$
         \end{subfigure}
         \begin{subfigure}{0.30\textwidth}
             \centering
@@ -1159,6 +1198,8 @@
             \end{forest}
 
             Normal skew
+
+            $s = 1$
         \end{subfigure}
         \begin{subfigure}{0.30\textwidth}
             \centering
@@ -1184,6 +1225,8 @@
             \end{forest}
 
             High skew
+
+            $s = 2$
         \end{subfigure}
     \end{figure}
 }
@@ -1200,17 +1243,16 @@
     }
     \begin{itemize}
         \item $s > 1$ $\implies$ small hotspot $\implies$ few unproductive nodes
-        \item $s < 1$ (uniform) $\implies$ no hotspot $\implies$ no unproductive nodes
+        \item $s < 1$ (uniform) $\implies$ no hotspot $\implies$ few unproductive nodes
     \end{itemize}
 }
-\subsection{Periodic Garbage Collection}
+\subsection{Cleaning Unproductive Nodes}
 \frame{
     \centering
     \large
-    Periodic Garbage Collection
+    Cleaning Unproductive Nodes 
 }
 \frame{
-    \frametitle{Periodic GC}
     \begin{figure}
         \begin{subfigure}{0.45\textwidth}
             \centering
@@ -1221,45 +1263,11 @@
             \includegraphics[height=3.8cm]{unprod_nodes_GC.eps}
         \end{subfigure}
     \end{figure}
-}
-\frame{
-    \frametitle{GC period $T$}
-    \centering
-    \begin{figure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{query_runtime_T.eps}
-        \end{subfigure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{unprod_nodes_T.eps}
-        \end{subfigure}
-    \end{figure}
 
-    \scriptsize
-    \begin{itemize}
-        \item Optimal GC period $T_{GC}^*$: period with the smallest query runtime
-        \item Too small $T_{GC}$ $\implies$ GC steals resources from query executor
-    \end{itemize}
-}
-\subsection{Query-Time Pruning}
-\frame{
     \centering
-    \large
-   Query-Time Pruning 
-}
-\frame{
-    \frametitle{QTP}
-    \begin{figure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{query_runtime_QTP.eps}
-        \end{subfigure}
-        \begin{subfigure}{0.45\textwidth}
-            \centering
-            \includegraphics[height=3.8cm]{unprod_nodes_QTP.eps}
-        \end{subfigure}
-    \end{figure}
+    \footnotesize
+    We run GC every 30 seconds
+    \vspace{3cm}
 }
 \frame{
     \begin{figure}
@@ -1325,6 +1333,26 @@
     %\end{figure}
 %}
 \frame{
+  \frametitle{GC period $T_{GC}$}
+    \centering
+    \begin{figure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{query_runtime_T.eps}
+        \end{subfigure}
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[height=3.8cm]{unprod_nodes_T.eps}
+        \end{subfigure}
+    \end{figure}
+
+    \scriptsize
+    \begin{itemize}
+        \item Optimal GC period $T_{GC}^*$: period with the smallest query runtime
+        \item Too small $T_{GC}$ $\implies$ GC steals resources from query executor
+    \end{itemize}
+}
+\frame{
     \frametitle{QTP}
     \begin{figure}[H]
         \centering
@@ -1338,9 +1366,9 @@
                     content node's path.}
                     \KwResult{A set of nodes satisfying $Q(k,v,m)$}
                     $r \longleftarrow \emptyset$\;
-                    \For{node $n \in
-                        desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$ in postorder tree walk}{
-                            \uIf{\textcolor{C0}{$matching(n)$}}{
+                    \For{\textcolor{C2}{node $n \in
+                      desc(\texttt{/i/k/v/}\lambda_1\texttt{/}\dots\texttt{/}\lambda_d)$} in postorder tree walk}{
+                            \uIf{\textcolor{C2}{$matching(n)$}}{
                             $r \longleftarrow r \cup \{ *n \}$\;
                         }
                         \ElseIf{\textcolor{C0}{$children(n)$}$ = \emptyset \land \neg $\textcolor{C0}{$volatile(n)$}}{
@@ -1353,7 +1381,7 @@
         \end{subfigure}
         \begin{subfigure}{0.49\linewidth}
             \centering
-            CPU time [ms]
+            runtime [ms]
             \begin{tikzpicture}[scale=.6]
                 \begin{axis}[
                     %xlabel = CPU time [$\mu$s],
@@ -1363,13 +1391,13 @@
                     %tickwidth         = 0pt,
                     %enlarge y limits  = 0.2,
                     %enlarge x limits  = 0.02,
-                    symbolic y coords = {volatile,delete,children,matching,traversal},
+                    symbolic y coords = {volatile 2.5\%,delete 15\%,children 30\%,matching 2.5\%,traversal 50\%},
                     nodes near coords,
                     ]
                     \addplot coordinates { 
-                            (0.5,volatile) (3,delete)
-                            (6,children) (0.5,matching)
-                            (10,traversal) 
+                            (0.5,volatile 2.5\%) (3,delete 15\%)
+                            (6,children 30\%) (0.5,matching 2.5\%)
+                            (10,traversal 50\%) 
                         };
                 \end{axis}
             \end{tikzpicture}
@@ -1477,11 +1505,33 @@
     \end{figure}
 
     \footnotesize
-    Queries traverse on average the same number of unproductive nodes under GC or QTP when
-    the query period $T_Q$ is half the GC period $T_{GC}$
+    Queries traverse on average fewer unproductive nodes under QTP when
+    the query period $T_Q$ is less than half the GC period $T_{GC}$
 
     %\large
     %$$ u_{GC} = u_{QTP} \iff T_Q = \frac{T_{GC}}{2} $$
+}
+\frame{
+    \begin{figure}
+        \centering
+        \begin{tikzpicture}[node distance=1.2cm]
+            \node (start) [startstop] {Start};
+            \node (GCperiod) [process, below of=start] {Find optimal GC period $T_{GC}^*$};
+            \node (Qperiod) [process, below of=GCperiod] {Find query period $T_Q$};
+            \node (dec) [decision, below of=Qperiod, node distance=1.7cm] {$T_Q > \frac{T_{GC}^*}{2}$};
+            \node (GC) [process, left of=dec, node distance=4cm] {Pick GC};
+            \node (QTP) [process, right of=dec, node distance=4cm] {Pick QTP};
+            \node (stop) [startstop, below of=dec, node distance=1.5cm] {Stop};
+
+            \draw [arrow] (start) -- (GCperiod);
+            \draw [arrow] (GCperiod) -- (Qperiod);
+            \draw [arrow] (Qperiod) -- (dec);
+            \draw [arrow] (dec) -- node [anchor=south,near start] {Yes} (GC);
+            \draw [arrow] (dec) -- node [anchor=south,near start] {No} (QTP);
+            \draw [arrow] (GC) |- (stop);
+            \draw [arrow] (QTP) |- (stop);
+        \end{tikzpicture}
+    \end{figure}
 }
 %\frame{
     %\frametitle{GC vs.\ QTP}
@@ -1520,7 +1570,7 @@
     \frametitle{GC \& QTP}
     GC
     \begin{itemize}
-        \item Periodically cleans nodes 
+        \item Periodically cleans unproductive index nodes 
         \item Sawtooth pattern
         \item Slows down system if run too often
     \end{itemize}
@@ -1531,28 +1581,6 @@
         \item Adds overhead to queries
         \item Overhead negligible in the long-term
     \end{itemize}
-}
-\frame{
-    \begin{figure}
-        \centering
-        \begin{tikzpicture}[node distance=1.2cm]
-            \node (start) [startstop] {Start};
-            \node (GCperiod) [process, below of=start] {Find optimal GC period $T_{GC}^*$};
-            \node (Qperiod) [process, below of=GCperiod] {Find query period $T_Q$};
-            \node (dec) [decision, below of=Qperiod, node distance=1.7cm] {$T_Q > \frac{T_{GC}^*}{2}$};
-            \node (GC) [process, left of=dec, node distance=4cm] {Pick GC};
-            \node (QTP) [process, right of=dec, node distance=4cm] {Pick QTP};
-            \node (stop) [startstop, below of=dec, node distance=1.5cm] {Stop};
-
-            \draw [arrow] (start) -- (GCperiod);
-            \draw [arrow] (GCperiod) -- (Qperiod);
-            \draw [arrow] (Qperiod) -- (dec);
-            \draw [arrow] (dec) -- node [anchor=south,near start] {Yes} (GC);
-            \draw [arrow] (dec) -- node [anchor=south,near start] {No} (QTP);
-            \draw [arrow] (GC) |- (stop);
-            \draw [arrow] (QTP) |- (stop);
-        \end{tikzpicture}
-    \end{figure}
 }
 \subsection{Future Work}
 \frame{
